@@ -33,7 +33,17 @@ Accounts and sync (profile and progress live in the browser's local storage; exp
 v1: affiliate links. v2 candidate paid tier: multi-property, family sharing and sync, PDF plan export, push reminders, installer quote matching.
 
 ## Tech
-Next.js (App Router, TypeScript), Tailwind, PWA manifest and service worker, server routes for PVGIS, postcodes.io and elevation proxies, Zod-validated plan rules in plain TypeScript so the planning logic is testable without a browser. Vitest for the rules. Deployed on Vercel at selficient.app with selficient.co.uk redirecting. Plausible or Umami for analytics (cookie-free).
+*Revised 29 Oct 2026 after reviewing the house conventions in sitewise.app and VanillaUIBaseApp. The earlier Next.js/Vercel proposal is withdrawn: SiteWise already has a proven PWA pattern on the stack the team runs.*
+
+- **.NET 10, Razor Pages + minimal-API endpoints**, started from the VanillaUIBaseApp template (vanilla ES modules, token-based BEM CSS, no front-end build step, no UI framework). Solution in `.slnx` format with `Directory.Build.props`.
+- **Projects:** `Selficient.Domain` (plan rules, risk ranking, solar maths as pure C#), `Selficient.Web`, `tests/Selficient.Domain.Tests` and `tests/Selficient.Web.Tests` on xUnit + NSubstitute + `Mvc.Testing`.
+- **PWA, the SiteWise way:** `manifest.webmanifest` (standalone), the install prompt script with the iOS Add-to-Home-Screen dialog, the server-generated service worker (`sw.source.js` template + `ServiceWorkerController` + `ShellVersionService` hashing every static asset) and the shell build-skew reload. Precache the shell; network-first for pages; never cache `/api/*`.
+- **Offline data (v1):** profile, generated plan and tick state in `localStorage`/IndexedDB, exported and imported as JSON. No sync API, SignalR or outbox until accounts exist; when they do, copy SiteWise's outbox + `/api/sync/up` batch pattern.
+- **Server endpoints:** `/api/geo/postcode` (postcodes.io), `/api/geo/elevation` (open-meteo), `/api/solar/pvgis` (PVGIS v5.2) behind `HttpClient` with output caching; health at `/health`.
+- **Data:** none in v1. SQL Server + Dapper + embedded `.sql` migrations (SiteWise `MigrationRunner` pattern) when freemium accounts arrive.
+- **Config and logging:** environment variables, no secrets in the repo; Serilog console + rolling file.
+- **CI/CD:** `pr-build-and-test.yml` on PRs to `development`/`main`; `build-test-and-deploy.yml` on push to `main`: restore, build Release, test, publish, artifact, then a self-hosted Windows runner stops the IIS app pool, robocopies into the Plesk vhost for selficient.app, restarts and polls `/health`. selficient.co.uk and selficient.uk redirect at the Plesk level.
+- **Analytics:** none at launch, or self-hosted Umami on an existing VPS if wanted; no third-party cookies.
 
 ## Content sources
 The plan rules and kit catalogue are seeded from `research/2026-10-29-household-resilience-review.md` and `plans/household-resilience-plan.md`; the government checklist from beready.campaign.gov.uk.
