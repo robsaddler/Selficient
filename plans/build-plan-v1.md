@@ -109,7 +109,7 @@ Anti-patterns we refuse: service locator, static mutable state, exceptions as co
 
 ## 6. Performance
 
-Targets on a single VPS vCPU pair, measured by NBomber against staging:
+Targets on a single VPS vCPU pair. There is no staging environment (Rob, 29 Oct 2026: test locally). NBomber runs against a Release build of the app that the load-test project starts itself on Kestrel, locally and on the CI runner, and the numbers are recorded per commit so regressions show:
 
 | Scenario | Target |
 |---|---|
@@ -130,7 +130,7 @@ Patterns: stateless web tier; `HybridCache` for geocode, elevation, PVGIS and So
 5. **Adversarial:** per feature, the abuse list from section 8 encoded as tests in a `*.Adversarial.Tests` class.
 6. **Accessibility:** axe-core via Playwright on every page, zero violations.
 7. **E2E:** Playwright smoke journeys: postcode to plan, tick to Days Ready change, export and import, install prompt, offline reload.
-8. **Performance:** BenchmarkDotNet baselines committed; NBomber load runs in the deploy workflow against staging, failing on target breach.
+8. **Performance:** BenchmarkDotNet baselines committed; NBomber load runs in the PR workflow against a self-hosted Release build on Kestrel, failing on target breach; the same script runs locally with one command.
 9. **Coverage:** coverlet in every test project with `Threshold=100`, `ThresholdType=line,branch`, `ThresholdStat=total`; ReportGenerator HTML artifact on every CI run. Exclusions, documented in `docs/coverage-exclusions.md`: `Program.cs` top-level statements, generated Razor code, `[ExcludeFromCodeCoverage]` only on composition-root extension methods that wire DI, each with a justification comment.
 
 ## 8. Feature workflow (definition of done)
@@ -148,8 +148,11 @@ For every feature, in order:
 
 ## 9. CI/CD
 
-- `pr-build-and-test.yml` on PRs to `development`/`main`: restore, build (warnings as errors), test with coverage thresholds, architecture tests, `dotnet list package --vulnerable`, Playwright smoke in a container, ReportGenerator artifact.
-- `build-test-and-deploy.yml` on push to `main`: as above, publish, artifact, self-hosted Windows runner deploys to the **staging** vhost first (stop pool, robocopy `/MIR` excluding `logs App_Data`, start pool, `/health` poll), runs NBomber against staging, then the same to production. Concurrency group `deploy-production`.
+No staging environment. Testing is local (`./build/run-tests.ps1`, one command, same gate as CI) and `main` deploys straight to production, as every other app in the shop does.
+
+- `pr-build-and-test.yml` on PRs to `development`/`main`: SiteWise's shape plus CoachApp's UTF-8 mojibake guard, SmartReminder's per-assembly 100% coverage gate (`build/run-tests.ps1` + `build/coverage-report.mjs`, extended to branch coverage), architecture tests, `dotnet list package --vulnerable`, `tsc --checkJs` and ESLint, Playwright smoke and axe, NBomber against a self-hosted Release build, coverage artifact.
+- `build-test-and-deploy.yml` on push to `main`: SiteWise's file with the shop's standard points of difference substituted and nothing else changed: solution `Selficient.slnx`; web project `src/Selficient.Web/Selficient.Web.csproj`; no secondary publish (no DevTools); no SQL service container (no database in v1); runner label `[self-hosted-selficient, windows]`; `APP_POOL_NAME: "selficient.app(domain)(4.0)(pool)"`; `DEPLOY_PATH: "C:\inetpub\vhosts\selficient.app\httpdocs"`; `HEALTH_URL: "https://selficient.app/health"`; robocopy `/MIR /XD logs App_Data tiles`; the guarded Zoomstack basemap fetch kept as the last, non-gating step for M5. Concurrency group `deploy-production`, `cancel-in-progress: false`.
+- The deploy job cannot run until the vhost, app pool and runner label exist on the VPS; until then the workflow still builds, tests and uploads the publish artifact on every push to `main`.
 - Branch strategy as SiteWise: `development` integration, `main` release.
 - No secrets in workflows; env vars on the runner.
 
@@ -233,7 +236,7 @@ No framework, no bundler, no transpiler, no preprocessor. The browser platform a
 
 | # | Milestone | Deliverables | Acceptance |
 |---|---|---|---|
-| M0 | Foundation | Solution, CPM, analyzers, test projects, architecture tests, coverage gate, both workflows, staging vhost, health, security headers, CSS layers and tokens from the design direction, fonts, import map and `app.js`, first custom element (`<days-ready>`), `/styleguide` page, `tsc --checkJs` and ESLint in CI, ADR-001 | CI green at 100% on an empty-but-real app; headers test passes; styleguide renders in both themes; deploys to staging |
+| M0 | Foundation | Solution, CPM, analyzers, test projects, architecture tests, coverage gate, both workflows, health, security headers, CSS layers and tokens from the design direction, fonts, import map and `app.js`, first custom element (`<days-ready>`), `/styleguide` page, `tsc --checkJs` and ESLint in CI, ADR-001 | CI green at 100% on an empty-but-real app; headers test passes; styleguide renders in both themes; `./build/run-tests.ps1` passes locally; publish artifact produced on `main` |
 | M1 | Rules engine | Domain value objects, risks, rules, Days Ready, plan builder, property tests, benchmarks | Your house's plan reproduces the committed resilience plan tier by tier |
 | M2 | Profile and plan | Wizard pages (progressive enhancement, works without JS), geocode and elevation adapters, plan page, contour hero, Days Ready animation | Postcode to plan on a phone in under a minute; offline reload of a generated plan |
 | M3 | Checklist | Tick state, progress per tier, rotation calendar, `.ics` export, JSON export/import with schema | Ticking water moves Days Ready; import rejects hostile JSON |
@@ -247,10 +250,10 @@ No framework, no bundler, no transpiler, no preprocessor. The browser platform a
 
 Sequence is strict for M0–M2; M3–M9 can interleave; M10 last.
 
-## 12. Decisions needed from Rob before M0
+## 12. Decisions (answered 29 Oct 2026)
 
-1. Repo home: keep this repo and add `src/` and `tests/` beside `plans/`, `product/`, `research/`? (Recommended: yes, docs and code together.)
-2. GitHub: create the remote now so the workflows and self-hosted runner can be wired at M0?
-3. Staging and production vhost names on the VPS, and whether the SiteWise self-hosted runner can serve Selficient or needs its own label.
-4. Google Cloud project and Anthropic API key ownership for F5 stage B and F7 (env vars on the runner).
-5. Confirm the font choices in the design direction (self-hosted Bricolage Grotesque, Atkinson Hyperlegible, IBM Plex Mono; all SIL Open Font Licence).
+1. **Plan approved with changes** (the changes being items 3 and 4 below).
+2. **Repo:** code lives in this repo under `src/` and `tests/`; private GitHub remote created at `Dev-Studios-Ltd/Selficient` alongside SiteWise.
+3. **Hosting:** no staging; test locally. Deploy workflow is SiteWise's with the shop's standard points of difference (section 9). Rob provisions the vhost, app pool and `self-hosted-selficient` runner label when ready.
+4. **API keys:** Rob sets up the Google Cloud project (Solar API) and the Anthropic key before M6 and M8; both arrive as env vars on the runner; the build proceeds against fakes until then.
+5. **Fonts:** Bricolage Grotesque, Atkinson Hyperlegible and IBM Plex Mono as in the design direction unless Rob objects (all SIL Open Font Licence, self-hosted).
