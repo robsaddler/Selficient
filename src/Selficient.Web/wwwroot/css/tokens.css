@@ -1,0 +1,122 @@
+/*
+  Design tokens, derived from product/design-direction.md. Light and dark are expressed with
+  light-dark() so one declaration carries both; the explicit toggle sets color-scheme on <html>.
+*/
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("../fonts/BricolageGrotesque-Variable.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-Variable.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("../fonts/AtkinsonHyperlegibleNext-Italic-Variable.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../fonts/IBMPlexMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../fonts/IBMPlexMono-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Palette. Hex equivalents in the design direction; oklch here so tints are one step away. */
+  --c-slate: light-dark(oklch(26% 0.03 230), oklch(93% 0.008 200));
+  --c-sky: light-dark(oklch(95.5% 0.005 200), oklch(22% 0.03 230));
+  --c-pine: light-dark(oklch(43% 0.08 165), oklch(62% 0.1 165));
+  --c-lantern: oklch(76% 0.15 75);
+  --c-contour: light-dark(oklch(85% 0.012 190), oklch(38% 0.02 220));
+  --c-ember: light-dark(oklch(50% 0.19 28), oklch(68% 0.17 28));
+  --c-paper: light-dark(oklch(100% 0 0), oklch(26% 0.03 230));
+
+  /* Derived */
+  --c-ink: var(--c-slate);
+  --c-ink-muted: color-mix(in oklch, var(--c-slate) 70%, var(--c-sky));
+  --c-ground: var(--c-sky);
+  --c-pine-hover: color-mix(in oklch, var(--c-pine) 85%, var(--c-slate));
+  --c-pine-tint: color-mix(in oklch, var(--c-pine) 12%, var(--c-paper));
+  --c-lantern-tint: color-mix(in oklch, var(--c-lantern) 18%, var(--c-paper));
+  --c-ember-tint: color-mix(in oklch, var(--c-ember) 12%, var(--c-paper));
+  --c-focus: var(--c-lantern);
+
+  /* Type */
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", system-ui, Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --text-s: 0.875rem;
+  --text-m: 1rem;
+  --text-l: 1.25rem;
+  --text-xl: clamp(1.4rem, 1.1rem + 1.2vw, 1.75rem);
+  --text-2xl: clamp(1.9rem, 1.4rem + 2vw, 2.4rem);
+  --text-display: clamp(3.5rem, 2rem + 10vw, 7rem);
+
+  --leading-tight: 1.1;
+  --leading-body: 1.55;
+
+  /* Space, on a 4px base */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --gutter: clamp(1rem, 4vw, 2rem);
+
+  /* Shape */
+  --radius-s: 0.375rem;
+  --radius-m: 0.75rem;
+  --border: 2px solid var(--c-contour);
+  --focus-ring: 3px solid var(--c-focus);
+
+  /* Layout */
+  --measure: 62ch;
+  --page-max: 72rem;
+  --header-height: 3.5rem;
+
+  /* Motion */
+  --duration-quick: 150ms;
+  --duration-reveal: 900ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* The animatable Days Ready number. Registered so the figure can count up in CSS alone. */
+@property --days {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}

@@ -2,3 +2,20 @@
 Thumbs.db
 *.tmp
 .claude/settings.local.json
+
+# .NET
+artifacts/
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+.vs/
+logs/
+App_Data/
+
+# Node tooling (type check and lint only)
+node_modules/
+
+# Runtime data never committed
+src/Selficient.Web/tiles/

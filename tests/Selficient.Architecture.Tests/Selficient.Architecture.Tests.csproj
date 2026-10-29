@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Dependency, purity and surface rules. Fails the build on any violation. -->
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Selficient.Domain/Selficient.Domain.csproj" />
+    <ProjectReference Include="../../src/Selficient.Application/Selficient.Application.csproj" />
+    <ProjectReference Include="../../src/Selficient.Infrastructure/Selficient.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Selficient.Web/Selficient.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+
+</Project>

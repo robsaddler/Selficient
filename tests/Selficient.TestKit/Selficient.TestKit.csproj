@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shared test doubles and builders. Not a test project itself, so it is excluded from the coverage
+    gate (it is exercised by every suite by definition).
+  -->
+  <PropertyGroup>
+    <RootNamespace>Selficient.TestKit</RootNamespace>
+    <IsTestProject>false</IsTestProject>
+    <NoWarn>$(NoWarn);CA1515</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Selficient.Application/Selficient.Application.csproj" />
+    <ProjectReference Include="../../src/Selficient.Web/Selficient.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="NSubstitute" />
+  </ItemGroup>
+
+</Project>

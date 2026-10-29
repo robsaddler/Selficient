@@ -1,0 +1,313 @@
+/* Buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 2.75rem;
+  padding: var(--space-2) var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  color: var(--c-ink);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--duration-quick), border-color var(--duration-quick);
+
+  &:hover {
+    border-color: var(--c-pine);
+  }
+
+  &.button--primary {
+    background: var(--c-pine);
+    border-color: var(--c-pine);
+    color: oklch(100% 0 0);
+
+    &:hover {
+      background: var(--c-pine-hover);
+      border-color: var(--c-pine-hover);
+    }
+  }
+
+  &.button--quiet {
+    border-color: transparent;
+    background: transparent;
+    color: var(--c-pine);
+  }
+}
+
+.theme-toggle {
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border: var(--border);
+  border-radius: 50%;
+  background: var(--c-paper);
+  cursor: pointer;
+}
+
+/* Eyebrow: a small label that says what kind of thing follows */
+.eyebrow {
+  font-family: var(--font-data);
+  font-size: var(--text-s);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-ink-muted);
+}
+
+/* Hero with the Days Ready figure over the contour band */
+.hero {
+  position: relative;
+  isolation: isolate;
+  padding-block: var(--space-7);
+  max-inline-size: var(--measure);
+
+  & .contour-band {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--c-contour) 0 1px,
+      transparent 1px calc(1.25rem + var(--contour-gap, 0px))
+    );
+    mask-image: linear-gradient(to bottom, transparent, oklch(0% 0 0 / 0.35) 30%, transparent);
+    pointer-events: none;
+  }
+
+  & h1 {
+    font-size: var(--text-xl);
+    font-weight: 500;
+    color: var(--c-ink-muted);
+  }
+
+  & .hero__lede {
+    margin-block-start: var(--space-5);
+    color: var(--c-ink-muted);
+  }
+
+  & .hero__actions {
+    margin-block-start: var(--space-6);
+  }
+}
+
+/* Days Ready: the signature figure. Lantern is allowed to shout here and nowhere else. */
+days-ready,
+.days-ready {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  --days: attr(value type(<number>), 0);
+}
+
+.days-ready__figure {
+  font-size: var(--text-display);
+  font-weight: 700;
+  font-stretch: 85%;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--c-lantern);
+}
+
+.days-ready__unit {
+  font-size: var(--text-xl);
+  font-weight: 500;
+  color: var(--c-ink-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  days-ready[data-revealed] .days-ready__figure {
+    animation: lift var(--duration-reveal) var(--ease-out);
+  }
+}
+
+@keyframes lift {
+  from {
+    opacity: 0;
+    translate: 0 0.2em;
+  }
+}
+
+/* Progress: flat lantern bar, never a ring */
+progress.tier-progress {
+  inline-size: 100%;
+  block-size: 0.75rem;
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-s);
+  background: var(--c-contour);
+  overflow: hidden;
+
+  &::-webkit-progress-bar {
+    background: var(--c-contour);
+  }
+
+  &::-webkit-progress-value {
+    background: var(--c-lantern);
+  }
+
+  &::-moz-progress-bar {
+    background: var(--c-lantern);
+  }
+}
+
+/* The plan sheet */
+.sheet {
+  container-type: inline-size;
+  background: var(--c-paper);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  padding: var(--space-5);
+}
+
+.sheet__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block-end: var(--space-4);
+  border-block-end: var(--border);
+
+  & h3 {
+    flex: 1;
+  }
+}
+
+.sheet__index {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--c-lantern);
+}
+
+.actions {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+.action label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "box title price"
+    "box why price";
+  column-gap: var(--space-3);
+  align-items: start;
+  cursor: pointer;
+
+  & input {
+    grid-area: box;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    margin-block-start: 0.1rem;
+  }
+
+  & .action__title {
+    grid-area: title;
+    font-weight: 600;
+  }
+
+  & .action__why {
+    grid-area: why;
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+
+  & .data {
+    grid-area: price;
+  }
+
+  &:has(input:checked) .action__title {
+    color: var(--c-pine);
+    text-decoration: line-through;
+    text-decoration-color: var(--c-contour);
+  }
+}
+
+@container (max-width: 28rem) {
+  .action label {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "box title"
+      "box why"
+      "box price";
+  }
+}
+
+/* Data: measurements line up and read as instrument output */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Callouts */
+.callout {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 4px solid var(--c-pine);
+  background: var(--c-pine-tint);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+
+  &.callout--warning {
+    border-inline-start-color: var(--c-ember);
+    background: var(--c-ember-tint);
+  }
+}
+
+/* Notice page (errors) */
+.notice {
+  max-inline-size: var(--measure);
+  padding-block: var(--space-7);
+}
+
+/* Native dialog */
+.dialog {
+  inline-size: min(90vw, 28rem);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  padding: var(--space-5);
+  background: var(--c-paper);
+  color: var(--c-ink);
+
+  &::backdrop {
+    background: oklch(20% 0.02 230 / 0.5);
+  }
+}
+
+/* Styleguide-only */
+.swatches {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-3);
+}
+
+.swatch {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--c-paper);
+  border: var(--border);
+  border-radius: var(--radius-s);
+}
+
+.swatch__chip {
+  block-size: 3rem;
+  border-radius: var(--radius-s);
+  background: var(--swatch);
+  border: 1px solid var(--c-contour);
+}
+
+.display {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--c-lantern);
+}
+
+.styleguide > section {
+  margin-block-start: var(--space-7);
+}

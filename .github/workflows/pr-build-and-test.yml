@@ -1,0 +1,80 @@
+name: Build and Run Tests
+
+on:
+  # Run automatically on pull requests targeting development or main
+  pull_request:
+    branches:
+      - development
+      - main
+
+  # Allow a manual trigger from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    # No database in v1, so no SQL Server service. If real-SQL integration tests are ever added,
+    # copy the mssql service block from SiteWise's workflow.
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      # A PowerShell Get-Content/Set-Content round-trip once re-saved a Razor page with its UTF-8
+      # text misread as Windows-1252, double-encoding every em dash and middot in production.
+      # Nothing deploys except through this workflow, so failing here makes that class of
+      # corruption unshippable: every source file must be valid UTF-8 and free of mojibake.
+      - name: Guard against encoding corruption
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files -- src tests build plans product research docs ':!*node_modules*' \
+            | grep -E '\.(cs|cshtml|razor|js|mjs|css|json|md|txt|yml|webmanifest)$' || true)
+          if [ ${#files[@]} -eq 0 ]; then echo "No files to check"; exit 0; fi
+          bad=0
+          for f in "${files[@]}"; do
+            if ! iconv -f UTF-8 -t UTF-8 "$f" > /dev/null 2>&1; then
+              echo "::error file=$f::Not valid UTF-8 — file was saved in a legacy encoding"
+              bad=1
+            fi
+          done
+          if grep -InP 'â€|Â[·»«£°¦§]|Ã[©¨ª«¢¤¶¼±§¸]' "${files[@]}"; then
+            echo "::error::Mojibake (double-encoded UTF-8) found in the lines above — the file was read as Windows-1252 and re-saved. Restore the original characters."
+            bad=1
+          fi
+          exit $bad
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore dependencies
+        run: dotnet restore Selficient.slnx
+
+      - name: Check for vulnerable packages
+        run: |
+          set -o pipefail
+          dotnet list Selficient.slnx package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          if grep -q -E 'has the following vulnerable packages' vulnerable.txt; then
+            echo "::error::Vulnerable packages found. See the list above."
+            exit 1
+          fi
+
+      - name: Build, test, and gate coverage
+        run: ./build/run-tests.ps1
+        shell: pwsh
+        env:
+          CI: "true"
+
+      - name: Publish coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: coverage
+          path: TestResults/*.cobertura.xml

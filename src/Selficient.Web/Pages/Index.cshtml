@@ -1,0 +1,19 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "How many days could your house stand on its own?";
+}
+
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="contour-band" aria-hidden="true" data-elevation="0"></div>
+  <p class="eyebrow">Your household</p>
+  <h1 id="hero-heading">Your house could stand on its own for</h1>
+  <days-ready value="@Model.DaysReady.ToString("0.#", System.Globalization.CultureInfo.CurrentCulture)" class="days-ready">
+    <span class="days-ready__figure">@Model.DaysReady.ToString("0.#", System.Globalization.CultureInfo.CurrentCulture)</span>
+    <span class="days-ready__unit">days</span>
+  </days-ready>
+  <p class="hero__lede">Most houses start at about half a day. Three days is the government's ask. Seven days is where a storm becomes an inconvenience rather than a crisis.</p>
+  <p class="hero__actions">
+    <a class="button button--primary" href="/plan/start">Start your plan</a>
+  </p>
+</section>

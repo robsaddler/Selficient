@@ -1,0 +1,104 @@
+@page "/styleguide"
+@model StyleguideModel
+@{
+    ViewData["Title"] = "Styleguide";
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+}
+
+<article class="styleguide">
+  <header>
+    <p class="eyebrow">Living styleguide</p>
+    <h1>Every token and component, in both themes</h1>
+    <p>This page is rendered in CI and compared against the previous build. If something here drifts, the design has drifted.</p>
+  </header>
+
+  <section aria-labelledby="sg-colour">
+    <h2 id="sg-colour">Colour</h2>
+    <ul class="swatches">
+      @foreach (var token in Model.ColourTokens)
+      {
+        <li class="swatch" style="--swatch: var(@token.Name)">
+          <span class="swatch__chip" aria-hidden="true"></span>
+          <code>@token.Name</code>
+          <span>@token.Purpose</span>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="sg-type">
+    <h2 id="sg-type">Type</h2>
+    <p class="display">7 days</p>
+    <h1>Heading one, balanced</h1>
+    <h2>Heading two</h2>
+    <h3>Heading three</h3>
+    <p>Body copy in Atkinson Hyperlegible Next. It stays readable by torchlight on a phone at five percent battery, which is the brief.</p>
+    <p class="data">36 L · £1,234.50 · 232 m · 936 kWh/kWp</p>
+    <p>Currency as rendered by the server: <strong>@(1234.5m.ToString("C", culture))</strong></p>
+  </section>
+
+  <section aria-labelledby="sg-buttons">
+    <h2 id="sg-buttons">Buttons</h2>
+    <p class="cluster">
+      <a class="button button--primary" href="#sg-buttons">Start your plan</a>
+      <a class="button" href="#sg-buttons">Go back to your plan</a>
+      <button type="button" class="button button--quiet">Export as a file</button>
+    </p>
+  </section>
+
+  <section aria-labelledby="sg-days">
+    <h2 id="sg-days">Days Ready</h2>
+    <days-ready value="3.5" class="days-ready">
+      <span class="days-ready__figure">3.5</span>
+      <span class="days-ready__unit">days</span>
+    </days-ready>
+    <progress class="tier-progress" value="4" max="11" aria-label="Four of eleven actions done">4 of 11</progress>
+  </section>
+
+  <section aria-labelledby="sg-cards">
+    <h2 id="sg-cards">Plan sheet</h2>
+    <article class="sheet">
+      <header class="sheet__header">
+        <span class="sheet__index">1</span>
+        <h3>This week</h3>
+        <span class="data">£300</span>
+      </header>
+      <ul class="actions">
+        <li class="action">
+          <label>
+            <input type="checkbox" name="demo-1">
+            <span class="action__title">36 litres of bottled water</span>
+            <span class="action__why">Three days of drinking water for four people. That is six of the big bottles.</span>
+            <span class="data">£15</span>
+          </label>
+        </li>
+        <li class="action">
+          <label>
+            <input type="checkbox" name="demo-2" checked>
+            <span class="action__title">Four plug-in power-failure torches</span>
+            <span class="action__why">They charge in the socket and switch on the instant the power drops, so nobody is on a dark stair.</span>
+            <span class="data">£80</span>
+          </label>
+        </li>
+      </ul>
+    </article>
+  </section>
+
+  <section aria-labelledby="sg-notice">
+    <h2 id="sg-notice">Notices</h2>
+    <p class="callout">We couldn't find that postcode. Check it and try again.</p>
+    <p class="callout callout--warning">Never run a camping stove, barbecue or generator indoors.</p>
+  </section>
+
+  <section aria-labelledby="sg-dialog">
+    <h2 id="sg-dialog">Dialog</h2>
+    <button type="button" class="button" data-open-dialog="sg-demo-dialog">Show a dialog</button>
+    <dialog id="sg-demo-dialog" class="dialog">
+      <form method="dialog">
+        <h3>Install Selficient on this phone</h3>
+        <p>Selficient then opens from your home screen like any app, and keeps working without signal.</p>
+        <p class="cluster"><button type="submit" class="button button--primary">Not now</button></p>
+      </form>
+    </dialog>
+  </section>
+</article>

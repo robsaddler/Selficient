@@ -1,0 +1,134 @@
+html {
+  font-family: var(--font-body);
+  font-size: 100%;
+  background: var(--c-ground);
+  color: var(--c-ink);
+  accent-color: var(--c-pine);
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  font-size: var(--text-m);
+  line-height: var(--leading-body);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: var(--leading-tight);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+}
+
+h2 {
+  font-size: var(--text-xl);
+}
+
+h3 {
+  font-size: var(--text-l);
+}
+
+p + p,
+p + h2,
+p + h3,
+ul + p,
+h1 + p,
+h2 + p,
+h3 + p {
+  margin-block-start: var(--space-4);
+}
+
+a {
+  color: var(--c-pine);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+
+  &:hover {
+    color: var(--c-pine-hover);
+  }
+}
+
+code {
+  font-family: var(--font-data);
+  font-size: 0.9em;
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+
+::selection {
+  background: var(--c-lantern-tint);
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: var(--header-height);
+  padding-inline: var(--gutter);
+  border-block-end: var(--border);
+  background: var(--c-paper);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-l);
+  text-decoration: none;
+  color: var(--c-ink);
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+
+  & a {
+    text-decoration: none;
+    font-weight: 500;
+  }
+}
+
+.site-main {
+  inline-size: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding-block: var(--space-6);
+  padding-inline: var(--gutter);
+}
+
+.site-footer {
+  padding-block: var(--space-6);
+  padding-inline: var(--gutter);
+  border-block-start: var(--border);
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+  max-inline-size: none;
+
+  & p {
+    max-inline-size: var(--measure);
+  }
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--c-paper);
+  border-radius: var(--radius-s);
+  translate: 0 -200%;
+
+  &:focus {
+    translate: 0 0;
+  }
+}

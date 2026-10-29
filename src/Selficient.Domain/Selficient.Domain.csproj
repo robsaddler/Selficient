@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The domain is pure C#: value objects, the rules engine, the calculators. It references nothing,
+    and the architecture tests fail the build if that ever changes.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Selficient.Domain</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+</Project>

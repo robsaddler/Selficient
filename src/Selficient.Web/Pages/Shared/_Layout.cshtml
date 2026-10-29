@@ -1,0 +1,43 @@
+@inject Selficient.Web.Security.CspNonce Nonce
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#1F5F4A">
+  <title>@PageTitle.Compose(ViewData["Title"])</title>
+  <meta name="description" content="@(ViewData["Description"] ?? "Work out how many days your house could stand on its own, and close the gap with a plan that fits your home.")">
+  <link rel="stylesheet" href="~/css/app.css" asp-append-version="true">
+  <link rel="modulepreload" href="~/js/app.js">
+  <script type="importmap">
+    {
+      "imports": {
+        "selficient/": "/js/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the main content</a>
+  <header class="site-header">
+    <a class="wordmark" href="/" aria-label="Selficient home">Selficient</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="/">Your plan</a>
+      <a href="/styleguide">Styleguide</a>
+      <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false">
+        <span class="sr-only">Switch between light and dark</span>
+        <span aria-hidden="true">◐</span>
+      </button>
+    </nav>
+  </header>
+  <main id="main" class="site-main" tabindex="-1">
+    @RenderBody()
+  </main>
+  <footer class="site-footer">
+    <p>Selficient helps households prepare for everyday emergencies. It is guidance, not professional advice, and it never replaces the instructions of the emergency services.</p>
+    <p>Nothing you enter leaves your browser except the postcode we use to find your area.</p>
+  </footer>
+  <script type="module" src="~/js/app.js" asp-append-version="true"></script>
+</body>
+</html>

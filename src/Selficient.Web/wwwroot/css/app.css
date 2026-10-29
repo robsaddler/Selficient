@@ -1,0 +1,11 @@
+/*
+  Selficient stylesheet. Cascade layers govern specificity, so later layers win regardless of
+  selector weight and no rule ever needs !important. Every value comes from a token.
+*/
+@layer reset, tokens, base, components, utilities, pages;
+
+@import url("reset.css") layer(reset);
+@import url("tokens.css") layer(tokens);
+@import url("base.css") layer(base);
+@import url("components.css") layer(components);
+@import url("utilities.css") layer(utilities);

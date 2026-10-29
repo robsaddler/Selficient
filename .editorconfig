@@ -1,0 +1,43 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:error
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_prefer_braces = true:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+
+# Security-relevant analyzers escalated to errors
+dotnet_diagnostic.CA2100.severity = error   # SQL injection
+dotnet_diagnostic.CA3075.severity = error   # Insecure DTD processing
+dotnet_diagnostic.CA5350.severity = error   # Weak crypto
+dotnet_diagnostic.CA5351.severity = error   # Broken crypto
+dotnet_diagnostic.CA5359.severity = error   # Do not disable cert validation
+dotnet_diagnostic.CA5364.severity = error   # Deprecated security protocols
+dotnet_diagnostic.CA5369.severity = error   # XmlSerializer
+dotnet_diagnostic.CA5386.severity = error   # Hardcoded SecurityProtocolType
+dotnet_diagnostic.CA5394.severity = error   # Insecure randomness
+dotnet_diagnostic.CA3003.severity = error   # Path injection
+dotnet_diagnostic.CA3006.severity = error   # Process command injection
+dotnet_diagnostic.CA3012.severity = error   # Regex injection
+dotnet_diagnostic.CA5395.severity = error   # Missing HttpVerb attribute
+dotnet_diagnostic.CA2007.severity = none    # ConfigureAwait - handled per-project
+
+[*.{json,js,mjs,ts,yml,yaml,html,css,cshtml,webmanifest}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{sh,ps1}]
+end_of_line = lf

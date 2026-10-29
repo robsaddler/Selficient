@@ -1,0 +1,54 @@
+<Project>
+
+  <!--
+    Build baseline carried forward from SmartReminder (the strictest in the shop). Every project in
+    the solution inherits this; test projects layer tests/Directory.Build.props on top.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-Recommended</AnalysisLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <Company>Dev Studios Ltd</Company>
+    <Product>Selficient</Product>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!--
+    Invariant globalisation is off deliberately: Selficient formats litres, pounds and dates for
+    en-GB and must never render dollars (a lesson SiteWise learned on a live IIS box). Culture is
+    pinned to en-GB at startup instead.
+  -->
+
+  <!-- Defence in depth: opt every assembly out of unsafe runtime behaviour. -->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo"
+                       Condition="'$(IsTestProject)' != 'true' AND '$(MSBuildProjectName)' != ''">
+      <_Parameter1>$(MSBuildProjectName).Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo"
+                       Condition="'$(IsTestProject)' != 'true' AND '$(MSBuildProjectName)' != ''">
+      <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

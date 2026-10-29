@@ -1,0 +1,9 @@
+# Normalise line endings: CRLF in the working tree on Windows, LF in the repo.
+* text=auto
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.ttf binary
+*.woff2 binary
+*.png binary
+*.ico binary
+*.mbtiles binary

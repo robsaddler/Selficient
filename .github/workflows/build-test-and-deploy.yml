@@ -1,0 +1,169 @@
+name: Build, Run Tests, Publish and Deploy to Production
+
+on:
+  push:
+    branches: [ "main" ]
+
+# Never let two deploys interleave; queue them instead of cancelling so every
+# push still lands in order.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    # No database in v1, so no SQL Server service. If real-SQL integration tests are ever added,
+    # copy the mssql service block from SiteWise's workflow.
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Guard against encoding corruption
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files -- src tests build plans product research docs ':!*node_modules*' \
+            | grep -E '\.(cs|cshtml|razor|js|mjs|css|json|md|txt|yml|webmanifest)$' || true)
+          if [ ${#files[@]} -eq 0 ]; then echo "No files to check"; exit 0; fi
+          bad=0
+          for f in "${files[@]}"; do
+            if ! iconv -f UTF-8 -t UTF-8 "$f" > /dev/null 2>&1; then
+              echo "::error file=$f::Not valid UTF-8 — file was saved in a legacy encoding"
+              bad=1
+            fi
+          done
+          if grep -InP 'â€|Â[·»«£°¦§]|Ã[©¨ª«¢¤¶¼±§¸]' "${files[@]}"; then
+            echo "::error::Mojibake (double-encoded UTF-8) found in the lines above — the file was read as Windows-1252 and re-saved. Restore the original characters."
+            bad=1
+          fi
+          exit $bad
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore dependencies
+        run: dotnet restore Selficient.slnx
+
+      - name: Build, test, and gate coverage
+        run: ./build/run-tests.ps1
+        shell: pwsh
+        env:
+          CI: "true"
+
+      - name: Publish Web
+        run: dotnet publish src/Selficient.Web/Selficient.Web.csproj --configuration Release --output ${{ github.workspace }}/publish
+
+      - name: Upload Publish Directory
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: published-app
+          path: ${{ github.workspace }}/publish
+
+      - name: Publish coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: coverage
+          path: TestResults/*.cobertura.xml
+
+  deploy:
+    needs: build_and_test
+    runs-on: [self-hosted-selficient, windows] # Make sure this matches the label for your Windows server
+    env:
+      APP_POOL_NAME: "selficient.app(domain)(4.0)(pool)"
+      DEPLOY_PATH: "C:\\inetpub\\vhosts\\selficient.app\\httpdocs"
+      HEALTH_URL: "https://selficient.app/health"
+      # Self-hosted OS Open Zoomstack basemap (M5). Lives INSIDE the deploy path and is
+      # excluded from robocopy /MIR below, exactly as logs and App_Data are -
+      # otherwise every deploy would delete ~3 GB and the next one would re-fetch it.
+      TILES_PATH: "C:\\inetpub\\vhosts\\selficient.app\\httpdocs\\tiles"
+      TILES_FILE: "os-open-zoomstack.mbtiles"
+      TILES_RELEASE: "2026-06"
+      TILES_MIN_BYTES: "2000000000"
+
+    steps:
+      - name: Download Publish Directory
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: published-app
+          path: publish
+
+      - name: Stop IIS Web App Pool
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          $state = (Get-WebAppPoolState -Name $env:APP_POOL_NAME).Value
+          if ($state -ne "Stopped") {
+            Stop-WebAppPool -Name $env:APP_POOL_NAME
+          }
+          # Stop-WebAppPool is asynchronous — wait until the worker process has
+          # actually released its file locks before robocopy mirrors over them.
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $env:APP_POOL_NAME).Value -ne "Stopped") {
+            if ((Get-Date) -gt $deadline) { Write-Error "App pool did not stop within 60s"; exit 1 }
+            Start-Sleep -Seconds 2
+          }
+          Start-Sleep -Seconds 3
+          Write-Host "Web app pool stopped"
+
+      - name: Deploy Web Application
+        shell: powershell
+        run: |
+          # /MIR deletes anything in the target that isn't in the publish output —
+          # exclude runtime folders the app writes into so deploys never eat data.
+          # 'tiles' is in that list for the same reason: ~3 GB of basemap the build
+          # output does not contain, so /MIR would delete it on every single deploy.
+          robocopy "${{ github.workspace }}\publish" $env:DEPLOY_PATH /MIR /XD logs App_Data tiles
+          $robocopyExitCode = $LASTEXITCODE
+          # Robocopy exit codes 0-7 are considered a success
+          if ($robocopyExitCode -le 7) {
+            Write-Host "Web deployment successful. Exit code: $robocopyExitCode"
+            exit 0
+          } else {
+            Write-Error "Web deployment failed with exit code: $robocopyExitCode"
+            exit $robocopyExitCode
+          }
+
+      - name: Start IIS Web App Pool
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          if ((Get-WebAppPoolState -Name $env:APP_POOL_NAME).Value -ne "Started") {
+            Start-WebAppPool -Name $env:APP_POOL_NAME
+            Write-Host "Web app pool started"
+          } else {
+            Write-Host "Web app pool already started"
+          }
+
+      - name: Verify site is healthy
+        shell: powershell
+        run: |
+          $ok = $false
+          foreach ($attempt in 1..12) {
+            try {
+              $response = Invoke-WebRequest -Uri $env:HEALTH_URL -UseBasicParsing -TimeoutSec 5
+              if ($response.StatusCode -eq 200) { $ok = $true; break }
+              Write-Host "Attempt ${attempt}: HTTP $($response.StatusCode)"
+            } catch {
+              Write-Host "Attempt ${attempt}: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 5
+          }
+          if ($ok) {
+            Write-Host "Health check passed."
+          } else {
+            Write-Error "Site did not come healthy at $env:HEALTH_URL after deploy."
+            exit 1
+          }
+
+      # The guarded OS Open Zoomstack basemap fetch from SiteWise's workflow is added here at M5,
+      # deliberately last and deliberately allowed to fail, so it never gates going live.

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Selficient.Application/Selficient.Application.csproj" />
+    <ProjectReference Include="../Selficient.TestKit/Selficient.TestKit.csproj" />
+  </ItemGroup>
+
+</Project>
