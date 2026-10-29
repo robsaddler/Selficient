@@ -99,7 +99,7 @@ Anti-patterns we refuse: service locator, static mutable state, exceptions as co
 | Rate limiting | Fixed-window per IP on `/api/*` and on plan generation; stricter on photo and AI endpoints; 429 with no detail |
 | Input | Value-object validation in Domain; DataAnnotations on PageModels; anti-forgery on every POST; model-binding limits; JSON import validated against a schema with size caps; postcodes normalised and validated before any outbound call |
 | Outbound | Allowlisted hosts only; URLs built from typed parameters, never user strings (SSRF impossible by construction); timeouts, circuit breakers, response size caps; responses deserialised into strict DTOs |
-| Images | Re-encoded with ImageSharp; EXIF stripped; pixel and byte caps; content-type sniffed not trusted; processed in memory; never written to disk |
+| Images | Re-encoded with SkiaSharp (MIT); EXIF stripped; pixel and byte caps; content-type sniffed not trusted; processed in memory; never written to disk |
 | AI | Output schema-validated; no tool access; system prompt treats image and user text as data; spend caps per IP and global; keys in env vars; BYOK key never transits our server |
 | Service worker | Never caches `/api/*`; versioned by asset hash; scope-restricted; offline page lists only cached routes |
 | Data | No server-side personal data in v1; logs contain outward postcode district only; Serilog destructuring policy redacts |
@@ -189,8 +189,45 @@ No framework, no bundler, no transpiler, no preprocessor. The browser platform a
 - Both workflow files as the base.
 - Later: `js/app/store.js`/`sync.js` outbox and `SyncApiController` when accounts arrive; `MigrationRunner` and Dapper patterns when a database arrives.
 
-### From other repos
-*Pending the cross-repo search; filled in as section 10.3 when it reports.*
+### From other repos (cross-repo search, 29 Oct 2026)
+
+**Build and test baseline: SmartReminder.** The strictest and newest in the shop; start the solution from these files.
+- `SmartReminder/Directory.Build.props`: warnings as errors, `EnforceCodeStyleInBuild`, `AnalysisLevel=latest-Recommended`, deterministic, invariant globalisation, artifacts output, trim/AOT analyzers, unsafe blocks off, automatic `InternalsVisibleTo` for `*.Tests`.
+- `SmartReminder/Directory.Packages.props` (central package management with transitive pinning), `global.json` (SDK 10.0.400, Microsoft.Testing.Platform runner), `.editorconfig` (enforced in build).
+- `SmartReminder/tests/Directory.Build.props`: xunit v3 + Shouldly + NSubstitute + `Microsoft.Testing.Extensions.CodeCoverage` auto-referenced for every test project.
+- `SmartReminder/.github/workflows/ci.yml` and `build/run-tests.ps1`: asserts **100% line coverage per production assembly**, not an average, and uploads cobertura artefacts. Selficient extends this to branch coverage.
+- `SmartReminder/tests/SmartReminder.Architecture.Tests` and the `SmartReminder.TestKit` project (`TestClock`, builders, recording presenters): the shared test-double library pattern. Selficient gets `Selficient.TestKit`.
+- `SmartReminder.Core/Guards/Ensure.cs` and `Time/IClock.cs`: the guard and clock abstractions to adopt.
+- `SmartReminder.Rules` (conditions, `ConditionEvaluationEngine`, `TriggerGate`, `QuietHours`, `ReminderJournal`): a platform-neutral reminder decision engine. Reused for the rotation calendar and, when push arrives, reminder scheduling with quiet hours and de-duplication.
+
+**Postcode and geography: MapTools and SiteWise.**
+- `MapTools.Console/Services/PostcodeService.cs`, `Models/PostcodeApiResponse.cs`, `Utilities/PostcodeUtility.cs`: a postcodes.io client, a DTO already exposing country, region, district, ward, LSOA and outcode (exactly what nation and region routing needs), and a `GeneratedRegex` normaliser. Reworked into a typed client returning `Result`, cached by decorator, with a format validator added.
+- `SiteWise.Domain/Services/GridReference.cs` + `wwwroot/js/calc/grid.js` + `GridVectorTests.cs`: OSGB36 to lat/lon in C# and JS with a shared fixture. Needed for anything that touches OS or Environment Agency data.
+- `StockConditionSurveys` postcode geocode cache table: the precedent for a persistent lookup cache when a database arrives.
+
+**Visualisation: Recovri.**
+- `Recoveri.Web/wwwroot/js/app/charts.js`: a dependency-free SVG trend chart driven by a `data-series` attribute and CSS custom properties, theme-aware. Reused for PV yield by month and Days Ready over time; retokened to the design direction.
+- Recovri's glyph modules: the "one renderer, declaratively wired" pattern for animated SVG, applied to the contour band.
+
+**Security and quality tests: Recovri and GezzyMerch.**
+- `Recoveri.Web.Tests/TestWebApplicationFactory.cs` and `AuthAttackFixture.cs`: the host and attack fixture shape.
+- `Recoveri.Domain.Tests/DomainPurityTests.cs`, `CoverageTests.cs`, `Recoveri.Application.Tests/LayeringTests.cs`, `Recoveri.Web.Tests/EndpointSurfaceGuardTests.cs`, `Security/PolicyMatrixTests.cs`, `ClientStringsTests.cs`: reflection-based architecture and surface guards with no extra dependency. Adopted alongside NetArchTest, or instead of it if they cover the rules.
+- `Recoveri.Web.Tests/LegalContactAddressTests.cs`: pins the legal address on live pages; copied for the privacy and disclosure pages.
+- `GezzyMerch.Web/TagHelpers/NonceTagHelper.cs` and Recovri's `Middleware/NonceTagHelper.cs`: CSP nonce tag helper.
+- `Recovri/.github/workflows/product-pr-build-and-test.yml`: the UTF-8 mojibake guard step, copied verbatim.
+
+**Email, outbox and SEO: GezzyMerch.** Not needed in v1 but the slices to lift when accounts and reminders arrive.
+- `GezzyMerch.Application/Notifications` (outbox entries, dispatcher, dead-letter requeue, idempotency key, metrics) and `IEmailSender` with Postmark, SMTP and a dev-aware sender, plus the template renderer and classification.
+- `GezzyMerch.Infrastructure/Seo/SitemapGenerator.cs`, `RobotsTxtProvider.cs`, the JSON-LD partial and their tests: reused in M9 with `FAQPage`, `HowTo` and `Organization` structured data.
+- `GezzyMerch.Domain/Common/Result.cs`: the result type to adopt.
+- `PerceptenceWebsite` `robots.txt`, `sitemap.xml`, `llms.txt`: the static SEO set including an `llms.txt`.
+- `Almanac` privacy and terms pages: the legal page skeletons.
+
+**Shop-wide rule adopted:** SiteWise's `CLAUDE.md` directive that every user-visible string is a whole explicit sentence, pinned by tests. It matches the design direction's copy rules and becomes Selficient's `CLAUDE.md`.
+
+**Licensing finding:** `PDFTools` depends on SixLabors.ImageSharp, which is under the Six Labors Split Licence and needs a paid licence for commercial use above a small-business threshold. Selficient's photo pipeline therefore uses **SkiaSharp (MIT)** for re-encoding and EXIF stripping instead. For a future plan PDF, QuestPDF (MIT below the revenue threshold) rather than inheriting ImageSharp.
+
+**Confirmed greenfield:** the PVGIS client, Google Solar client, all solar and battery maths, `.ics` generation, affiliate link handling and disclosure, a consent step for the Google panel, and the Anthropic adapter. No code in the shop touches any of these.
 
 ## 11. Milestones
 
@@ -204,7 +241,7 @@ No framework, no bundler, no transpiler, no preprocessor. The browser platform a
 | M5 | Map | Zoomstack tiles self-hosted, house confirmation, footprint outline, contours | Works offline after first view |
 | M6 | Solar estimator | PVGIS adapter, Google Solar adapter behind consent, compass fallback, tariff strategies, payback | Your roof returns SW segments and a figure within 10% of the committed review |
 | M7 | PWA | Manifest, install prompt, service worker, skew reload, offline page | Lighthouse PWA installable; service worker completeness test |
-| M8 | Photos and AI | ImageSharp pipeline, kit inventory analysis, boiler and consumer-unit reading, plan narrative, metering, BYOK setting | Cupboard photo pre-ticks items; abuse cases (polyglot image, prompt-injection text in image, oversized upload) all blocked by tests |
+| M8 | Photos and AI | SkiaSharp pipeline, kit inventory analysis, boiler and consumer-unit reading, plan narrative, metering, BYOK setting | Cupboard photo pre-ticks items; abuse cases (polyglot image, prompt-injection text in image, oversized upload) all blocked by tests |
 | M9 | Marketing and legal | Landing page, privacy, terms, affiliate disclosure, "not professional advice", SEO, OG image | Copy passes the design-direction rules |
 | M10 | Hardening and launch | Full adversarial sweep, axe, Lighthouse ≥ 95 all categories, NBomber targets met, production deploy, domains live | Launch checklist in the spec complete |
 
