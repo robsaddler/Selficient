@@ -26,11 +26,29 @@ Per action, 1-3 product picks per budget tier with price seen, date seen, retail
 ### F4. Solar and battery estimator
 Inputs: roof aspect (compass picker), pitch, available panel count or roof width/height, annual kWh (or estimate from household size), tariff situation (EV, heat pump). Output: generation (PVGIS via server route), self-consumption with and without battery, export income, overnight-charging saving, cost range, payback, backup-gateway note, grants by nation (Green Homes Wales 0% loan, etc.), VAT deadline. Links to MCS installer finder and group-buying schemes.
 
+### F5. House on a map (added 29 Oct 2026)
+**Stage A, always on:** self-hosted OS Open Zoomstack vector tiles via MapLibre (SiteWise's tiles controller, MBTiles basemap and map modules reused). After the postcode, show the street; the user taps "this is my house"; the footprint is outlined with elevation and contours, and the footprint's long axis seeds roof orientation. No third-party calls; works offline once cached.
+**Stage B, opt-in inside the solar estimator:** Google Solar API Building Insights (UK high-quality coverage since May 2026; free to 10k calls/month, then ~£8/1k) returns per-roof-segment azimuth, pitch, area, panel count and yearly kWh, shown over aerial imagery on a Google-backed panel behind an explicit consent step. Compass picker remains the fallback. Later: OS NGD buildings for storeys and heights (Data Hub premium, £1,000/month free allowance).
+
+### F6. Guided photos (added 29 Oct 2026)
+Three photo moments, not a general upload: (1) "Photograph your kit cupboard" → inventory counted → items pre-ticked → Days Ready updates; (2) boiler data plate → model, wattage, plug-conversion feasibility; (3) consumer unit → spare ways for a backup board. No tree or deck assessment (liability). Images are re-encoded server-side (ImageSharp), EXIF/GPS stripped, size and pixel caps enforced, processed in memory and discarded; stored only client-side in IndexedDB unless an account exists and the user opts in. Analysis output is schema-validated JSON treated as data.
+
+### F7. AI assistance (added 29 Oct 2026)
+Our key by default, metered: a free monthly allowance of analyses per household, unlimited in the paid tier (the first freemium hook). Model: Claude Opus 5 at low effort (≈1.5p per photo analysis, ≈4p per plan narrative; Haiku 4.5 is the cheaper option if volume justifies it, decided on usage data). Uses: kit-photo inventory, boiler/consumer-unit reading, "your plan explained" narrative, Q&A about the plan. **BYOK** offered as an advanced setting for privacy-maximalist users, with the browser calling Anthropic directly so the key never touches our server. Rules: the deterministic rules engine owns Days Ready and the plan; AI explains, counts and answers, never computes. Structured outputs, prompt caching of the catalogue, spend caps, rate limits, no image content logged.
+
 ## Out of scope for v1
 Accounts and sync (profile and progress live in the browser's local storage; export/import as JSON), push notifications, native store listings, community features, live price scraping, payments.
 
 ## Monetisation
-v1: affiliate links. v2 candidate paid tier: multi-property, family sharing and sync, PDF plan export, push reminders, installer quote matching.
+v1: affiliate links plus a metered free allowance of AI analyses. Paid tier candidates: unlimited AI analyses, multi-property, family sharing and sync, PDF plan export, push reminders, installer quote matching.
+
+## Standing engineering requirements (set 29 Oct 2026)
+- SOLID throughout; orthogonal layers (Domain → Application ports → Infrastructure adapters → Web), enforced by architecture tests.
+- Dapper only; never EF Core.
+- 100% line and branch coverage on Domain, Application, Infrastructure and Web, enforced in CI; exclusions limited to the Program entry point and documented.
+- Defence in depth in every layer: see the build plan's security section.
+- Adversarial self-attack on every feature before merge: threat and abuse list written first, encoded as failing tests, plus a security review pass.
+- Blazingly fast under concurrent load: stateless web tier, caching of every upstream lookup, pooled resilient HttpClients, compression, immutable hashed assets, a benchmarked rules engine, and stress tests with published p95 targets against staging.
 
 ## Tech
 *Revised 29 Oct 2026 after reviewing the house conventions in sitewise.app and VanillaUIBaseApp. The earlier Next.js/Vercel proposal is withdrawn: SiteWise already has a proven PWA pattern on the stack the team runs.*
