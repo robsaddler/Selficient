@@ -293,10 +293,19 @@ progress.tier-progress {
   border-radius: var(--radius-s);
 }
 
+/* No inline style attributes anywhere (CSP forbids them), so each token maps to a selector. */
+.swatch[data-token="--c-slate"] { --swatch: var(--c-slate); }
+.swatch[data-token="--c-sky"] { --swatch: var(--c-sky); }
+.swatch[data-token="--c-pine"] { --swatch: var(--c-pine); }
+.swatch[data-token="--c-lantern"] { --swatch: var(--c-lantern); }
+.swatch[data-token="--c-contour"] { --swatch: var(--c-contour); }
+.swatch[data-token="--c-ember"] { --swatch: var(--c-ember); }
+.swatch[data-token="--c-paper"] { --swatch: var(--c-paper); }
+
 .swatch__chip {
   block-size: 3rem;
   border-radius: var(--radius-s);
-  background: var(--swatch);
+  background: var(--swatch, transparent);
   border: 1px solid var(--c-contour);
 }
 

@@ -10,13 +10,15 @@
   <meta name="description" content="@(ViewData["Description"] ?? "Work out how many days your house could stand on its own, and close the gap with a plan that fits your home.")">
   <link rel="stylesheet" href="~/css/app.css" asp-append-version="true">
   <link rel="modulepreload" href="~/js/app.js">
-  <script type="importmap">
+  @* The "!" opts this element out of tag helpers: the framework's ImportMap helper otherwise
+     rewrites it and drops the type attribute. The nonce is therefore stamped by hand. *@
+  <!script type="importmap" nonce="@Nonce.Value">
     {
       "imports": {
         "selficient/": "/js/"
       }
     }
-  </script>
+  </!script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to the main content</a>

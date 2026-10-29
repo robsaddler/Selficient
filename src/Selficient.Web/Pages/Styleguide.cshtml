@@ -17,7 +17,7 @@
     <ul class="swatches">
       @foreach (var token in Model.ColourTokens)
       {
-        <li class="swatch" style="--swatch: var(@token.Name)">
+        <li class="swatch" data-token="@token.Name">
           <span class="swatch__chip" aria-hidden="true"></span>
           <code>@token.Name</code>
           <span>@token.Purpose</span>

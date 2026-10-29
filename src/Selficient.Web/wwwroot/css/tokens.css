@@ -55,12 +55,12 @@
 
   /* Derived */
   --c-ink: var(--c-slate);
-  --c-ink-muted: color-mix(in oklch, var(--c-slate) 70%, var(--c-sky));
+  --c-ink-muted: color-mix(in oklab, var(--c-slate) 70%, var(--c-sky));
   --c-ground: var(--c-sky);
-  --c-pine-hover: color-mix(in oklch, var(--c-pine) 85%, var(--c-slate));
-  --c-pine-tint: color-mix(in oklch, var(--c-pine) 12%, var(--c-paper));
-  --c-lantern-tint: color-mix(in oklch, var(--c-lantern) 18%, var(--c-paper));
-  --c-ember-tint: color-mix(in oklch, var(--c-ember) 12%, var(--c-paper));
+  --c-pine-hover: color-mix(in oklab, var(--c-pine) 85%, var(--c-slate));
+  --c-pine-tint: color-mix(in oklab, var(--c-pine) 12%, var(--c-paper));
+  --c-lantern-tint: color-mix(in oklab, var(--c-lantern) 18%, var(--c-paper));
+  --c-ember-tint: color-mix(in oklab, var(--c-ember) 12%, var(--c-paper));
   --c-focus: var(--c-lantern);
 
   /* Type */

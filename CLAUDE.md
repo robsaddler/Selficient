@@ -14,6 +14,15 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - **Secrets are environment variables.** Never in the repo, never in workflows.
 - **The rules engine is deterministic and owns Days Ready and the plan.** AI explains, counts and answers; it never computes.
 
+## Gotchas already paid for
+
+- A `<script type="importmap">` in Razor must be written `<!script …>` to opt out of the framework's import-map tag helper, which strips the type; stamp the nonce by hand from the injected `CspNonce`.
+- Nonces are URL-safe base64 because Razor's attribute encoder rewrites `+`, `/` and `=`.
+- No `style="…"` attributes anywhere, even in demos: CSP blocks them. Map state to data attributes and select on those.
+- `color-mix(in oklab, …)` for tints; oklch interpolates hue towards white's hue of 0 and turns green tints pink.
+- `const decimal` emits a static constructor the tests never run; use a static property.
+- `dotnet test … --results-directory` must come before the `--` that hands arguments to the testing platform.
+
 ## Conventions
 
 - .NET 10, `Selficient.slnx`, central package management, warnings as errors, analyzers at latest-Recommended.

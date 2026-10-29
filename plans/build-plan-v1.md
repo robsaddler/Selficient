@@ -250,6 +250,10 @@ No framework, no bundler, no transpiler, no preprocessor. The browser platform a
 
 Sequence is strict for M0–M2; M3–M9 can interleave; M10 last.
 
+### Milestone log
+
+- **M0 done, 29 Oct 2026.** Gate green: 59 tests, 100% lines and branches on Domain, Infrastructure and Web; tsc and ESLint clean; both themes verified in Chrome at desktop width. Three things found by the gate and the design pass, now pinned by tests or notes: Razor's attribute encoder mangles standard base64 nonces (URL-safe base64 used); the framework's import-map tag helper strips `type="importmap"` (element opted out with `<!script>`); CSP blocks inline `style` attributes, so swatches use data-attribute selectors. Carried to M2: the phone-width check runs in the Playwright suite, because the browser extension cannot resize a maximised window; `Selficient.Application` joins the coverage gate with its first use case.
+
 ## 12. Decisions (answered 29 Oct 2026)
 
 1. **Plan approved with changes** (the changes being items 3 and 4 below).
