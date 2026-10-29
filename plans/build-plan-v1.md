@@ -211,6 +211,7 @@ No framework, no bundler, no transpiler, no preprocessor. The browser platform a
 **Visualisation: Recovri.**
 - `Recoveri.Web/wwwroot/js/app/charts.js`: a dependency-free SVG trend chart driven by a `data-series` attribute and CSS custom properties, theme-aware. Reused for PV yield by month and Days Ready over time; retokened to the design direction.
 - Recovri's glyph modules: the "one renderer, declaratively wired" pattern for animated SVG, applied to the contour band.
+- **GezzyMerch's Chart.js wiring (correction, 29 Oct 2026):** `GezzyMerch.Web/wwwroot/lib/chartjs/chart.umd.js` (v4.4.6, MIT, vendored), `wwwroot/js/admin/dashboard-charts.js` (no inline script; config and data as `<script type="application/json">` islands; palette read from `:root` custom properties at runtime), `Areas/Admin/Pages/Shared/_ChartCard.cshtml` (canvas plus a `<details>` accessible description) and `_Sparkline.cshtml` (aria-hidden canvas with a screen-reader summary). This is CSP-clean and accessible by construction. Decision for M6: Recovri's SVG chart for the simple trend lines; the GezzyMerch pattern with Chart.js if the PV-yield-by-month chart needs tooltips and stacked series. Not CoachApp's inline `new Chart()` blocks.
 
 **Security and quality tests: Recovri and GezzyMerch.**
 - `Recoveri.Web.Tests/TestWebApplicationFactory.cs` and `AuthAttackFixture.cs`: the host and attack fixture shape.
