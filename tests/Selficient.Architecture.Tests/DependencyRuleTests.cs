@@ -78,6 +78,7 @@ public sealed class DependencyRuleTests
         IEnumerable<string> offenders =
             from assembly in new[] { Domain, Application, Infrastructure, Web }
             from type in assembly.GetTypes()
+            where !IsInjected(type)
             from member in type.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Cast<MemberInfo>().Prepend(type)
             where member.GetCustomAttribute<ExcludeFromCodeCoverageAttribute>() is not null
             where !(type.Namespace ?? string.Empty).EndsWith(".Composition", StringComparison.Ordinal)
@@ -99,6 +100,15 @@ public sealed class DependencyRuleTests
 
         mutable.ShouldBeEmpty();
     }
+
+    /// <summary>
+    /// Types we did not write: the coverage tool's static instrumentation (used on Linux runners)
+    /// injects a tracker type that carries ExcludeFromCodeCoverage, and the compiler emits its own.
+    /// </summary>
+    private static bool IsInjected(Type type) =>
+        (type.Namespace ?? string.Empty).StartsWith("Microsoft.CodeCoverage", StringComparison.Ordinal)
+        || type.GetCustomAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>() is not null
+        || type.GetCustomAttribute<System.CodeDom.Compiler.GeneratedCodeAttribute>() is not null;
 
     private static bool IsInitOnly(MethodInfo setter) =>
         setter.ReturnParameter.GetRequiredCustomModifiers()
