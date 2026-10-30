@@ -13,6 +13,8 @@ public sealed partial class SecurityHeadersTests : IDisposable
     [InlineData("/")]
     [InlineData("/styleguide")]
     [InlineData("/health")]
+    [InlineData("/api/tiles/status")]
+    [InlineData("/api/tiles/1/0/0.pbf")]
     [InlineData("/does-not-exist")]
     [InlineData("/css/app.css")]
     public async Task Every_response_carries_the_full_header_set(string path)

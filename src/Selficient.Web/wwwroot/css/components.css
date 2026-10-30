@@ -573,3 +573,55 @@ progress.tier-progress {
   font-size: var(--text-s);
   color: var(--c-ink-muted);
 }
+
+/* The house on the map: a sheet-edged frame, the plain panel inside it until the tiles arrive */
+.house-map {
+  margin-block-start: var(--space-7);
+  container-type: inline-size;
+}
+
+.house-map__frame {
+  margin-block-start: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  max-block-size: 28rem;
+  display: grid;
+}
+
+.house-map__fallback {
+  align-self: center;
+  padding: var(--space-5);
+  color: var(--c-ink-muted);
+  text-wrap: pretty;
+}
+
+.house-map__canvas {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+
+  & canvas:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -3px;
+  }
+}
+
+.house-map__tools {
+  margin-block-start: var(--space-4);
+}
+
+.house-map__status {
+  margin-block-start: var(--space-3);
+  min-block-size: 1.5em;
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+@container (max-width: 28rem) {
+  .house-map__frame {
+    aspect-ratio: 1;
+  }
+}

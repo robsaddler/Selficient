@@ -165,5 +165,74 @@ jobs:
             exit 1
           }
 
-      # The guarded OS Open Zoomstack basemap fetch from SiteWise's workflow is added here at M5,
-      # deliberately last and deliberately allowed to fail, so it never gates going live.
+      # The basemap is a one-off ~3 GB download from the OS Downloads API, kept beside the site
+      # and outside the mirrored publish output. Deliberately last and deliberately allowed to
+      # fail: the map degrades to the plain panel, and the site keeps picking the file up once it
+      # lands because the store re-checks the disk every minute while it is absent.
+      - name: Ensure the OS Open Zoomstack basemap is present
+        continue-on-error: true
+        timeout-minutes: 45
+        shell: powershell
+        run: |
+          $target = Join-Path $env:TILES_PATH $env:TILES_FILE
+          $stamp  = Join-Path $env:TILES_PATH "release.txt"
+          $current = ""
+          if (Test-Path $stamp) { $current = (Get-Content $stamp -Raw).Trim() }
+
+          # Present, right release, not truncated: nothing to do. This is the normal path on
+          # every deploy after the first and it costs milliseconds.
+          if ((Test-Path $target) -and ($current -eq $env:TILES_RELEASE)) {
+            $size = (Get-Item $target).Length
+            if ($size -ge [int64]$env:TILES_MIN_BYTES) {
+              Write-Host "Basemap present: $([math]::Round($size / 1GB, 2)) GB, release $current."
+              exit 0
+            }
+            Write-Warning "Basemap is only $([math]::Round($size / 1GB, 2)) GB - treating as truncated and re-fetching."
+          }
+
+          # The OS Downloads API is open for OpenData products: no account, no key, no secret.
+          # The index call also hands back the published MD5, which is the integrity check.
+          $index = "https://api.os.uk/downloads/v1/products/OpenZoomstack/downloads?area=GB"
+          try {
+            $downloads = Invoke-RestMethod -Uri $index -UseBasicParsing -TimeoutSec 120
+            $mbtiles = $downloads | Where-Object { $_.format -eq "Vector Tiles" -and $_.subformat -eq "(MBTiles)" } | Select-Object -First 1
+          } catch {
+            Write-Warning "Could not reach the OS Downloads API: $($_.Exception.Message). The map will use its fallback."
+            exit 0
+          }
+
+          if (-not $mbtiles) {
+            Write-Warning "The OS Downloads API returned no MBTiles build. The map will use its fallback."
+            exit 0
+          }
+
+          New-Item -ItemType Directory -Force -Path $env:TILES_PATH | Out-Null
+          $temp = "$target.partial"
+          Write-Host "Fetching OS Open Zoomstack - a one-off download of $([math]::Round($mbtiles.size / 1GB, 2)) GB."
+          try {
+            # Written to .partial and only moved into place once it verifies, so an interrupted
+            # run can never leave a half-file that looks installed.
+            Invoke-WebRequest -Uri $mbtiles.url -OutFile $temp -UseBasicParsing -TimeoutSec 3600
+          } catch {
+            Remove-Item $temp -Force -ErrorAction SilentlyContinue
+            Write-Warning "Basemap download failed: $($_.Exception.Message). The map will use its fallback."
+            exit 0
+          }
+
+          $size = (Get-Item $temp).Length
+          if ($size -lt [int64]$env:TILES_MIN_BYTES) {
+            Remove-Item $temp -Force
+            Write-Warning "Downloaded basemap was only $([math]::Round($size / 1GB, 2)) GB - discarded as incomplete."
+            exit 0
+          }
+
+          $hash = (Get-FileHash -Algorithm MD5 $temp).Hash.ToLower()
+          if ($hash -ne $mbtiles.md5.ToLower()) {
+            Remove-Item $temp -Force
+            Write-Warning "Basemap MD5 was $hash, expected $($mbtiles.md5) - discarded. The map will use its fallback."
+            exit 0
+          }
+
+          Move-Item $temp $target -Force
+          Set-Content -Path $stamp -Value $env:TILES_RELEASE -Encoding utf8
+          Write-Host "Basemap installed: $([math]::Round($size / 1GB, 2)) GB, release $env:TILES_RELEASE, MD5 verified."

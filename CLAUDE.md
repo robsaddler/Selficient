@@ -22,6 +22,10 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - `color-mix(in oklab, …)` for tints; oklch interpolates hue towards white's hue of 0 and turns green tints pink.
 - `const decimal` emits a static constructor the tests never run; use a static property.
 - `dotnet test … --results-directory` must come before the `--` that hands arguments to the testing platform.
+- A vendored stylesheet loaded by a plain `<link>` is unlayered and beats every `@layer`; overrides for it (the MapLibre chrome in `map-chrome.css`) must be unlayered too, imported last from `app.css`, and at least as specific as the library's own selector.
+- A `try` block that returns from inside leaves its closing brace uncovered; assign inside the `try` and return after it.
+- `tsc` refuses `declare module "/lib/…"` (rooted names count as relative); route vendored libraries through the import map by bare specifier and type them in `types/*.d.ts` with a `paths` entry.
+- Shell `perl -0pi` substitutions break on `|` and on `$1` followed by a space and a digit; use the Edit tool for anything but one-line `sed`.
 
 ## Conventions
 

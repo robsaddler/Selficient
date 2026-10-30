@@ -18,6 +18,10 @@ public sealed class RateLimitOptions
     /// <summary>API calls per IP per minute.</summary>
     [Range(1, 10_000)]
     public int ApiPerMinute { get; init; } = 60;
+
+    /// <summary>Map tiles per IP per minute. A view is a dozen tiles and a pan a dozen more.</summary>
+    [Range(1, 100_000)]
+    public int TilesPerMinute { get; init; } = 600;
 }
 
 /// <summary>Registers the limiter and its policies.</summary>
@@ -28,6 +32,9 @@ public static class RateLimits
 
     /// <summary>Policy for JSON endpoints.</summary>
     public const string ApiPolicy = "api";
+
+    /// <summary>Policy for basemap tiles, which arrive in bursts.</summary>
+    public const string TilesPolicy = "tiles";
 
     /// <summary>Adds the limiter. Rejections carry 429 and no body, so the status-code pages middleware renders the sentence.</summary>
     public static IServiceCollection AddSelficientRateLimiting(this IServiceCollection services, IConfiguration configuration)
@@ -45,6 +52,7 @@ public static class RateLimits
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             limiter.AddPolicy(PlanPolicy, PlanPartition);
             limiter.AddPolicy(ApiPolicy, ApiPartition);
+            limiter.AddPolicy(TilesPolicy, TilesPartition);
         });
 
         return services;
@@ -55,6 +63,9 @@ public static class RateLimits
 
     /// <summary>The partition for the API policy.</summary>
     internal static RateLimitPartition<string> ApiPartition(HttpContext context) => Window(context, static o => o.ApiPerMinute);
+
+    /// <summary>The partition for the tiles policy.</summary>
+    internal static RateLimitPartition<string> TilesPartition(HttpContext context) => Window(context, static o => o.TilesPerMinute);
 
     /// <summary>The remote address, or a shared bucket when the server cannot tell (as behind a misconfigured proxy).</summary>
     internal static string ClientKey(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";

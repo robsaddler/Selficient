@@ -8,6 +8,10 @@ using NSubstitute;
 using Selficient.Application.Geography;
 using Selficient.Infrastructure.Composition;
 using Selficient.Infrastructure.Geography;
+using Selficient.Application.Maps;
+using Selficient.Infrastructure.Maps;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Selficient.Infrastructure.Tests.Composition;
 
@@ -129,6 +133,30 @@ public sealed class InfrastructureCompositionTests
         first.ShouldBe("v");
         second.ShouldBe("v");
         calls.ShouldBe(1);
+    }
+
+    [Fact]
+    public void The_basemap_is_registered_cached_with_its_path_from_configuration()
+    {
+        ServiceCollection services = new();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddSelficientInfrastructure(Config(("Map:MbTilesPath", "elsewhere/basemap.mbtiles"), ("Map:RetryAfterSeconds", "5")), Environment("Development"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<IBasemapTiles>().ShouldBeOfType<CachedBasemapTiles>();
+        provider.GetRequiredService<MbTilesBasemap>().ArchivePath.ShouldEndWith(Path.Combine("elsewhere", "basemap.mbtiles"));
+        provider.GetRequiredService<IOptions<MapOptions>>().Value.RetryAfterSeconds.ShouldBe(5);
+        provider.GetRequiredService<IBasemapTiles>().Status().Available.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_empty_basemap_path_is_refused()
+    {
+        ServiceCollection services = new();
+        services.AddSelficientInfrastructure(Config(("Map:MbTilesPath", "")), Environment("Development"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        Should.Throw<OptionsValidationException>(() => provider.GetRequiredService<IOptions<MapOptions>>().Value);
     }
 
     [Fact]

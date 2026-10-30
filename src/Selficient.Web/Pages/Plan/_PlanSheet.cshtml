@@ -26,6 +26,8 @@
   <p class="hero__lede">Tick what you already have. The figure moves as you go. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
 </section>
 
+@await Html.PartialAsync("_PlanMap", new Selficient.Web.Pages.Plan.HouseMapView(planned.Locality, planned.Elevation))
+
 <section class="risks" aria-labelledby="risks-heading">
   <h2 id="risks-heading">What is most likely to go wrong here</h2>
   <ol class="risk-list">

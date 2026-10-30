@@ -17,7 +17,7 @@
 
 | # | Task | Why | Done when |
 |---|---|---|---|
-| A | Push `main` to `https://github.com/robsaddler/Selficient` (`git push -u origin main`) | You named this remote mid-build; the local `origin` already points at it, but the session's permission guard blocked the push, so commits after M1 are local only | `git status` says the branch is up to date with origin |
+| A | Check `https://github.com/robsaddler/Selficient` holds `main` with every milestone commit | The push went through from the M4 commit onwards (the earlier permission block lifted), so this is a check rather than a task | The latest commit on GitHub matches `git log -1` locally |
 | B | Delete or archive the earlier `Dev-Studios-Ltd/Selficient` repository | It was created before you named the personal one and holds the plan and M0 only | Repository gone or archived |
 | C | Optionally allow `git push` in the Claude Code settings for this folder | So later sessions can push without stopping | A `Bash(git push:*)` allow rule in `.claude/settings.local.json` |
 
@@ -30,6 +30,7 @@
 | 9 | Set the environment variables from `docs/configuration.md` on the runner (machine level) | No secrets live in the repo or workflows | Startup checks pass on the vhost (the app refuses to start with missing required config) |
 | 10 | Allow outbound HTTPS from the vhost to api.postcodes.io, api.open-meteo.com, re.jrc.ec.europa.eu, solar.googleapis.com, api.anthropic.com | The adapters call these and nothing else | The plan page shows elevation for a real postcode |
 | 11 | Fetch the OS Open Zoomstack basemap into `httpdocs\tiles` (the deploy workflow's guarded last step does this on first run; it takes up to an hour and is allowed to fail) | F5 stage A map | Map tiles render on the plan page |
+| 12 | Optional, for running the map locally: set `Map__MbTilesPath` to `D:\Source\Repos\sitewise.app\tiles\os-open-zoomstack.mbtiles` (SiteWise's copy), or let it default to `src\Selficient.Web\tiles\os-open-zoomstack.mbtiles`, which is git-ignored | Without it the map degrades to the plain panel; the tests build their own tiny archives | The plan page draws the street at NP12 1GW |
 
 ## 3. Before launch: your own testing
 
@@ -45,6 +46,7 @@ Run these on the live site, in this order. Each should take a few minutes.
 8. **The error pages.** Visit `/nothing-here` and `/error/429`. Whole sentences, no stack traces.
 9. **Headers.** `curl -I https://selficient.app/` shows the CSP, HSTS and the rest; no `Server` or `X-Powered-By`.
 10. **Rate limits.** Hammer `/api/geo/postcode` from one IP for a minute; it should start answering 429 with the polite page.
+11. **The map.** On the plan page the street draws under "Where your house stands" with the OS attribution. Tap your roof: the pin moves and "Pin saved in this browser." appears. Reload: the pin is still there. "Back to the postcode" returns it. Switch to dark and the map follows. If the basemap is still downloading on the server, the panel says the map is not available yet and nothing spins.
 
 ## 4. Decisions still open (defaults chosen; change if you disagree)
 

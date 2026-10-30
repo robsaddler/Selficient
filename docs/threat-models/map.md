@@ -26,4 +26,14 @@ A self-hosted Ordnance Survey Open Zoomstack vector map (MapLibre, vendored) und
 
 ## Outcomes
 
-*Filled in at the adversarial pass.*
+*Adversarial pass, 30 October 2026, against SiteWise's real 2.85 GB Zoomstack archive locally and the tiny test archives in CI.*
+
+- Case 1 holds and goes further than written: `TileAddress` can only be constructed inside the pyramid, so the store never sees a bad address; the route constraints reject non-integers, a `.png` suffix and a traversal suffix before the handler runs. All 404. Pinned by `Tile_coordinates_outside_the_pyramid_are_404`.
+- Case 2 holds: Dapper with named parameters on a connection string that carries `Mode=ReadOnly`; a `DELETE` through that connection string throws. The TMS row flip is pinned by reading the raw row back from the archive, since getting it wrong serves the mirror image of the country without an error.
+- Case 3: tiles get their own rate-limit bucket (600 a minute per address) because a single pan is a dozen requests and the 60-a-minute API bucket would have throttled an ordinary household. Hits are immutable for a year; the hottest tiles and misses sit in `HybridCache` for ten minutes. Pinned.
+- Case 4: a missing or corrupt archive is `{ available: false }` and the page keeps its plain panel with the postcode centre. Found while reviewing the deploy order: the workflow fetches the archive *after* the site starts, so a status cached forever would have hidden the map until the next restart. The store now re-checks the disk every minute while the archive is absent and remembers it for good once present. Pinned with a hand-moved clock.
+- Case 5 holds: MapLibre 6.4.1 vendored with its licence and provenance, loaded through the import map, worker same-origin; the CSP did not change. `No_page_references_a_cdn` walks every page. Found and fixed: the vendored stylesheet is unlayered and so beat the themed overrides in the `components` layer; the overrides moved to an unlayered file of their own.
+- Case 6 holds: `house-map.js` contains no `fetch`, and the style module's only request is the status probe. The pin is refused unless it lies inside the United Kingdom, so an imported file cannot park the map on the far side of the world.
+- Case 7 holds: gzip detected from the magic bytes and declared; raw tiles pass through untouched. Pinned with one of each.
+- Also found: Northern Ireland is outside OS Open Zoomstack. A BT postcode now keeps the panel with a sentence saying why, rather than a blank canvas with a pin.
+- Residual: the status endpoint reveals that a basemap exists, which is public knowledge once the map draws. Accepted. No path, size or release leaves the server.

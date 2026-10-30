@@ -20,3 +20,8 @@
 .stack > * + * {
   margin-block-start: var(--space-4);
 }
+
+/* The hidden attribute must beat any display a component sets. Utilities outrank components. */
+[hidden] {
+  display: none;
+}

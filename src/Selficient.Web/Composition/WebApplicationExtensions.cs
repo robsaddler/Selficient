@@ -35,6 +35,7 @@ public static class WebApplicationExtensions
 
         app.UseStaticFiles(new StaticFileOptions
         {
+            ContentTypeProvider = ContentTypes(),
             OnPrepareResponse = SetStaticCachePolicy,
         });
 
@@ -44,8 +45,18 @@ public static class WebApplicationExtensions
 
         app.MapRazorPages();
         app.MapHealthEndpoint();
+        app.MapTilesEndpoints();
 
         return app;
+    }
+
+    /// <summary>The framework's map plus the map formats: glyph files are protobuf, the library is a module.</summary>
+    private static FileExtensionContentTypeProvider ContentTypes()
+    {
+        FileExtensionContentTypeProvider provider = new();
+        provider.Mappings[".pbf"] = TilesEndpoints.ProtobufContentType;
+        provider.Mappings[".mjs"] = "text/javascript";
+        return provider;
     }
 
     private static void SetStaticCachePolicy(StaticFileResponseContext context)
@@ -55,13 +66,14 @@ public static class WebApplicationExtensions
 
         if (path.StartsWithSegments("/fonts"))
         {
-            // Fonts are versioned by filename and never change in place.
+            // Fonts and glyph ranges are versioned by filename and never change in place.
             headers[HeaderNames.CacheControl] = ImmutableYear;
         }
-        else if (path.StartsWithSegments("/css") || path.StartsWithSegments("/js"))
+        else if (path.StartsWithSegments("/css") || path.StartsWithSegments("/js") || path.StartsWithSegments("/lib"))
         {
             // Scripts and styles are cache-busted by the asp-append-version hash, so the browser
             // may keep them but must revalidate; this is what lets a deploy take effect at once.
+            // The vendored map library is imported by bare specifier and gets the same treatment.
             headers[HeaderNames.CacheControl] = Revalidate;
         }
     }

@@ -1,0 +1,45 @@
+/*
+  MapLibre's own chrome, brought in line with the sheet. Imported WITHOUT a layer on purpose: the
+  library's stylesheet is unlayered, and an unlayered rule beats every layer, so these must be
+  unlayered too to win. Scoped to the map frame so nothing here leaks.
+*/
+.house-map__canvas .maplibregl-ctrl-group {
+  border: var(--border);
+  border-radius: var(--radius-s);
+  box-shadow: none;
+  background: var(--c-paper);
+}
+
+.house-map__canvas .maplibregl-ctrl-group button + button {
+  border-block-start: 1px solid var(--c-contour);
+}
+
+.house-map__canvas .maplibregl-ctrl-group button:focus-visible {
+  box-shadow: none;
+  outline: var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.house-map__canvas .maplibregl-ctrl button .maplibregl-ctrl-icon {
+  filter: var(--map-icon-filter);
+}
+
+.house-map__canvas .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.house-map__canvas .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--c-ink-muted);
+  background: color-mix(in oklab, var(--c-paper) 85%, transparent);
+}
+
+.house-map__canvas .maplibregl-ctrl-attrib a {
+  color: var(--c-ink-muted);
+}
+
+.house-map__canvas .maplibregl-ctrl-scale {
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  color: var(--c-ink);
+  border-color: var(--c-ink-muted);
+  background: color-mix(in oklab, var(--c-paper) 70%, transparent);
+}

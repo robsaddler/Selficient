@@ -1,0 +1,24 @@
+@model Selficient.Web.Pages.Plan.HouseMapView
+
+<section class="house-map" aria-labelledby="map-heading">
+  <h2 id="map-heading">Where your house stands</h2>
+  <p>@Model.Sentence</p>
+  <div class="house-map__frame" data-house-map data-lat="@Model.Latitude" data-lng="@Model.Longitude" data-covered="@(Model.Covered ? "true" : "false")">
+    <p class="house-map__fallback" data-map-fallback>
+      @if (Model.Covered)
+      {
+        <text>The street map is not available on this server yet. When it arrives, you will be able to put a pin on your own roof and keep it in this browser. The centre of your postcode is at @Model.Latitude, @Model.Longitude.</text>
+      }
+      else
+      {
+        <text>Our street map covers Great Britain only, so there is nothing to draw here yet. The centre of your postcode is at @Model.Latitude, @Model.Longitude.</text>
+      }
+    </p>
+    <div class="house-map__canvas" data-map-canvas hidden></div>
+  </div>
+  <div class="house-map__tools cluster" data-map-tools hidden>
+    <button type="button" class="button" data-map-centre>Pin the house at the centre of the map</button>
+    <button type="button" class="button button--quiet" data-map-reset>Back to the postcode</button>
+  </div>
+  <p class="house-map__status" data-map-status aria-live="polite"></p>
+</section>

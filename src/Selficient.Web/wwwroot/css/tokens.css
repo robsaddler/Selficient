@@ -106,6 +106,21 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* The map library's control icons are black SVGs; in the dark they are inverted to read. */
+:root {
+  --map-icon-filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --map-icon-filter: invert(0.85);
+  }
+}
+
+:root[data-theme="dark"] {
+  --map-icon-filter: invert(0.85);
+}
+
 :root[data-theme="light"] {
   color-scheme: light;
 }

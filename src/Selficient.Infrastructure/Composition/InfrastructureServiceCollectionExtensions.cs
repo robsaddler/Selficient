@@ -6,8 +6,11 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Selficient.Application.Geography;
 using Selficient.Application.Kit;
+using Selficient.Application.Maps;
 using Selficient.Infrastructure.Geography;
 using Selficient.Infrastructure.Kit;
+using Selficient.Infrastructure.Maps;
+using Microsoft.Extensions.Logging;
 
 namespace Selficient.Infrastructure.Composition;
 
@@ -34,7 +37,8 @@ public static class InfrastructureServiceCollectionExtensions
         // without touching the callers.
         services.AddHybridCache(options =>
         {
-            options.MaximumPayloadBytes = 256 * 1024;
+            // Vector tiles (M5) are the largest entries; Zoomstack tiles stay well under a megabyte.
+            options.MaximumPayloadBytes = 2 * 1024 * 1024;
             options.MaximumKeyLength = 256;
             options.DefaultEntryOptions = new HybridCacheEntryOptions
             {
@@ -54,6 +58,19 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<IKitCatalogue>(static provider => EmbeddedKitCatalogue.Load(provider.GetRequiredService<IOptions<AffiliateOptions>>().Value));
+
+        // The basemap has no fake: an absent archive is the degraded state, and the tests build
+        // tiny archives of their own.
+        services.AddOptions<MapOptions>()
+            .Bind(configuration.GetSection(MapOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton(provider => new MbTilesBasemap(
+            provider.GetRequiredService<IOptions<MapOptions>>(),
+            environment,
+            provider.GetRequiredService<TimeProvider>(),
+            provider.GetRequiredService<ILogger<MbTilesBasemap>>()));
+        services.AddSingleton<IBasemapTiles>(static provider => new CachedBasemapTiles(provider.GetRequiredService<MbTilesBasemap>(), provider.GetRequiredService<HybridCache>()));
 
         // Read as a string rather than binding the whole object here: binding is reflection-based
         // and the trim analyzer is on. The bound, validated options are still what the clients use.
