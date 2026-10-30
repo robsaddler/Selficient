@@ -1,3 +1,4 @@
+@layer utilities {
 .sr-only {
   position: absolute;
   inline-size: 1px;
@@ -24,4 +25,5 @@
 /* The hidden attribute must beat any display a component sets. Utilities outrank components. */
 [hidden] {
   display: none;
+}
 }

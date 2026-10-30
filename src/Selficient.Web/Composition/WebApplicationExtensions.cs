@@ -32,6 +32,9 @@ public static class WebApplicationExtensions
         app.UseSerilogRequestLogging();
         app.UseSecurityHeaders();
         app.UseRequestLocalization();
+        // Before the static files so the sheets and scripts are compressed too. Tiles arrive
+        // already gzipped and are left alone: the middleware never re-encodes an encoded body.
+        app.UseResponseCompression();
 
         app.UseStaticFiles(new StaticFileOptions
         {

@@ -32,6 +32,23 @@ public static class WebServiceCollectionExtensions
         // letting it through is safe and the pages read as written.
         services.Configure<Microsoft.Extensions.WebEncoders.WebEncoderOptions>(static options =>
             options.TextEncoderSettings = new System.Text.Encodings.Web.TextEncoderSettings(System.Text.Unicode.UnicodeRanges.BasicLatin, System.Text.Unicode.UnicodeRanges.Latin1Supplement));
+        // Brotli, then gzip, for everything textual including the manifest and the icon. Over
+        // HTTPS on purpose: no page carries a secret that an attacker's input sits beside, the
+        // antiforgery field is re-encrypted on every render and the nonce changes every request,
+        // so the compression side channel has nothing to measure (docs/threat-models/launch.md).
+        services.AddResponseCompression(static options =>
+        {
+            options.EnableForHttps = true;
+            options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+            options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+            options.MimeTypes =
+            [
+                .. Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes,
+                "application/manifest+json",
+                "image/svg+xml",
+                "text/javascript",
+            ];
+        });
         services.AddScoped<CspNonce>();
         services.AddScoped<CspPolicy>();
         services.AddSingleton<Services.ShellVersion>();

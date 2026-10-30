@@ -67,7 +67,16 @@ v1: affiliate links plus a metered free allowance of AI analyses. Paid tier cand
 The plan rules and kit catalogue are seeded from `research/2026-10-29-household-resilience-review.md` and `plans/household-resilience-plan.md`; the government checklist from beready.campaign.gov.uk.
 
 ## Launch checklist
-- Domains registered and pointed at Vercel
-- Privacy page (no personal data leaves the browser except postcode lookups), affiliate disclosure, "not professional advice" note
-- Lighthouse PWA installable, works offline for the saved plan
-- Share image and copy for the launch post
+
+Built and verified (30 Oct 2026):
+- Privacy page (no personal data leaves the browser except postcode lookups), affiliate disclosure, "not professional advice" note: `/privacy`, `/terms`, fed from one `LegalCopy`
+- Installable, works offline for the saved plan: proven in Chromium by the E2E journeys; Lighthouse 99/100/100/100 on six pages
+- Share image and metadata: `/img/og.png`, canonical and Open Graph tags, JSON-LD
+- Security headers, rate limits, Kestrel limits, dependency audit clean, load targets met (`docs/threat-models/launch.md`, `docs/benchmarks.md`)
+
+Rob's, before the site is public (`docs/handover.md`):
+- Domains registered; `.app` on the Plesk vhost, the other two redirecting (the plan said Vercel; the decision was the house way on the VPS)
+- Vhost, app pool and the self-hosted runner so the deploy job runs; environment variables from `docs/configuration.md`
+- Google Solar and Anthropic keys, or launch without them (the pages say so)
+- The three legal placeholders confirmed; copy for the launch post
+- The testing list in the handover walked through on the live site

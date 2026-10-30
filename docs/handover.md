@@ -18,7 +18,7 @@
 
 | # | Task | Why | Done when |
 |---|---|---|---|
-| A | Check `https://github.com/robsaddler/Selficient` holds `main` with every milestone commit | The push went through from the M4 commit onwards (the earlier permission block lifted), so this is a check rather than a task | The latest commit on GitHub matches `git log -1` locally |
+| A | Check `https://github.com/robsaddler/Selficient` holds `main` with every milestone commit through M10 | The push went through from the M4 commit onwards (the earlier permission block lifted), so this is a check rather than a task | The latest commit on GitHub matches `git log -1` locally and the M10 Actions run is green on the build job |
 | B | Delete or archive the earlier `Dev-Studios-Ltd/Selficient` repository | It was created before you named the personal one and holds the plan and M0 only | Repository gone or archived |
 | C | Optionally allow `git push` in the Claude Code settings for this folder | So later sessions can push without stopping | A `Bash(git push:*)` allow rule in `.claude/settings.local.json` |
 
@@ -32,6 +32,21 @@
 | 10 | Allow outbound HTTPS from the vhost to api.postcodes.io, api.open-meteo.com, re.jrc.ec.europa.eu, solar.googleapis.com, api.anthropic.com | The adapters call these and nothing else | The plan page shows elevation for a real postcode |
 | 11 | Fetch the OS Open Zoomstack basemap into `httpdocs\tiles` (the deploy workflow's guarded last step does this on first run; it takes up to an hour and is allowed to fail) | F5 stage A map | Map tiles render on the plan page |
 | 12 | Optional, for running the map locally: set `Map__MbTilesPath` to `D:\Source\Repos\sitewise.app\tiles\os-open-zoomstack.mbtiles` (SiteWise's copy), or let it default to `src\Selficient.Web\tiles\os-open-zoomstack.mbtiles`, which is git-ignored | Without it the map degrades to the plain panel; the tests build their own tiny archives | The plan page draws the street at NP12 1GW |
+
+## 2a. Running the checks yourself
+
+All from the repository root in Windows PowerShell. Each exits non-zero on a miss, so any of them can gate a merge.
+
+| Command | What it proves | Time |
+|---|---|---|
+| `./build/run-tests.ps1` | 545 tests across Domain, Application, Infrastructure, Web and Architecture, 100% lines and branches on every gated assembly, then `tsc` and ESLint | about 3 minutes |
+| `./build/run-e2e.ps1` | Fifteen browser journeys in a real Chromium at phone width with axe on every public page (installs Chromium for Playwright on first run) | about 1 minute |
+| `./build/run-load.ps1 20` | The four NBomber scenarios for twenty seconds against the targets in `docs/benchmarks.md`; report in `artifacts/load` | about 1 minute |
+| `npm run check` | Types and lint on the hand-written front end | seconds |
+
+Lighthouse is not scripted because its scores are simulated and it needs a running site: `dotnet run --project src/Selficient.Web -c Release`, then Chrome DevTools, Lighthouse, mobile, against `https://localhost:7310/`. The numbers from 30 Oct are in `docs/benchmarks.md`. Stop the running site before building again; it holds the exe.
+
+GitHub Actions: both workflows now run the gate and the E2E journeys on `ubuntu-latest`. Until M10 a workflow-level concurrency group cancelled every build while the M4 deploy sat queued waiting for a runner; the group now applies to the deploy job alone, so builds complete and only the deploy waits. The M10 push is the first full CI build since M4: check the Actions tab for the run, and if the Linux build fails on SkiaSharp's native library or Playwright's system packages, say so and it is a one-line fix in the workflow.
 
 ## 3. Before launch: your own testing
 
@@ -51,6 +66,10 @@ Run these on the live site, in this order. Each should take a few minutes.
 12. **The solar estimator.** From the plan, follow "Estimate what solar and a battery would make". NP12 1GW, south-west, 35°, 13 panels, 13.5 kWh, whole-home, 3 storeys, 4 people, 5,000 kWh: the saving should land between £1,250 and £1,650 a year with a 9 to 15 year payback and Green Homes Wales listed. Tick the consent box and press "Measure the roof": with the Google key set, the real roof segments appear and the compass moves to south-west.
 13. **Photos and the narrative.** On `/plan/photos`, photograph your kit cupboard: the items are listed with counts and "Tick them on my plan" moves Days Ready on the plan page. Photograph the boiler plate and the consumer unit for their sentences. On the plan page, "Explain my plan in plain words" produces three to five paragraphs under a disclosure. Then do the same with your own key under "Advanced" and watch the network panel: the photo goes to api.anthropic.com from the browser and never to the site. After five analyses in a month on our key, the page says so and offers the key route.
 14. **Search and sharing.** Paste `https://selficient.app/` into a WhatsApp or Slack message and check the card shows the share image and the question. Fetch `https://selficient.app/sitemap.xml` and `robots.txt`. Search Console, if you set it up, should report the FAQ structured data on the home page and no indexed `/plan` pages.
+15. **Moving devices.** On a phone that has never seen the site, open `/plan`: the empty state offers "Import a file" as well as "Start your plan". Import the file you exported in step 5 and the plan rebuilds with its ticks.
+16. **Both themes on a phone.** Switch to dark with the toggle in the header: the Days Ready figure is the bright lantern, the green "Start your plan" button has a dark label, and the footer links read clearly. In light, the figure and the counted numbers are a deep amber. The "Install the app" button, where the browser offers it, is in the footer.
+17. **Compression.** `curl -sI -H "Accept-Encoding: br" https://selficient.app/ | findstr -i content-encoding` shows `br`. If IIS dynamic compression is on for the vhost, turn it off for this site so there is one encoder.
+18. **The runner.** After the first green deploy, `https://selficient.app/health` answers `ok` and the Actions run shows the basemap step either fetching the archive or warning and carrying on.
 
 ## 4. Decisions still open (defaults chosen; change if you disagree)
 
@@ -60,3 +79,9 @@ Run these on the live site, in this order. Each should take a few minutes.
 - Benchmark allocation target revised from 10 KB to 50 KB per plan (`docs/benchmarks.md`).
 - The solar model's documented assumptions (30 percent of generation used as it is made, a 90 percent daily battery cycle, Ofgem typical consumption by household size, the four tariffs in `TariffBook`, the cost bands in `SolarEstimator`). They reproduce the committed review for your roof; change them in one place if an installer's quote says otherwise.
 - The Google roof panel shows the segments as a table rather than over aerial imagery. Imagery would need Google's map script and its origins in the CSP, which the design direction argued against; the figures the estimator needs are all there.
+- Lantern is a fill and focus colour only; lantern as text is a new token, `--c-lantern-ink`, deep amber in daylight and the lantern itself in the dark, because the bright value fails the contrast ratio on the light ground. The dark-theme pine is lighter than the design direction's hex and the primary button's label is dark on it in the dark. Both were found by axe and Lighthouse, not by eye; if you prefer different values, `tokens.css` holds them in one place and the E2E suite will tell you if they fail.
+- The fonts are Latin-1 WOFF2 subsets with the variable axes narrowed to what the stylesheet uses (`build/subset-fonts.mjs`), a quarter of the weight on the wire. A character outside Latin-1 and the common punctuation falls back to the system face; the list in the script says exactly what is covered.
+- The install button moved from the header to the footer so that its appearing never pushes the page down (it was the only layout shift Lighthouse found). If you want it more prominent, the home page hero can carry a second one.
+- Response compression is on over HTTPS (Brotli, then gzip). The reasoning for why the compression side channel does not apply here is in `docs/threat-models/launch.md`, case 4; it should be revisited if a page ever carries a secret next to reflected input.
+- HSTS is declared with `preload` but the domain is not submitted to the preload list; submit it at hstspreload.org once the certificate and the redirects from the other two domains are proven, because it cannot easily be undone.
+- A web application firewall or bot management is not in place and not needed at launch: there is no account, no payment and no server-side data. Revisit when accounts arrive.

@@ -1,3 +1,4 @@
+@layer components {
 /* Buttons */
 .button {
   display: inline-flex;
@@ -21,7 +22,8 @@
   &.button--primary {
     background: var(--c-pine);
     border-color: var(--c-pine);
-    color: oklch(100% 0 0);
+    /* In the dark the pine is lighter, so the label is dark on it rather than white. */
+    color: light-dark(oklch(100% 0 0), oklch(18% 0.03 230));
 
     &:hover {
       background: var(--c-pine-hover);
@@ -107,7 +109,7 @@ days-ready,
   font-stretch: 85%;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: var(--c-lantern);
+  color: var(--c-lantern-ink);
 }
 
 .days-ready__unit {
@@ -176,7 +178,7 @@ progress.tier-progress {
 .sheet__index {
   font-family: var(--font-display);
   font-weight: 700;
-  color: var(--c-lantern);
+  color: var(--c-lantern-ink);
 }
 
 .actions {
@@ -298,6 +300,7 @@ progress.tier-progress {
 .swatch[data-token="--c-sky"] { --swatch: var(--c-sky); }
 .swatch[data-token="--c-pine"] { --swatch: var(--c-pine); }
 .swatch[data-token="--c-lantern"] { --swatch: var(--c-lantern); }
+.swatch[data-token="--c-lantern-ink"] { --swatch: var(--c-lantern-ink); }
 .swatch[data-token="--c-contour"] { --swatch: var(--c-contour); }
 .swatch[data-token="--c-ember"] { --swatch: var(--c-ember); }
 .swatch[data-token="--c-paper"] { --swatch: var(--c-paper); }
@@ -314,7 +317,7 @@ progress.tier-progress {
   font-size: var(--text-display);
   font-weight: 700;
   line-height: 1;
-  color: var(--c-lantern);
+  color: var(--c-lantern-ink);
 }
 
 .styleguide > section {
@@ -439,7 +442,7 @@ progress.tier-progress {
     grid-area: n;
     font-family: var(--font-display);
     font-weight: 700;
-    color: var(--c-lantern);
+    color: var(--c-lantern-ink);
   }
 
   & .risk__kind {
@@ -641,7 +644,7 @@ progress.tier-progress {
   font-stretch: 85%;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: var(--c-lantern);
+  color: var(--c-lantern-ink);
 }
 
 .figure__unit {
@@ -1125,7 +1128,7 @@ progress.tier-progress {
       font-size: var(--text-2xl);
       font-weight: 700;
       line-height: 1;
-      color: var(--c-lantern);
+      color: var(--c-lantern-ink);
     }
 
     & h3 {
@@ -1229,4 +1232,5 @@ progress.tier-progress {
 
 .site-footer__made {
   margin-block-start: var(--space-3);
+}
 }

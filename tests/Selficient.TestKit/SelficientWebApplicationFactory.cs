@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -36,6 +37,18 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
         return this;
     }
 
+    /// <summary>
+    /// Starts the application on a real Kestrel socket and returns where it answers. For the
+    /// browser journeys and the load run, which need a port rather than an in-memory handler.
+    /// </summary>
+    public string StartOnKestrel()
+    {
+        UseKestrel();
+        StartServer();
+        Microsoft.AspNetCore.Hosting.Server.IServer server = Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
+        return server.Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.First().TrimEnd('/');
+    }
+
     /// <summary>Hosts over HTTPS so HSTS and the redirect middleware behave as in production.</summary>
     public SelficientWebApplicationFactory()
     {
@@ -53,6 +66,9 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        // The test projects carry a manifest that names the web project's folder; the load runner
+        // and the browser journeys are started from elsewhere and need the path spelled out.
+        Microsoft.AspNetCore.TestHost.WebHostBuilderExtensions.UseSolutionRelativeContentRoot(builder, "src/Selficient.Web", "Selficient.slnx");
         builder.UseEnvironment(_environment);
         // Tests never touch the network: the deterministic fakes stand in for every upstream. The
         // Production check on this flag is covered separately in the Infrastructure tests.

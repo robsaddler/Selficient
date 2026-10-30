@@ -6,9 +6,10 @@ on:
 
 # Never let two deploys interleave; queue them instead of cancelling so every
 # push still lands in order.
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+# The concurrency group sits on the deploy job alone (below). On the workflow it queued at most
+# one pending run, and with the deploy job waiting for a runner that did not exist yet, every
+# new push cancelled the previous run before its build had started (found 30 Oct 2026: M5 to M8
+# never built on CI). Builds now run for every push; only deploys queue.
 
 jobs:
   build_and_test:
@@ -59,6 +60,12 @@ jobs:
         env:
           CI: "true"
 
+      - name: End-to-end journeys in Chromium at phone width, with axe
+        run: ./build/run-e2e.ps1
+        shell: pwsh
+        env:
+          CI: "true"
+
       - name: Publish Web
         run: dotnet publish src/Selficient.Web/Selficient.Web.csproj --configuration Release --output ${{ github.workspace }}/publish
 
@@ -78,6 +85,10 @@ jobs:
   deploy:
     needs: build_and_test
     runs-on: [self-hosted-selficient, windows] # Make sure this matches the label for your Windows server
+    # Never let two deploys interleave; queue them instead of cancelling so every push still lands in order.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     env:
       APP_POOL_NAME: "selficient.app(domain)(4.0)(pool)"
       DEPLOY_PATH: "C:\\inetpub\\vhosts\\selficient.app\\httpdocs"

@@ -1,3 +1,4 @@
+@layer tokens {
 /*
   Design tokens, derived from product/design-direction.md. Light and dark are expressed with
   light-dark() so one declaration carries both; the explicit toggle sets color-scheme on <html>.
@@ -5,38 +6,38 @@
 
 @font-face {
   font-family: "Bricolage Grotesque";
-  src: url("../fonts/BricolageGrotesque-Variable.ttf") format("truetype-variations");
-  font-weight: 200 800;
-  font-stretch: 75% 100%;
+  src: url("../fonts/BricolageGrotesque.woff2") format("woff2");
+  font-weight: 500 800;
+  font-stretch: 85% 100%;
   font-display: swap;
 }
 
 @font-face {
   font-family: "Atkinson Hyperlegible Next";
-  src: url("../fonts/AtkinsonHyperlegibleNext-Variable.ttf") format("truetype-variations");
-  font-weight: 200 800;
+  src: url("../fonts/AtkinsonHyperlegibleNext.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: "Atkinson Hyperlegible Next";
-  src: url("../fonts/AtkinsonHyperlegibleNext-Italic-Variable.ttf") format("truetype-variations");
-  font-weight: 200 800;
+  src: url("../fonts/AtkinsonHyperlegibleNext-Italic.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
   font-family: "IBM Plex Mono";
-  src: url("../fonts/IBMPlexMono-Regular.ttf") format("truetype");
+  src: url("../fonts/IBMPlexMono-Regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 
 @font-face {
   font-family: "IBM Plex Mono";
-  src: url("../fonts/IBMPlexMono-Medium.ttf") format("truetype");
+  src: url("../fonts/IBMPlexMono-Medium.woff2") format("woff2");
   font-weight: 500;
   font-display: swap;
 }
@@ -47,8 +48,10 @@
   /* Palette. Hex equivalents in the design direction; oklch here so tints are one step away. */
   --c-slate: light-dark(oklch(26% 0.03 230), oklch(93% 0.008 200));
   --c-sky: light-dark(oklch(95.5% 0.005 200), oklch(22% 0.03 230));
-  --c-pine: light-dark(oklch(43% 0.08 165), oklch(62% 0.1 165));
+  --c-pine: light-dark(oklch(43% 0.08 165), oklch(68% 0.1 165));
   --c-lantern: oklch(76% 0.15 75);
+  /* Lantern as text. The same amber, deep enough to read on the ground in daylight (4.5:1); in the dark it is the lantern itself. */
+  --c-lantern-ink: light-dark(oklch(45% 0.12 75), oklch(76% 0.15 75));
   --c-contour: light-dark(oklch(85% 0.012 190), oklch(38% 0.02 220));
   --c-ember: light-dark(oklch(50% 0.19 28), oklch(68% 0.17 28));
   --c-paper: light-dark(oklch(100% 0 0), oklch(26% 0.03 230));
@@ -134,4 +137,5 @@
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
+}
 }

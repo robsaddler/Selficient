@@ -1,14 +1,9 @@
 /*
-  Selficient stylesheet. Cascade layers govern specificity, so later layers win regardless of
-  selector weight and no rule ever needs !important. Every value comes from a token.
+  Selficient stylesheet order. Cascade layers govern specificity, so later layers win regardless
+  of selector weight and no rule ever needs !important. Every value comes from a token.
+
+  Each sheet declares its own layer and the layout links them one after another, so a phone
+  fetches them side by side rather than as a chain of imports. This file fixes the layer order
+  and must be linked first. map-chrome.css is unlayered on purpose and linked last; see the file.
 */
 @layer reset, tokens, base, components, utilities, pages;
-
-@import url("reset.css") layer(reset);
-@import url("tokens.css") layer(tokens);
-@import url("base.css") layer(base);
-@import url("components.css") layer(components);
-@import url("utilities.css") layer(utilities);
-
-/* Unlayered on purpose; see the file. */
-@import url("map-chrome.css");

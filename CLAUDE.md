@@ -30,6 +30,15 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - The Anthropic C# SDK (13.x) sends the key as `Authorization: Bearer`, not `x-api-key`, and its message types are `UserMessageParam` / `ImageBlockParam { Source = new Base64ImageSource }`; a stub must match the bearer header. Reflection on the SDK assembly from PowerShell 5.1 fails (net8 assembly); grep the DLL bytes or write a throwaway console probe in the scratchpad.
 - SkiaSharp decodes a PNG with garbage pixel data as "incomplete" rather than failing; a palette PNG with no PLTE chunk is the input that opens as a codec and fails to decode.
 - `.webmanifest` is not in the framework's content-type map; it is mapped in the pipeline. The worker template under `wwwroot` is never listed in the shell because the shell scan covers only `css`, `js`, `lib`, `img` and `fonts`.
+- `WebApplicationFactory` finds the content root through the test project's manifest; a runner started from elsewhere (the load project, the E2E fixture) needs `UseSolutionRelativeContentRoot("src/Selficient.Web", "Selficient.slnx")`, fully qualified because two extension classes share the name. `StartOnKestrel()` on the factory gives a real port for Playwright and NBomber.
+- Every option is range-validated at startup; a fixture that lifts a rate limit must stay inside the range (`AiPerMinute` tops out at 1,000) or the host refuses to start with a message that looks like a test failure.
+- A service worker's first `controllerchange` on a device is not an update; reloading on it reloads every first visit and destroys any script context a test is evaluating in. `shell.js` only reloads when a worker is replaced.
+- axe samples colours mid-animation; audit after `document.getAnimations()` has finished or the lifting Days Ready figure reports a contrast failure.
+- Lantern is a fill colour. Lantern as text is `--c-lantern-ink`; the bright value fails 3:1 on the light ground and the plan page only passed because the contour band hides the background from axe.
+- Stylesheets are linked from the layout one per layer, each wrapped in `@layer name { … }`, with `app.css` first to fix the order. Do not reintroduce `@import`: it chains round trips on a slow phone.
+- Fonts are WOFF2 subsets made by `build/subset-fonts.mjs` from the foundries' files, which are not in the repo; `tokens.css` declares the narrowed weight and width ranges, so a new weight needs a new subset.
+- `dotnet run` on the web project locks `Selficient.Web.exe`; stop it before `dotnet build` or the build fails to copy the apphost.
+- Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 
 ## Conventions
 

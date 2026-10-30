@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    End-to-end journeys in a real Chromium at phone width, with axe on every page. Not in the
+    coverage gate: it drives the whole application through Kestrel rather than exercising lines.
+    Run by build/run-e2e.ps1 locally and by the workflows after the gate.
+  -->
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);CA1515;CA1062;CA2007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Selficient.Web/Selficient.Web.csproj" />
+    <ProjectReference Include="../Selficient.TestKit/Selficient.TestKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Deque.AxeCore.Playwright" />
+  </ItemGroup>
+
+</Project>

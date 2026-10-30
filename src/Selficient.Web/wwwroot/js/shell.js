@@ -49,10 +49,14 @@ function registerWorker(doc) {
     workers.controller.postMessage("sw:version?", [channel.port2]);
   }
 
-  // When a new worker takes control, reload once so the new build runs, but never over a form
-  // someone is typing into or a dialog that is open.
+  // When a new worker replaces an old one, reload once so the new build runs, but never over a
+  // form someone is typing into or a dialog that is open. The first worker a device ever gets
+  // is not a replacement: the page it took over is already this build, so it stays put.
+  let replacing = workers.controller !== null;
   workers.addEventListener("controllerchange", () => {
-    if (!reloadAllowed() || doc.querySelector("dialog[open]") || hasTypedText(doc)) {
+    const wasReplacing = replacing;
+    replacing = true;
+    if (!wasReplacing || !reloadAllowed() || doc.querySelector("dialog[open]") || hasTypedText(doc)) {
       return;
     }
     location.reload();

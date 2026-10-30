@@ -11,6 +11,14 @@ import * as store from "selficient/plan-store.js";
  * @param {Document} doc
  */
 export async function initPlanPage(doc) {
+  // Import is offered on the plan and on the empty state alike.
+  doc.querySelector("[data-import-plan]")?.addEventListener("change", (event) => {
+    const input = event.target;
+    if (input instanceof HTMLInputElement && input.files?.[0]) {
+      void importPlan(doc, input.files[0]);
+    }
+  });
+
   const empty = doc.querySelector("[data-resubmit]");
   if (empty instanceof HTMLFormElement) {
     await resubmitIfStored(empty);
@@ -18,7 +26,7 @@ export async function initPlanPage(doc) {
   }
 
   const plan = doc.querySelector("[data-plan]");
-  if (!plan) {
+  if (!(plan instanceof HTMLElement)) {
     return;
   }
 
@@ -41,12 +49,8 @@ export async function initPlanPage(doc) {
     void exportPlan(doc);
   });
 
-  doc.querySelector("[data-import-plan]")?.addEventListener("change", (event) => {
-    const input = event.target;
-    if (input instanceof HTMLInputElement && input.files?.[0]) {
-      void importPlan(doc, input.files[0]);
-    }
-  });
+  // A tick made before this point was not heard; the attribute says the page now remembers.
+  plan.setAttribute("data-plan-ready", "");
 }
 
 /**

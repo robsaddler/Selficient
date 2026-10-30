@@ -19,7 +19,14 @@
   <link rel="manifest" href="~/manifest.webmanifest">
   <link rel="icon" href="~/img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="~/img/apple-touch-icon.png">
+  @* One sheet per layer, linked rather than imported, so they load side by side. app.css fixes the order and map-chrome.css is unlayered and last. *@
   <link rel="stylesheet" href="~/css/app.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/reset.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/base.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/components.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/utilities.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/map-chrome.css" asp-append-version="true">
   <link rel="modulepreload" href="~/js/app.js">
   @* The "!" opts this element out of tag helpers: the framework's ImportMap helper otherwise
      rewrites it and drops the type attribute. The nonce is therefore stamped by hand. *@
@@ -39,8 +46,6 @@
     <nav class="site-nav" aria-label="Main">
       <a href="/plan">Your plan</a>
       <a href="/styleguide">Styleguide</a>
-      @* Shown by install.js only where the browser can install or explain how, and never inside the installed app. *@
-      <button type="button" class="button button--quiet" data-install hidden>Install the app</button>
       <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false">
         <span class="sr-only">Switch between light and dark</span>
         <span aria-hidden="true">◐</span>
@@ -54,6 +59,9 @@
   <footer class="site-footer">
     <p>Selficient helps households prepare for everyday emergencies. It is guidance, not professional advice, and it never replaces the instructions of the emergency services.</p>
     <p>Nothing you enter leaves your browser except the postcode we use to find your area.</p>
+    @* Shown by install.js only where the browser can install or explain how, and never inside the
+       installed app. It lives below the content so appearing never pushes the page down. *@
+    <p class="site-footer__install"><button type="button" class="button button--quiet" data-install hidden>Install the app</button></p>
     <nav class="site-footer__links" aria-label="About this site">
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms and affiliate disclosure</a>

@@ -108,7 +108,7 @@ public sealed class PagesTests : IDisposable
 
         using HttpResponseMessage css = await client.GetAsync(new Uri("/css/app.css", UriKind.Relative));
         using HttpResponseMessage js = await client.GetAsync(new Uri("/js/app.js", UriKind.Relative));
-        using HttpResponseMessage font = await client.GetAsync(new Uri("/fonts/IBMPlexMono-Regular.ttf", UriKind.Relative));
+        using HttpResponseMessage font = await client.GetAsync(new Uri("/fonts/IBMPlexMono-Regular.woff2", UriKind.Relative));
         using HttpResponseMessage robots = await client.GetAsync(new Uri("/robots.txt", UriKind.Relative));
 
         css.Headers.CacheControl!.NoCache.ShouldBeTrue();
@@ -117,6 +117,35 @@ public sealed class PagesTests : IDisposable
         font.Headers.CacheControl.Extensions.ShouldContain(e => e.Name == "immutable");
         robots.StatusCode.ShouldBe(HttpStatusCode.OK);
         robots.Headers.CacheControl.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("/", "br")]
+    [InlineData("/css/app.css", "gzip")]
+    [InlineData("/js/app.js", "br")]
+    [InlineData("/manifest.webmanifest", "br")]
+    [InlineData("/img/icon.svg", "br")]
+    public async Task Text_responses_are_compressed_for_a_browser_that_asks(string path, string encoding)
+    {
+        using HttpClient client = _factory.CreateClient();
+        using HttpRequestMessage request = new(HttpMethod.Get, new Uri(path, UriKind.Relative));
+        request.Headers.AcceptEncoding.ParseAdd(encoding);
+
+        using HttpResponseMessage response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentEncoding.ShouldBe([encoding]);
+        response.Headers.Vary.ShouldContain("Accept-Encoding");
+    }
+
+    [Fact]
+    public async Task A_browser_that_does_not_ask_gets_the_page_as_it_is()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        using HttpResponseMessage response = await client.GetAsync(new Uri("/", UriKind.Relative));
+
+        response.Content.Headers.ContentEncoding.ShouldBeEmpty();
     }
 
     public void Dispose() => _factory.Dispose();

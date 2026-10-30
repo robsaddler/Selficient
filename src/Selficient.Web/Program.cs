@@ -10,6 +10,9 @@ using Serilog;
 CultureInfo.DefaultThreadCurrentCulture = SelficientCulture.EnGb;
 CultureInfo.DefaultThreadCurrentUICulture = SelficientCulture.EnGb;
 
+// A burst of households after a storm warning must not queue behind thread-pool growth.
+System.Threading.ThreadPool.SetMinThreads(Math.Max(64, Environment.ProcessorCount * 8), Math.Max(64, Environment.ProcessorCount * 8));
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, configuration) => configuration
@@ -30,6 +33,12 @@ builder.WebHost.ConfigureKestrel(options =>
 {
     options.AddServerHeader = false;
     options.Limits.MaxRequestBodySize = 10 * 1024 * 1024;
+    // A household's request is small: a form, a photo, a tile address. Anything larger is noise.
+    options.Limits.MaxRequestHeaderCount = 60;
+    options.Limits.MaxRequestHeadersTotalSize = 32 * 1024;
+    options.Limits.MaxRequestLineSize = 8 * 1024;
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
 });
 
 builder.Services.AddSelficientApplication();
