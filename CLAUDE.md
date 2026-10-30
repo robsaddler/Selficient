@@ -37,6 +37,7 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - Lantern is a fill colour. Lantern as text is `--c-lantern-ink`; the bright value fails 3:1 on the light ground and the plan page only passed because the contour band hides the background from axe.
 - Stylesheets are linked from the layout one per layer, each wrapped in `@layer name { … }`, with `app.css` first to fix the order. Do not reintroduce `@import`: it chains round trips on a slow phone.
 - Fonts are WOFF2 subsets made by `build/subset-fonts.mjs` from the foundries' files, which are not in the repo; `tokens.css` declares the narrowed weight and width ranges, so a new weight needs a new subset.
+- `TimeProvider.TimestampFrequency` is the Stopwatch frequency: ten million a second on Windows, a thousand million on Linux. A test clock must override it (the TestKit `ManualClock` uses TimeSpan ticks) or an advance of a day is a hundred days on the ubuntu runner, which only CI sees.
 - `dotnet run` on the web project locks `Selficient.Web.exe`; stop it before `dotnet build` or the build fails to copy the apphost.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 

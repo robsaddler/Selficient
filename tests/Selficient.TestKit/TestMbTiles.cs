@@ -94,14 +94,23 @@ public static class TestMbTiles
 /// <summary>A clock the tests move by hand.</summary>
 public sealed class ManualClock : TimeProvider
 {
-    private long _ticks = 1_000_000_000L;
+    private const long Start = 1_000_000_000L;
+    private long _ticks = Start;
+
+    /// <summary>
+    /// One tick is one <see cref="TimeSpan"/> tick for both the timestamp and the wall clock, on
+    /// every operating system. The default is the Stopwatch frequency, which is ten million a
+    /// second on Windows and a thousand million on Linux; mixing it with TimeSpan ticks made a
+    /// day's advance a hundred days on the build runner.
+    /// </summary>
+    public override long TimestampFrequency => TimeSpan.TicksPerSecond;
 
     /// <inheritdoc />
     public override long GetTimestamp() => _ticks;
 
     /// <inheritdoc />
-    public override DateTimeOffset GetUtcNow() => new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero) + TimeSpan.FromTicks(_ticks - 1_000_000_000L);
+    public override DateTimeOffset GetUtcNow() => new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero) + TimeSpan.FromTicks(_ticks - Start);
 
     /// <summary>Moves time forward.</summary>
-    public void Advance(TimeSpan by) => _ticks += (long)(by.TotalSeconds * TimestampFrequency);
+    public void Advance(TimeSpan by) => _ticks += by.Ticks;
 }
