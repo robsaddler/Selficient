@@ -22,12 +22,13 @@
     <p class="hero__lede">That is a typical house when a storm takes the power out: the tap keeps running, the fridge and the cupboard last a day, then the shops want cash. Three days is the government's ask. Seven is where a storm becomes an inconvenience rather than a crisis. A minute of questions tells you where yours stands and what closes the gap.</p>
     @await Html.PartialAsync("_Strip", Model.Bars)
     <form class="hero__start" method="get" action="/plan/start">
-      <label for="hero-postcode">Start with your postcode</label>
+      <label for="hero-postcode">Start with your postcode, or let your phone find it</label>
       <div class="hero__start-row">
         <input id="hero-postcode" name="postcode" class="input" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="CF10 1EP">
         <button type="submit" class="button button--primary">Start your plan</button>
+        <button type="button" class="button button--locate" data-locate data-locate-for="#hero-postcode" data-locate-status="#hero-locate-status" data-locate-submit hidden><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button>
       </div>
-      <p class="locate"><button type="button" class="button button--quiet" data-locate data-locate-for="#hero-postcode" data-locate-status="#hero-locate-status" hidden>Use my location</button> <span id="hero-locate-status" class="locate__status" role="status" hidden></span></p>
+      <p id="hero-locate-status" class="locate__status" role="status" hidden></p>
     </form>
     <p class="hero__actions"><a href="#how">See how it works</a></p>
   </div>

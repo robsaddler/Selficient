@@ -190,8 +190,15 @@ public sealed class Journeys
         await Expect(button).ToBeVisibleAsync();
         await button.ClickAsync();
 
-        await Expect(page.Locator("#hero-postcode")).ToHaveValueAsync("NP12 1GW");
-        await Expect(page.Locator("#hero-locate-status")).ToHaveTextAsync("Your postcode is NP12 1GW. Check it and carry on.");
+        // On the landing page finding the postcode is starting the plan: the wizard opens with it in the box.
+        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/plan/start");
+        await Expect(page.Locator("#Form_Postcode")).ToHaveValueAsync("NP12 1GW");
+
+        // On the wizard the button fills the box and waits for the person.
+        await page.Locator("#Form_Postcode").FillAsync("");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Use my location" }).ClickAsync();
+        await Expect(page.Locator("#Form_Postcode")).ToHaveValueAsync("NP12 1GW");
+        await Expect(page.Locator("#wizard-locate-status")).ToHaveTextAsync("Your postcode is NP12 1GW. Check it and carry on.");
     }
 
     [Fact]

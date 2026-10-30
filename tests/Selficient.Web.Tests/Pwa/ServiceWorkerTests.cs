@@ -71,7 +71,9 @@ public sealed partial class ServiceWorkerTests : IDisposable
 
         foreach (Match asset in LayoutAsset().Matches(page))
         {
-            shell.ShouldContain(asset.Groups["path"].Value, customMessage: $"the layout references {asset.Groups["path"].Value}");
+            // A sprite reference carries a fragment (`/img/marks.svg#mark-locate`); the shell lists the file.
+            string path = asset.Groups["path"].Value.Split('#')[0];
+            shell.ShouldContain(path, customMessage: $"the layout references {path}");
         }
 
         shell.ShouldContain("/manifest.webmanifest");

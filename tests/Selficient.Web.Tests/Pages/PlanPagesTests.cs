@@ -44,7 +44,8 @@ public sealed partial class PlanPagesTests : IDisposable
 
         string html = await client.GetStringAsync(new Uri("/plan/start", UriKind.Relative));
 
-        html.ShouldContain("data-locate-for=\"#Postcode\"", customMessage: "the wizard offers the location beside its postcode box");
+        html.ShouldContain("data-locate-for=\"#Form_Postcode\"", customMessage: "the wizard offers the location beside its postcode box");
+        html.ShouldContain("id=\"Form_Postcode\"", customMessage: "and the box the button names is on the page");
 
         html.ShouldContain("How many people live in your home?");
         html.ShouldContain("Is there a tree tall enough to reach the house if it fell?");

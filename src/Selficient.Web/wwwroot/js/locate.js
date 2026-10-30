@@ -29,11 +29,14 @@ export function initLocate(doc) {
  * @param {HTMLButtonElement} button
  */
 async function locate(doc, button) {
-  const input = doc.querySelector(button.dataset.locateFor ?? "");
+  // The box named by the button, or failing that the postcode box nearest it in the same form.
+  const named = doc.querySelector(button.dataset.locateFor ?? "");
+  const input = named instanceof HTMLInputElement ? named : button.closest("form")?.querySelector("input[autocomplete='postal-code']");
   const status = doc.querySelector(button.dataset.locateStatus ?? "");
   if (!(input instanceof HTMLInputElement)) {
     return;
   }
+  const submits = button.hasAttribute("data-locate-submit");
   const say = (/** @type {string} */ sentence) => {
     if (status instanceof HTMLElement) {
       status.textContent = sentence;
@@ -57,7 +60,13 @@ async function locate(doc, button) {
     if (response.ok && typeof answer?.postcode === "string") {
       input.value = answer.postcode;
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      say(`Your postcode is ${answer.postcode}. Check it and carry on.`);
+      if (submits && input.form) {
+        // On the landing page the postcode is the whole form, so finding it is starting the plan.
+        say(`Your postcode is ${answer.postcode}. Opening the questions.`);
+        input.form.requestSubmit();
+      } else {
+        say(`Your postcode is ${answer.postcode}. Check it and carry on.`);
+      }
     } else {
       say(typeof answer?.message === "string" ? answer.message : "We couldn't find a postcode where you are. Type it in instead.");
     }

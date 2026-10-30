@@ -1506,6 +1506,21 @@ progress.tier-progress {
   color: var(--c-ink-muted);
 }
 
+/* The location button stands beside the start button, with the pin, and reads as the other way in */
+.button--locate {
+  gap: var(--space-2);
+
+  & .mark-icon {
+    margin: 0;
+    color: currentColor;
+  }
+}
+
+.hero__start-row + .locate__status {
+  margin-block-start: var(--space-2);
+  color: var(--c-on-roof-muted);
+}
+
 /* Clearing the plan: folded away, with its sentence, and a button that looks like what it does */
 .clear {
   margin-block-start: var(--space-5);

@@ -57,7 +57,8 @@ public sealed class LookTests : IDisposable
         ids.ShouldContain(Marks.Dependency);
         ids.ShouldContain(Marks.House);
         ids.ShouldContain(Marks.ActionGeneral);
-        ids.Count.ShouldBe(Enum.GetValues<NeedId>().Length + Marks.SourceIds.Count + Scenarios.All.Count + 3, "no mark is drawn for nothing");
+        ids.ShouldContain("mark-locate");
+        ids.Count.ShouldBe(Enum.GetValues<NeedId>().Length + Marks.SourceIds.Count + Scenarios.All.Count + 4, "no mark is drawn for nothing");
     }
 
     [Fact]
@@ -139,7 +140,8 @@ public sealed class LookTests : IDisposable
 
         html.ShouldContain("class=\"hero hero--night night\"");
         html.ShouldContain("<p class=\"hero__brand\">Selficient</p>");
-        html.ShouldContain("data-locate data-locate-for=\"#hero-postcode\" data-locate-status=\"#hero-locate-status\" hidden>Use my location</button>", customMessage: "hidden until the script finds geolocation, then a button under the box");
+        html.ShouldContain("data-locate data-locate-for=\"#hero-postcode\" data-locate-status=\"#hero-locate-status\" data-locate-submit hidden>", customMessage: "hidden until the script finds geolocation, then a button beside the start button that opens the questions");
+        html.ShouldContain("#mark-locate\"/></svg>Use my location</button>");
         html.ShouldContain("<strong>Self-sufficient, efficiently.</strong> How long your house could stand on its own when the power, the water or the roads stop, and the shortest list that closes the gap.");
         html.ShouldNotContain("placeholder=\"NP12 1GW\"", customMessage: "a new household must not see Rob's postcode as if it were preloaded");
         html.ShouldContain("<div class=\"glow\"");
