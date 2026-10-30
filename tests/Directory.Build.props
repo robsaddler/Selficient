@@ -21,7 +21,7 @@
       Tests deliberately construct invalid arguments, pass nulls into non-nullable parameters and
       name methods in prose. These rules would otherwise make the adversarial suites unwritable.
     -->
-    <NoWarn>$(NoWarn);CA1861;CA2007;CS8625;CA1707;CA1515;IDE0058;CA1305;CA1859;CA1711;CA1806;CA2201;CA1062;CA2234;xUnit1051</NoWarn>
+    <NoWarn>$(NoWarn);CA1861;CA2007;CS8625;CA1707;CA1515;IDE0058;CA1305;CA1859;CA1711;CA1806;CA2201;CA1062;CA2234;CA1848;xUnit1051</NoWarn>
 
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
     <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>

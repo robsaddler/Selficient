@@ -320,3 +320,175 @@ progress.tier-progress {
 .styleguide > section {
   margin-block-start: var(--space-7);
 }
+
+/* Forms */
+.plan-form {
+  display: grid;
+  gap: var(--space-6);
+  max-inline-size: var(--measure);
+}
+
+.form-section {
+  border: var(--border);
+  border-radius: var(--radius-m);
+  padding: var(--space-5);
+  background: var(--c-paper);
+  display: grid;
+  gap: var(--space-4);
+
+  & legend {
+    font-family: var(--font-display);
+    font-weight: 600;
+    padding-inline: var(--space-2);
+  }
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+
+  & label {
+    font-weight: 600;
+  }
+
+  &.field--check {
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    column-gap: var(--space-3);
+
+    & input {
+      inline-size: 1.5rem;
+      block-size: 1.5rem;
+      margin-block-start: 0.15rem;
+    }
+
+    & label {
+      font-weight: 500;
+    }
+  }
+}
+
+.input {
+  min-block-size: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border);
+  border-radius: var(--radius-s);
+  background: var(--c-paper);
+  color: var(--c-ink);
+  inline-size: 100%;
+
+  &.input--short {
+    inline-size: min(100%, 12rem);
+  }
+
+  &:user-invalid,
+  &.input-validation-error {
+    border-color: var(--c-ember);
+  }
+}
+
+.field__error {
+  color: var(--c-ember);
+  font-size: var(--text-s);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.field__hint {
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+}
+
+.wizard {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Risks */
+.risks {
+  margin-block-start: var(--space-7);
+}
+
+.risk-list {
+  list-style: none;
+  padding: 0;
+  margin-block-start: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  counter-reset: risk;
+}
+
+.risk {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "n kind"
+    "n rating"
+    "n why";
+  column-gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--c-paper);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  counter-increment: risk;
+
+  &::before {
+    content: counter(risk);
+    grid-area: n;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--c-lantern);
+  }
+
+  & .risk__kind {
+    grid-area: kind;
+    font-weight: 600;
+  }
+
+  & .risk__rating {
+    grid-area: rating;
+    font-size: var(--text-s);
+    color: var(--c-ink-muted);
+  }
+
+  & .risk__why {
+    grid-area: why;
+    margin-block-start: var(--space-2);
+    color: var(--c-ink-muted);
+  }
+}
+
+/* Plan */
+.plan {
+  margin-block-start: var(--space-7);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.plan__total {
+  font-weight: 600;
+}
+
+.sheet__empty {
+  margin-block-start: var(--space-3);
+  color: var(--c-ink-muted);
+}
+
+.sheet > .tier-progress {
+  margin-block-start: var(--space-4);
+}
+
+.plan-tools {
+  margin-block-start: var(--space-7);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+}
+
+.hero--plan .eyebrow {
+  text-transform: none;
+  letter-spacing: 0;
+}

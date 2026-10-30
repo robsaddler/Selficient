@@ -59,6 +59,19 @@ public sealed class HouseholdTests
     }
 
     [Theory]
+    [InlineData(99, 0, 0, 0)]
+    [InlineData(0, 99, 0, 0)]
+    [InlineData(0, 0, 99, 0)]
+    [InlineData(0, 0, 0, 99)]
+    public void Values_outside_the_closed_sets_are_refused(int type, int heating, int hob, int flood)
+    {
+        Result<Dwelling> result = Dwelling.Create((DwellingType)type, 2, (HeatingType)heating, (HobType)hob, true, true, false, false, null, (FloodRisk)flood);
+
+        result.Error.Code.ShouldBe("dwelling.unknown-choice");
+        result.Error.Message.ShouldBe("One of the answers about the home was not one of the options offered.");
+    }
+
+    [Theory]
     [InlineData(DwellingType.Flat, false)]
     [InlineData(DwellingType.Terrace, true)]
     [InlineData(DwellingType.SemiDetached, true)]

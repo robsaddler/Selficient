@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import globals from "globals";
 
 export default [
   js.configs.recommended,
@@ -7,20 +8,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: "module",
-      globals: {
-        window: "readonly",
-        document: "readonly",
-        customElements: "readonly",
-        HTMLElement: "readonly",
-        HTMLButtonElement: "readonly",
-        HTMLDialogElement: "readonly",
-        localStorage: "readonly",
-        matchMedia: "readonly",
-        requestAnimationFrame: "readonly",
-        performance: "readonly",
-        AbortController: "readonly",
-        Intl: "readonly",
-      },
+      globals: { ...globals.browser },
     },
     rules: {
       "no-var": "error",
@@ -34,7 +22,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: "module",
-      globals: { process: "readonly", console: "readonly" },
+      globals: { ...globals.node },
     },
   },
 ];

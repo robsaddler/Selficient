@@ -34,6 +34,8 @@ Pure Domain code that turns a household profile into a ranked risk register, a t
 
 Transport, storage and AI are covered by their own models (M2, M3, M8). This engine never sees a postcode, a name or free text.
 
-## Outcomes
+## Outcomes (adversarial pass, 30 Oct 2026)
 
-*Filled in at the adversarial pass.*
+- All twelve cases have passing tests; the Domain suite is 105 tests with 100% line and branch coverage.
+- Case 9: BenchmarkDotNet measured 7.3 µs and 22.9 KB per plan; time is two orders inside the target, the allocation target was revised to 50 KB (`docs/benchmarks.md`).
+- Security review (Claude, security-review skill): no findings at the >80% bar. One robustness note acted on: `Dwelling.Create` now refuses enum values outside the closed sets, so a model binder delivering `(FloodRisk)99` is a sentence, not a silent default. Pinned by `Values_outside_the_closed_sets_are_refused`.

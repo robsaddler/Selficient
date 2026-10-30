@@ -3,6 +3,10 @@
   <!-- Adapters for the Application ports: HTTP clients, caching, catalogue, image processing. -->
   <PropertyGroup>
     <RootNamespace>Selficient.Infrastructure</RootNamespace>
+    <!-- Options binding and HttpClient factories are reflection-based; this assembly is never trimmed. -->
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+    <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +17,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
 
 </Project>

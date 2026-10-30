@@ -1,0 +1,94 @@
+@model Selficient.Web.Pages.Plan.PlanForm
+
+<form method="post" asp-page="/Plan/Index" class="plan-form" data-plan-form novalidate>
+  <div asp-validation-summary="ModelOnly" class="callout callout--warning" role="alert"></div>
+
+  <fieldset class="form-section">
+    <legend>Where you are</legend>
+    <div class="field">
+      <label asp-for="Postcode"></label>
+      <input asp-for="Postcode" class="input input--short" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false">
+      <span asp-validation-for="Postcode" class="field__error"></span>
+    </div>
+  </fieldset>
+
+  <fieldset class="form-section">
+    <legend>Who lives there</legend>
+    <div class="field">
+      <label asp-for="People"></label>
+      <input asp-for="People" type="number" min="1" max="20" class="input input--short" inputmode="numeric">
+      <span asp-validation-for="People" class="field__error"></span>
+    </div>
+    <div class="field">
+      <label asp-for="Children"></label>
+      <input asp-for="Children" type="number" min="0" max="20" class="input input--short" inputmode="numeric">
+      <span asp-validation-for="Children" class="field__error"></span>
+    </div>
+    <div class="field field--check">
+      <input asp-for="HasVulnerablePerson">
+      <label asp-for="HasVulnerablePerson"></label>
+    </div>
+    <div class="field field--check">
+      <input asp-for="HasPets">
+      <label asp-for="HasPets"></label>
+    </div>
+    <div class="field field--check">
+      <input asp-for="RunsBusinessFromHome">
+      <label asp-for="RunsBusinessFromHome"></label>
+    </div>
+  </fieldset>
+
+  <fieldset class="form-section">
+    <legend>The home</legend>
+    <div class="field">
+      <label asp-for="DwellingType"></label>
+      <select asp-for="DwellingType" asp-items="Selficient.Web.Pages.Plan.PlanForm.DwellingTypes" class="input"></select>
+      <span asp-validation-for="DwellingType" class="field__error"></span>
+    </div>
+    <div class="field">
+      <label asp-for="Storeys"></label>
+      <input asp-for="Storeys" type="number" min="1" max="6" class="input input--short" inputmode="numeric">
+      <span asp-validation-for="Storeys" class="field__error"></span>
+    </div>
+    <div class="field">
+      <label asp-for="Heating"></label>
+      <select asp-for="Heating" asp-items="Selficient.Web.Pages.Plan.PlanForm.HeatingTypes" class="input"></select>
+      <span asp-validation-for="Heating" class="field__error"></span>
+    </div>
+    <div class="field">
+      <label asp-for="Hob"></label>
+      <select asp-for="Hob" asp-items="Selficient.Web.Pages.Plan.PlanForm.HobTypes" class="input"></select>
+      <span asp-validation-for="Hob" class="field__error"></span>
+    </div>
+    <div class="field field--check">
+      <input asp-for="HasCar">
+      <label asp-for="HasCar"></label>
+    </div>
+  </fieldset>
+
+  <fieldset class="form-section">
+    <legend>Outside</legend>
+    <div class="field field--check">
+      <input asp-for="HasGarden">
+      <label asp-for="HasGarden"></label>
+    </div>
+    <div class="field field--check">
+      <input asp-for="HasDecking">
+      <label asp-for="HasDecking"></label>
+    </div>
+    <div class="field field--check">
+      <input asp-for="HasTallTreeNearHouse">
+      <label asp-for="HasTallTreeNearHouse"></label>
+    </div>
+    <div class="field">
+      <label asp-for="FloodRisk"></label>
+      <select asp-for="FloodRisk" asp-items="Selficient.Web.Pages.Plan.PlanForm.FloodRisks" class="input"></select>
+      <span asp-validation-for="FloodRisk" class="field__error"></span>
+      <p class="field__hint">Check in two minutes at the national flood service for <a href="https://check-long-term-flood-risk.service.gov.uk/" rel="noopener noreferrer">England</a>, <a href="https://naturalresources.wales/flooding/check-your-flood-risk-by-postcode/" rel="noopener noreferrer">Wales</a>, <a href="https://www.sepa.org.uk/environment/water/flooding/flood-maps/" rel="noopener noreferrer">Scotland</a> or <a href="https://www.nidirect.gov.uk/articles/check-risk-flooding-your-area" rel="noopener noreferrer">Northern Ireland</a>.</p>
+    </div>
+  </fieldset>
+
+  <p class="cluster">
+    <button type="submit" class="button button--primary">Build my plan</button>
+  </p>
+</form>

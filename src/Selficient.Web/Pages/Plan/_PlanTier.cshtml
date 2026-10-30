@@ -1,0 +1,39 @@
+@using Selficient.Web.Formatting
+@model Selficient.Domain.Plans.PlanTier
+@{
+    var culture = System.Globalization.CultureInfo.InvariantCulture;
+    var index = (int)Model.Tier + 1;
+}
+
+<article class="sheet" data-tier="@Model.Tier">
+  <header class="sheet__header">
+    <span class="sheet__index" aria-hidden="true">@index</span>
+    <h3>@Model.Title</h3>
+    <span class="data">@MoneyFormat.Range(Model.Cost)</span>
+  </header>
+  @if (Model.Actions.Count == 0)
+  {
+    <p class="sheet__empty">Nothing extra for your home in this stretch.</p>
+  }
+  else
+  {
+    <progress class="tier-progress" value="0" max="@Model.Actions.Count" data-tier-progress aria-label="Actions done in this stretch">0 of @Model.Actions.Count</progress>
+    <ul class="actions">
+      @foreach (var action in Model.Actions)
+      {
+        <li class="action">
+          <label>
+            <input type="checkbox" name="tick" value="@action.Id.Value"
+                   data-action-id="@action.Id.Value"
+                   data-water="@action.Provides.WaterLitres.ToString(culture)"
+                   data-food="@action.Provides.FoodDays.ToString(culture)"
+                   data-light="@action.Provides.LightHours.ToString(culture)">
+            <span class="action__title">@action.Title</span>
+            <span class="action__why">@action.Why</span>
+            <span class="data">@MoneyFormat.Range(action.Cost)</span>
+          </label>
+        </li>
+      }
+    </ul>
+  }
+</article>

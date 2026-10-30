@@ -7,12 +7,28 @@ namespace Selficient.Web.Composition;
 public static class WebServiceCollectionExtensions
 {
     /// <summary>Adds Razor Pages and the services the pipeline depends on.</summary>
-    public static IServiceCollection AddSelficientWeb(this IServiceCollection services)
+    public static IServiceCollection AddSelficientWeb(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
 
-        services.AddRazorPages();
+        services.AddRazorPages().AddMvcOptions(options =>
+        {
+            // The framework's binding messages are fragments ("The value 'x' is not valid for Heating.").
+            // Every sentence a person reads is whole, so they are replaced here.
+            options.ModelBindingMessageProvider.SetAttemptedValueIsInvalidAccessor(static (_, _) => "That answer is not one of the options offered. Choose one from the list.");
+            options.ModelBindingMessageProvider.SetValueIsInvalidAccessor(static _ => "That answer is not one of the options offered. Choose one from the list.");
+            options.ModelBindingMessageProvider.SetMissingKeyOrValueAccessor(static () => "This answer is needed to build the plan.");
+            options.ModelBindingMessageProvider.SetMissingRequestBodyRequiredValueAccessor(static () => "This answer is needed to build the plan.");
+            options.ModelBindingMessageProvider.SetValueMustBeANumberAccessor(static _ => "Enter a whole number.");
+            options.ModelBindingMessageProvider.SetMissingBindRequiredValueAccessor(static _ => "This answer is needed to build the plan.");
+            options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(static _ => "This answer is needed to build the plan.");
+            options.ModelBindingMessageProvider.SetUnknownValueIsInvalidAccessor(static _ => "That answer is not one of the options offered. Choose one from the list.");
+            options.ModelBindingMessageProvider.SetNonPropertyAttemptedValueIsInvalidAccessor(static _ => "That answer is not one of the options offered. Choose one from the list.");
+            options.ModelBindingMessageProvider.SetNonPropertyValueMustBeANumberAccessor(static () => "Enter a whole number.");
+        });
         services.AddScoped<CspNonce>();
+        services.AddSelficientRateLimiting(configuration);
 
         services.AddHsts(options =>
         {

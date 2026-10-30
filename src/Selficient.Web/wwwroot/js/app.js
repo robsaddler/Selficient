@@ -7,6 +7,7 @@
 import { DaysReady } from "selficient/elements/days-ready.js";
 import { initTheme } from "selficient/theme.js";
 import { initDialogs } from "selficient/dialogs.js";
+import { initPlanPage } from "selficient/plan-page.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -14,3 +15,4 @@ if (!customElements.get("days-ready")) {
 
 initTheme(document);
 initDialogs(document);
+void initPlanPage(document);

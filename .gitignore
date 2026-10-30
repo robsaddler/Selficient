@@ -19,3 +19,6 @@ node_modules/
 
 # Runtime data never committed
 src/Selficient.Web/tiles/
+
+# Benchmark output
+BenchmarkDotNet.Artifacts/

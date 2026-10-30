@@ -1,0 +1,23 @@
+@page "/plan"
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@model Selficient.Web.Pages.Plan.IndexModel
+@{
+    ViewData["Title"] = Model.View == Selficient.Web.Pages.Plan.PlanView.Plan ? "Your plan is ready" : "Your plan";
+}
+
+@if (Model.View == Selficient.Web.Pages.Plan.PlanView.Form)
+{
+    <section class="wizard" aria-labelledby="wizard-heading">
+      <p class="eyebrow">Your plan</p>
+      <h1 id="wizard-heading">Check your answers</h1>
+      @await Html.PartialAsync("_PlanForm", Model.Form, new ViewDataDictionary(ViewData) { TemplateInfo = { HtmlFieldPrefix = "Form" } })
+    </section>
+}
+else if (Model.View == Selficient.Web.Pages.Plan.PlanView.Empty)
+{
+    @await Html.PartialAsync("_PlanEmpty", Model)
+}
+else
+{
+    @await Html.PartialAsync("_PlanSheet", Model)
+}

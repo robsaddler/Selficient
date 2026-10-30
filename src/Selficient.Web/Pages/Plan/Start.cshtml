@@ -1,0 +1,13 @@
+@page "/plan/start"
+@model Selficient.Web.Pages.Plan.StartModel
+@{
+    ViewData["Title"] = "Start your plan";
+    ViewData["Description"] = "Answer a few questions about your home and we will work out how many days it could stand on its own.";
+}
+
+<section class="wizard" aria-labelledby="wizard-heading">
+  <p class="eyebrow">Your plan</p>
+  <h1 id="wizard-heading">A few facts about your home</h1>
+  <p>Nothing here leaves your browser except the postcode, which we use once to find your area and your height above sea level. We do not store it.</p>
+  @await Html.PartialAsync("_PlanForm", Model.Form, new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { TemplateInfo = { HtmlFieldPrefix = "Form" } })
+</section>

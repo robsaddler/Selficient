@@ -20,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton(static _ => new RiskAssessmentPipeline(Assessors()));
         services.AddSingleton(static _ => new PlanBuilder(Rules()));
         services.AddSingleton<GeneratePlanHandler>();
+        services.AddSingleton<PlanHouseholdHandler>();
 
         return services;
     }

@@ -1,0 +1,67 @@
+@using Selficient.Web.Formatting
+@model Selficient.Web.Pages.Plan.IndexModel
+@{
+    var planned = Model.Planned!;
+    var household = planned.Plan.Profile.Household;
+    var baseline = Selficient.Domain.Readiness.Inventory.Baseline(household);
+    var days = baseline.DaysReady(household).Value;
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+    var place = planned.Locality.Outcode
+        + (string.IsNullOrEmpty(planned.Locality.Region) ? "" : $", {planned.Locality.Region}")
+        + (planned.Elevation is { } e ? $", {e.Metres.ToString("0", culture)} m above sea level" : "");
+}
+
+<section class="hero hero--plan" aria-labelledby="plan-heading" data-plan>
+  <div class="contour-band" aria-hidden="true"></div>
+  <p class="eyebrow">@place</p>
+  <h1 id="plan-heading">Your house could stand on its own for</h1>
+  <days-ready value="@days.ToString("0.#", culture)" class="days-ready"
+              data-people="@household.Size.Count"
+              data-base-water="@baseline.Provisions.WaterLitres.ToString(culture)"
+              data-base-food="@baseline.Provisions.FoodDays.ToString(culture)"
+              data-base-light="@baseline.Provisions.LightHours.ToString(culture)">
+    <span class="days-ready__figure">@days.ToString("0.#", culture)</span>
+    <span class="days-ready__unit">days</span>
+  </days-ready>
+  <p class="hero__lede">Tick what you already have. The figure moves as you go. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
+</section>
+
+<section class="risks" aria-labelledby="risks-heading">
+  <h2 id="risks-heading">What is most likely to go wrong here</h2>
+  <ol class="risk-list">
+    @foreach (var risk in planned.Plan.Risks.Ranked)
+    {
+      <li class="risk">
+        <span class="risk__kind">@RiskCopy.Title(risk.Kind)</span>
+        <span class="risk__rating data">@RiskCopy.Rating(risk)</span>
+        <p class="risk__why">@risk.Rationale</p>
+      </li>
+    }
+  </ol>
+</section>
+
+<section class="plan" aria-labelledby="actions-heading">
+  <h2 id="actions-heading">Your plan, in order</h2>
+  @foreach (var tier in planned.Plan.Tiers)
+  {
+    @await Html.PartialAsync("_PlanTier", tier)
+  }
+  <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
+</section>
+
+<section class="plan-tools" aria-labelledby="tools-heading">
+  <h2 id="tools-heading">Keep it safe</h2>
+  <p>Your plan and your ticks are stored only in this browser. Export a copy to keep or to move to another device.</p>
+  <p class="cluster">
+    <button type="button" class="button" data-export-plan>Export as a file</button>
+    <label class="button">Import a file<input type="file" accept="application/json" data-import-plan class="sr-only"></label>
+    <a class="button button--quiet" href="/plan/start">Start again</a>
+  </p>
+</section>
+
+<form class="profile-echo" data-profile-echo hidden aria-hidden="true">
+  @foreach (var (field, value) in Model.EchoedProfile)
+  {
+    <input type="hidden" name="@field" value="@value">
+  }
+</form>

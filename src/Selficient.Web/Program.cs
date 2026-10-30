@@ -1,6 +1,8 @@
 using System.Globalization;
+using Selficient.Application.Composition;
 using Selficient.Infrastructure.Composition;
 using Selficient.Web.Composition;
+using Selficient.Web.Diagnostics;
 using Serilog;
 
 // The composition root. Everything it wires is covered through WebApplicationFactory in
@@ -11,6 +13,7 @@ CultureInfo.DefaultThreadCurrentUICulture = SelficientCulture.EnGb;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, configuration) => configuration
+    .WriteTo.Sink(LogTap.Sink)
     .MinimumLevel.Information()
     .Enrich.FromLogContext()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
@@ -26,8 +29,9 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 10 * 1024 * 1024;
 });
 
-builder.Services.AddSelficientInfrastructure();
-builder.Services.AddSelficientWeb();
+builder.Services.AddSelficientApplication();
+builder.Services.AddSelficientInfrastructure(builder.Configuration, builder.Environment);
+builder.Services.AddSelficientWeb(builder.Configuration);
 
 WebApplication app = builder.Build();
 

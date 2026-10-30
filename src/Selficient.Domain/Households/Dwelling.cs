@@ -156,8 +156,19 @@ public sealed record Dwelling
         bool hasDecking,
         bool hasTallTreeNearHouse,
         Elevation? elevation,
-        FloodRisk floodRisk) =>
-        storeys is < 1 or > MaxStoreys
-            ? Result.Failure<Dwelling>(DomainErrors.StoreysOutOfRange())
-            : Result.Success(new Dwelling(type, storeys, heating, hob, hasCar, hasGarden, hasDecking, hasTallTreeNearHouse, elevation, floodRisk));
+        FloodRisk floodRisk)
+    {
+        if (storeys is < 1 or > MaxStoreys)
+        {
+            return Result.Failure<Dwelling>(DomainErrors.StoreysOutOfRange());
+        }
+
+        // A model binder will happily deliver (FloodRisk)99; closed sets stay closed here.
+        if (!Enum.IsDefined(type) || !Enum.IsDefined(heating) || !Enum.IsDefined(hob) || !Enum.IsDefined(floodRisk))
+        {
+            return Result.Failure<Dwelling>(DomainErrors.UnknownChoice());
+        }
+
+        return Result.Success(new Dwelling(type, storeys, heating, hob, hasCar, hasGarden, hasDecking, hasTallTreeNearHouse, elevation, floodRisk));
+    }
 }

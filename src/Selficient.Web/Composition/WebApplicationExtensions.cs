@@ -39,6 +39,7 @@ public static class WebApplicationExtensions
         });
 
         app.UseRouting();
+        app.UseRateLimiter();
         app.UseAntiforgery();
 
         app.MapRazorPages();

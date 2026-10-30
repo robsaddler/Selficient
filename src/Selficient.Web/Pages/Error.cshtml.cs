@@ -8,6 +8,7 @@ namespace Selficient.Web.Pages;
 /// sentences, and never exposes a stack trace or an internal name.
 /// </summary>
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+[IgnoreAntiforgeryToken]
 public sealed class ErrorModel : PageModel
 {
     /// <summary>The HTTP status being explained.</summary>
@@ -20,7 +21,15 @@ public sealed class ErrorModel : PageModel
     public string Message { get; private set; } = string.Empty;
 
     /// <summary>Renders the explanation for <paramref name="code"/>.</summary>
-    public IActionResult OnGet(int? code)
+    public IActionResult OnGet(int? code) => Explain(code);
+
+    /// <summary>
+    /// A rejected POST (rate limit, bad token) is re-executed here as a POST. Without this handler
+    /// Razor Pages renders the page with no model and an empty heading.
+    /// </summary>
+    public IActionResult OnPost(int? code) => Explain(code);
+
+    private PageResult Explain(int? code)
     {
         Status = code ?? StatusCodes.Status500InternalServerError;
         (Title, Message) = Describe(Status);

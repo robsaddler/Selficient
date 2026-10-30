@@ -1,0 +1,14 @@
+@model Selficient.Web.Pages.Plan.IndexModel
+
+<section class="notice" aria-labelledby="empty-heading" data-plan-empty>
+  <p class="eyebrow">Your plan</p>
+  <h1 id="empty-heading">No plan on this device yet</h1>
+  <p>Answer a few questions about your home and we will build one. If you have made a plan here before, it will reappear in a moment.</p>
+  <p><a class="button button--primary" href="/plan/start">Start your plan</a></p>
+  <form method="post" asp-page="/Plan/Index" class="resubmit" data-resubmit hidden aria-hidden="true">
+    @foreach (string field in Selficient.Web.Pages.Plan.IndexModel.FormFields)
+    {
+      <input type="hidden" name="Form.@field" value="" data-field="@field">
+    }
+  </form>
+</section>
