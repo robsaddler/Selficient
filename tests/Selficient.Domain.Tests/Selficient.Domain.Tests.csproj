@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Selficient.Domain/Selficient.Domain.csproj" />
+    <ProjectReference Include="../../src/Selficient.Application/Selficient.Application.csproj" />
     <ProjectReference Include="../Selficient.TestKit/Selficient.TestKit.csproj" />
   </ItemGroup>
 

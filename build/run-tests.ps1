@@ -52,9 +52,9 @@ Write-Host "`n=== Coverage ===" -ForegroundColor Cyan
 $reports = ($suites | ForEach-Object { Join-Path $results $_.Report }) -join ','
 
 # Merged across suites: a line reached by any suite is covered. Gated assemblies must be present and
-# at 100% lines and branches. Selficient.Application joins the gate with its first use case in M1.
+# at 100% lines and branches.
 node build/coverage-report.mjs $reports `
-    Selficient.Domain=1 Selficient.Infrastructure=1 Selficient.Web=1
+    Selficient.Domain=1 Selficient.Application=1 Selficient.Infrastructure=1 Selficient.Web=1
 
 if ($LASTEXITCODE -ne 0) { throw "Coverage is below threshold." }
 

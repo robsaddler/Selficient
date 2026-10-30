@@ -12,6 +12,7 @@
     <Project Path="tests/Selficient.Infrastructure.Tests/Selficient.Infrastructure.Tests.csproj" />
     <Project Path="tests/Selficient.Web.Tests/Selficient.Web.Tests.csproj" />
     <Project Path="tests/Selficient.Architecture.Tests/Selficient.Architecture.Tests.csproj" />
+    <Project Path="tests/Selficient.Benchmarks/Selficient.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/solution items/">
     <File Path="Directory.Build.props" />

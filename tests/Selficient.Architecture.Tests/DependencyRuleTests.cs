@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;
-using Selficient.Application.Abstractions;
+using Selficient.Application.Planning;
 using Selficient.Domain.Primitives;
 using Selficient.Infrastructure.Composition;
 using Selficient.Web.Composition;
@@ -15,7 +15,7 @@ namespace Selficient.Architecture.Tests;
 public sealed class DependencyRuleTests
 {
     private static readonly Assembly Domain = typeof(Fault).Assembly;
-    private static readonly Assembly Application = typeof(IApplicationMarker).Assembly;
+    private static readonly Assembly Application = typeof(GeneratePlanHandler).Assembly;
     private static readonly Assembly Infrastructure = typeof(InfrastructureServiceCollectionExtensions).Assembly;
     private static readonly Assembly Web = typeof(WebApplicationExtensions).Assembly;
 
