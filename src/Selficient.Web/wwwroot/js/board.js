@@ -30,12 +30,15 @@ export function initBoard(doc) {
 
   /** @type {number | undefined} */
   let pending;
-  let scenario = slot.querySelector("[data-board]")?.getAttribute("data-scenario") ?? "";
+  const board = slot.querySelector("[data-board]");
+  let scenario = board?.getAttribute("data-scenario") ?? "";
+  let source = board?.getAttribute("data-source") ?? "";
+  let season = board?.getAttribute("data-season") ?? "";
 
   const refresh = () => {
     window.clearTimeout(pending);
     pending = window.setTimeout(() => {
-      void redraw(doc, slot, echo, scenario);
+      void redraw(doc, slot, echo, { scenario, source, season });
     }, DEBOUNCE_MS);
   };
 
@@ -46,8 +49,12 @@ export function initBoard(doc) {
     }
     if (target.dataset.actionId) {
       refresh();
-    } else if (target.name === "board-source" || target.name === "board-season") {
-      showSheet(slot);
+    } else if (target.name === "board-source") {
+      source = target.value;
+      refresh();
+    } else if (target.name === "board-season") {
+      season = target.value;
+      refresh();
     }
   });
 
@@ -85,9 +92,9 @@ export function initBoard(doc) {
  * @param {Document} doc
  * @param {HTMLElement} slot
  * @param {HTMLFormElement} echo
- * @param {string} scenario
+ * @param {{ scenario: string, source: string, season: string }} choice
  */
-async function redraw(doc, slot, echo, scenario) {
+async function redraw(doc, slot, echo, choice) {
   const token = slot.querySelector("input[name='__RequestVerificationToken']");
   if (!(token instanceof HTMLInputElement)) {
     return;
@@ -100,8 +107,14 @@ async function redraw(doc, slot, echo, scenario) {
     }
   }
   body.set("__RequestVerificationToken", token.value);
-  if (scenario) {
-    body.set("Form.Scenario", scenario);
+  if (choice.scenario) {
+    body.set("Form.Scenario", choice.scenario);
+  }
+  if (choice.source) {
+    body.set("Form.Source", choice.source);
+  }
+  if (choice.season) {
+    body.set("Form.Season", choice.season);
   }
   const ticks = await store.getTicks().catch(() => []);
   for (const tick of ticks) {
@@ -127,50 +140,10 @@ async function redraw(doc, slot, echo, scenario) {
     return;
   }
   const html = await response.text();
-  const source = currentChoice(slot, "board-source");
-  const season = currentChoice(slot, "board-season");
   slot.innerHTML = html;
-  restoreChoice(slot, "board-source", source);
-  restoreChoice(slot, "board-season", season);
-  showSheet(slot);
   updateHeadline(doc, slot);
   updateStrip(doc, slot);
   placeTurns(doc, slot);
-}
-
-/**
- * @param {HTMLElement} slot
- * @param {string} name
- */
-function currentChoice(slot, name) {
-  const checked = slot.querySelector(`input[name='${name}']:checked`);
-  return checked instanceof HTMLInputElement ? checked.value : "";
-}
-
-/**
- * @param {HTMLElement} slot
- * @param {string} name
- * @param {string} value
- */
-function restoreChoice(slot, name, value) {
-  const input = value ? slot.querySelector(`input[name='${name}'][value='${value}']`) : null;
-  if (input instanceof HTMLInputElement) {
-    input.checked = true;
-  }
-}
-
-/**
- * Shows the one sheet that matches the chosen source and season.
- * @param {HTMLElement} slot
- */
-function showSheet(slot) {
-  const source = currentChoice(slot, "board-source");
-  const season = currentChoice(slot, "board-season");
-  for (const sheet of slot.querySelectorAll("[data-source]")) {
-    if (sheet instanceof HTMLElement) {
-      sheet.hidden = !(sheet.dataset.source === source && sheet.dataset.season === season);
-    }
-  }
 }
 
 /**

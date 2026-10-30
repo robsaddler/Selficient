@@ -140,7 +140,7 @@ public sealed class IndexModel : PageModel
         }
 
         return form.ToResilienceProfile(planned.Plan.Profile)
-            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season)));
+            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source)));
     }
 
     internal static IReadOnlyList<(string Field, string Value)> Echo(PlanForm form) =>

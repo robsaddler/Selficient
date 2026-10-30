@@ -19,6 +19,10 @@ public sealed class RateLimitOptions
     [Range(1, 10_000)]
     public int ApiPerMinute { get; init; } = 60;
 
+    /// <summary>Board redraws a minute from one client address. A tick, a card or a new dependency is one redraw, so this is generous: the fragment costs a few milliseconds.</summary>
+    [Range(1, 10_000)]
+    public int BoardPerMinute { get; init; } = 120;
+
     /// <summary>Photo analyses and narratives per IP per minute. Each one costs real money.</summary>
     [Range(1, 1_000)]
     public int AiPerMinute { get; init; } = 6;
@@ -33,6 +37,9 @@ public static class RateLimits
 {
     /// <summary>Policy for building a plan.</summary>
     public const string PlanPolicy = "plan";
+
+    /// <summary>Policy for the board fragment, which redraws on every tick.</summary>
+    public const string BoardPolicy = "board";
 
     /// <summary>Policy for JSON endpoints.</summary>
     public const string ApiPolicy = "api";
@@ -59,6 +66,7 @@ public static class RateLimits
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             limiter.AddPolicy(PlanPolicy, PlanPartition);
             limiter.AddPolicy(ApiPolicy, ApiPartition);
+            limiter.AddPolicy(BoardPolicy, BoardPartition);
             limiter.AddPolicy(TilesPolicy, TilesPartition);
             limiter.AddPolicy(AiPolicy, AiPartition);
         });
@@ -68,6 +76,9 @@ public static class RateLimits
 
     /// <summary>The partition for the plan policy: one fixed window per client address.</summary>
     internal static RateLimitPartition<string> PlanPartition(HttpContext context) => Window(context, static o => o.PlanPerMinute);
+
+    /// <summary>The partition for the board policy.</summary>
+    internal static RateLimitPartition<string> BoardPartition(HttpContext context) => Window(context, static o => o.BoardPerMinute);
 
     /// <summary>The partition for the API policy.</summary>
     internal static RateLimitPartition<string> ApiPartition(HttpContext context) => Window(context, static o => o.ApiPerMinute);

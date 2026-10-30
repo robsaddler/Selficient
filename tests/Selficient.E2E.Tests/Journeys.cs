@@ -123,24 +123,28 @@ public sealed class Journeys
     }
 
     [Fact]
-    public async Task The_board_switches_source_and_season_in_place_and_scenario_by_redrawing()
+    public async Task The_board_redraws_for_a_source_a_season_and_a_scenario()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();
         IPage page = await context.NewPageAsync();
         await BuildPlanAsync(page);
 
-        ILocator house = page.Locator("[data-source=\"house\"][data-season=\"Winter\"]");
-        ILocator battery = page.Locator("[data-source=\"rooftop-solar-and-battery\"][data-season=\"Winter\"]");
+        ILocator house = page.Locator(".board__sheet[data-source=\"house\"][data-season=\"Winter\"]");
+        ILocator battery = page.Locator(".board__sheet[data-source=\"rooftop-solar-and-battery\"][data-season=\"Winter\"]");
         await Expect(house).ToBeVisibleAsync();
-        await Expect(battery).ToBeHiddenAsync();
+        await Expect(battery).ToHaveCountAsync(0);
 
+        // A source posts for its sheet; the pill stays chosen on the redrawn board and the figure stays the house's.
+        string before = (await page.Locator("days-ready").GetAttributeAsync("value"))!;
         await page.Locator("label[for=\"source-rooftop-solar-and-battery\"]").ClickAsync();
         await Expect(battery).ToBeVisibleAsync();
-        await Expect(house).ToBeHiddenAsync();
+        await Expect(house).ToHaveCountAsync(0);
         await Expect(battery.GetByText("Warmth")).ToBeVisibleAsync();
+        await Expect(page.Locator("#source-rooftop-solar-and-battery")).ToBeCheckedAsync();
+        await Expect(page.Locator("days-ready")).ToHaveAttributeAsync("value", before);
 
         await page.Locator("label[for=\"season-summer\"]").ClickAsync();
-        await Expect(page.Locator("[data-source=\"rooftop-solar-and-battery\"][data-season=\"Summer\"]")).ToBeVisibleAsync();
+        await Expect(page.Locator(".board__sheet[data-source=\"rooftop-solar-and-battery\"][data-season=\"Summer\"]")).ToBeVisibleAsync();
 
         await page.Locator("[data-scenario-card][value=\"snow\"]").ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Snow closes the road: what holds, what goes, and when" })).ToBeVisibleAsync();

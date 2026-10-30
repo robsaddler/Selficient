@@ -9,7 +9,7 @@ namespace Selficient.Web.Tests.Pages;
 
 public sealed class BoardPagesTests : IDisposable
 {
-    private readonly SelficientWebApplicationFactory _factory = new SelficientWebApplicationFactory().WithSetting("RateLimits:PlanPerMinute", "1000");
+    private readonly SelficientWebApplicationFactory _factory = new SelficientWebApplicationFactory().WithSetting("RateLimits:PlanPerMinute", "1000").WithSetting("RateLimits:BoardPerMinute", "1000");
 
     [Fact]
     public async Task The_plan_page_carries_the_board_for_the_storm_with_nothing_ticked()
@@ -21,7 +21,7 @@ public sealed class BoardPagesTests : IDisposable
         html.ShouldContain("A storm takes the power out: what holds, what goes, and when");
         html.ShouldContain("<days-ready value=\"1\"");
         html.ShouldContain("data-source=\"house\" data-season=\"Winter\"");
-        html.ShouldContain("data-source=\"rooftop-solar-and-battery\" data-season=\"Summer\" hidden");
+        html.ShouldNotContain("data-source=\"rooftop-solar-and-battery\"", customMessage: "one sheet is drawn; a switch posts for another");
         html.ShouldContain("Held for the whole stretch by the tap.");
         html.ShouldContain("Water to drink, a day: held throughout.");
         html.ShouldContain("What you rely on");

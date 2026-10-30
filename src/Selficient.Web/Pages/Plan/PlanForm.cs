@@ -144,6 +144,10 @@ public sealed class PlanForm
     [StringLength(20, ErrorMessage = "That is not one of the scenarios.")]
     public string? Scenario { get; set; }
 
+    /// <summary>Which source the board sheet is drawn for; empty for what is in the house.</summary>
+    [StringLength(40, ErrorMessage = "That is not one of the sources.")]
+    public string? Source { get; set; }
+
     /// <summary>Which season the board shows; empty for the scenario's own.</summary>
     [EnumDataType(typeof(Season), ErrorMessage = "Choose winter or summer.")]
     public Season? Season { get; set; }

@@ -47,6 +47,7 @@ public sealed class Browser : IAsyncLifetime
     {
         _factory = new SelficientWebApplicationFactory()
             .WithSetting("RateLimits:PlanPerMinute", "10000")
+            .WithSetting("RateLimits:BoardPerMinute", "10000")
             .WithSetting("RateLimits:AiPerMinute", "1000")
             .WithSetting("RateLimits:ApiPerMinute", "10000");
         Origin = _factory.StartOnKestrel();

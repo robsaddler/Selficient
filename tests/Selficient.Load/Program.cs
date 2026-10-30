@@ -14,6 +14,7 @@ using Selficient.TestKit;
 
 using SelficientWebApplicationFactory factory = new SelficientWebApplicationFactory()
     .WithSetting("RateLimits:PlanPerMinute", "10000")
+    .WithSetting("RateLimits:BoardPerMinute", "10000")
     .WithSetting("RateLimits:ApiPerMinute", "10000")
     .WithSetting("RateLimits:TilesPerMinute", "100000")
     .WithSetting("RateLimits:AiPerMinute", "1000");
@@ -22,6 +23,10 @@ Console.WriteLine($"Selficient on {origin}");
 
 int seconds = args.Length > 0 && int.TryParse(args[0], CultureInfo.InvariantCulture, out int given) ? given : 20;
 TimeSpan duration = TimeSpan.FromSeconds(seconds);
+// A second argument scales every rate: 0.05 runs the same mix at a twentieth of the load, which
+// shows what one request costs on an idle server before the full run shows what a crowd costs.
+double scale = args.Length > 1 && double.TryParse(args[1], CultureInfo.InvariantCulture, out double givenScale) && givenScale > 0 ? givenScale : 1;
+int Rate(int perSecond) => Math.Max(1, (int)Math.Round(perSecond * scale));
 
 // One client per scenario copy would be realistic; one shared client with cookies is enough to
 // measure the server, and the antiforgery pair is read once.
@@ -80,7 +85,21 @@ ScenarioProps plan = Scenario.Create("plan_post_200_per_second", async context =
             : Response.Fail(message: response.StatusCode.ToString());
     })
     .WithoutWarmUp()
-    .WithLoadSimulations(Simulation.Inject(rate: 200, interval: TimeSpan.FromSeconds(1), during: duration));
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(200), interval: TimeSpan.FromSeconds(1), during: duration));
+
+// The board fragment: the whole set (every source, both seasons, every untaken action) for a
+// household with this week ticked, as the plan page posts it on every tick.
+Dictionary<string, string> robsBoard = new(robsHouse) { ["Form.Scenario"] = "storm" };
+string[] ticks = ["water-bottled-three-days", "food-no-cook-three-days", "headtorches", "cash-in-small-notes"];
+ScenarioProps board = Scenario.Create("board_post_100_per_second", async context =>
+    {
+        List<KeyValuePair<string, string>> pairs = [.. robsBoard, .. ticks.Select(tick => new KeyValuePair<string, string>("Ticks", tick))];
+        using FormUrlEncodedContent body = new(pairs);
+        using HttpResponseMessage response = await client.PostAsync("/plan/board", body);
+        return response.IsSuccessStatusCode ? Response.Ok() : Response.Fail(statusCode: ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture));
+    })
+    .WithoutWarmUp()
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(100), interval: TimeSpan.FromSeconds(1), during: duration));
 
 ScenarioProps solar = Scenario.Create("solar_post_50_per_second", async context =>
     {
@@ -92,7 +111,7 @@ ScenarioProps solar = Scenario.Create("solar_post_50_per_second", async context 
             : Response.Fail(message: response.StatusCode.ToString());
     })
     .WithoutWarmUp()
-    .WithLoadSimulations(Simulation.Inject(rate: 50, interval: TimeSpan.FromSeconds(1), during: duration));
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(50), interval: TimeSpan.FromSeconds(1), during: duration));
 
 ScenarioProps tiles = Scenario.Create("tiles_status_100_per_second", async context =>
     {
@@ -100,7 +119,7 @@ ScenarioProps tiles = Scenario.Create("tiles_status_100_per_second", async conte
         return response.StatusCode == HttpStatusCode.OK ? Response.Ok() : Response.Fail(message: response.StatusCode.ToString());
     })
     .WithoutWarmUp()
-    .WithLoadSimulations(Simulation.Inject(rate: 100, interval: TimeSpan.FromSeconds(1), during: duration));
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(100), interval: TimeSpan.FromSeconds(1), during: duration));
 
 ScenarioProps landing = Scenario.Create("landing_get_100_per_second", async context =>
     {
@@ -108,10 +127,10 @@ ScenarioProps landing = Scenario.Create("landing_get_100_per_second", async cont
         return response.StatusCode == HttpStatusCode.OK ? Response.Ok() : Response.Fail(message: response.StatusCode.ToString());
     })
     .WithoutWarmUp()
-    .WithLoadSimulations(Simulation.Inject(rate: 100, interval: TimeSpan.FromSeconds(1), during: duration));
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(100), interval: TimeSpan.FromSeconds(1), during: duration));
 
 NodeStats stats = NBomberRunner
-    .RegisterScenarios(plan, solar, tiles, landing)
+    .RegisterScenarios(plan, board, solar, tiles, landing)
     .WithReportFolder(Path.Combine("artifacts", "load"))
     .WithReportFormats(ReportFormat.Md)
     .Run();
@@ -120,6 +139,7 @@ NodeStats stats = NBomberRunner
 (string Scenario, double P95Ms)[] targets =
 [
     ("plan_post_200_per_second", 150),
+    ("board_post_100_per_second", 150),
     ("solar_post_50_per_second", 200),
     ("tiles_status_100_per_second", 50),
     ("landing_get_100_per_second", 100),

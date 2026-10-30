@@ -31,8 +31,8 @@ public sealed class BoardComposerTests
         set.Cards.Count(card => card.Selected).ShouldBe(1);
         set.Cards.First(card => card.Id == "storm").DaysReady.ShouldBe(1m);
         set.Sources.Select(source => source.Id).ShouldBe([BoardSet.HouseSource, "power-banks", "portable-power-station", "large-power-station", "rooftop-solar-and-battery", "petrol-generator"], "a petrol car is not a source and a detached house has a roof and a garden");
-        set.Boards.Count.ShouldBe(set.Sources.Count * 2);
-        set.Boards.ShouldContain(board => board.SourceId == "rooftop-solar-and-battery" && board.Season == Season.Summer);
+        set.SourceId.ShouldBe(BoardSet.HouseSource, "no choice means what is in the house");
+        set.Sheet.ShouldBeSameAs(set.Current, "the house sheet is the current board");
         set.DaysReady.ShouldBe(1m);
         set.Current.Scenario.ShouldBe(Scenarios.Storm);
     }
@@ -46,7 +46,8 @@ public sealed class BoardComposerTests
         ResilienceProfile evProfile = ResilienceProfile.Create(rob, false, false, false, Growing.None, CarKind.ElectricWithOutput, 0, 7, 0, []).Value;
 
         BoardSet flatSet = BoardComposer.Compose(new BoardRequest(flatProfile, new HashSet<string>(), PlanFor(flat), "water", null));
-        BoardSet evSet = BoardComposer.Compose(new BoardRequest(evProfile, new HashSet<string> { "power-banks" }, PlanFor(rob), "storm", Season.Summer));
+        BoardSet evSet = BoardComposer.Compose(new BoardRequest(evProfile, new HashSet<string> { "power-banks" }, PlanFor(rob), "storm", Season.Summer, "rooftop-solar-and-battery"));
+        BoardSet unknownSource = BoardComposer.Compose(new BoardRequest(flatProfile, new HashSet<string>(), PlanFor(flat), "water", null, "rooftop-solar-and-battery"));
 
         flatSet.Sources.Select(source => source.Id).ShouldBe([BoardSet.HouseSource, "power-banks", "portable-power-station", "large-power-station"], "no roof, no garden, no car");
         flatSet.Scenario.ShouldBe(Scenarios.WaterCut);
@@ -54,7 +55,11 @@ public sealed class BoardComposerTests
         evSet.Sources.Select(source => source.Id).ShouldNotContain("power-banks", "already held, so not offered as a what-if");
         evSet.Season.ShouldBe(Season.Summer);
         evSet.Current.Season.ShouldBe(Season.Summer, "the current board is the house's summer one");
-        evSet.DaysReady.ShouldBe(evSet.Current.DaysReady);
+        evSet.DaysReady.ShouldBe(evSet.Current.DaysReady, "the figure is the house's whatever sheet is shown");
+        evSet.SourceId.ShouldBe("rooftop-solar-and-battery");
+        evSet.Sheet.ShouldNotBeSameAs(evSet.Current);
+        evSet.Sheet.DaysReady.ShouldBeGreaterThanOrEqualTo(evSet.Current.DaysReady, "a battery never makes the house worse");
+        unknownSource.SourceId.ShouldBe(BoardSet.HouseSource, "a source the flat cannot have falls back to the house");
     }
 
     [Fact]

@@ -10,9 +10,6 @@ public sealed record ScenarioCard(string Id, string Name, decimal DaysReady, boo
 /// <summary>A source the household could switch the board to. The first is always what is in the house.</summary>
 public sealed record SourceOption(string Id, string Name, string Sentence);
 
-/// <summary>One board: a source and a season.</summary>
-public sealed record SourceBoard(string SourceId, Season Season, Board Board);
-
 /// <summary>What one untaken plan action would turn on the current board: the rows and horizons it improves.</summary>
 public sealed record ActionTurn(ActionId Action, IReadOnlyList<string> Turns);
 
@@ -20,9 +17,10 @@ public sealed record ActionTurn(ActionId Action, IReadOnlyList<string> Turns);
 public sealed record BoardSet(
     Scenario Scenario,
     Season Season,
+    string SourceId,
     IReadOnlyList<ScenarioCard> Cards,
     IReadOnlyList<SourceOption> Sources,
-    IReadOnlyList<SourceBoard> Boards,
+    Board Sheet,
     Board Current,
     IReadOnlyList<ActionTurn> Turns)
 {
@@ -34,12 +32,13 @@ public sealed record BoardSet(
 }
 
 /// <summary>What the composer needs: the household as the engine sees it, what it holds, the plan, and the choice of scenario and season.</summary>
-public sealed record BoardRequest(ResilienceProfile Profile, IReadOnlySet<string> Held, Plan Plan, string? ScenarioId, Season? Season);
+public sealed record BoardRequest(ResilienceProfile Profile, IReadOnlySet<string> Held, Plan Plan, string? ScenarioId, Season? Season, string? SourceId = null);
 
 /// <summary>
-/// Composes the boards for a page. Pure: it only runs the engine, several times, and arranges the
-/// results. Every source for both seasons is simulated so the switches on the page are instant;
-/// the scenario is simulated once per card for the figure on it.
+/// Composes the set for a page. Pure: it only runs the engine, several times, and arranges the
+/// results. One sheet is simulated, for the chosen source and season; a switch on the page posts
+/// for another. The scenario is simulated once per card for the figure on it, and once per untaken
+/// action for what it would turn.
 /// </summary>
 public static class BoardComposer
 {
@@ -76,23 +75,15 @@ public static class BoardComposer
             }
         }
 
-        List<SourceBoard> boards = [];
-        foreach (SourceOption source in sources)
-        {
-            HashSet<string> held = new(request.Held, StringComparer.Ordinal);
-            if (source.Id != BoardSet.HouseSource)
-            {
-                held.Add(source.Id);
-            }
-
-            foreach (Season each in Enum.GetValues<Season>())
-            {
-                boards.Add(new SourceBoard(source.Id, each, OutageBoard.Simulate(request.Profile, held, scenario, each)));
-            }
-        }
-
-        // The house in the chosen season is simulated once more rather than looked up, so the set has no search to get wrong.
+        // The house in the chosen season is the figure; the sheet is that, or the house with one more source.
         Board current = OutageBoard.Simulate(request.Profile, request.Held, scenario, season);
+        string sourceId = request.SourceId is { } chosen && sources.Any(source => source.Id == chosen) ? chosen : BoardSet.HouseSource;
+        Board sheet = current;
+        if (sourceId != BoardSet.HouseSource)
+        {
+            HashSet<string> held = new(request.Held, StringComparer.Ordinal) { sourceId };
+            sheet = OutageBoard.Simulate(request.Profile, held, scenario, season);
+        }
         List<ActionTurn> turns = [];
         foreach (PlanAction action in request.Plan.Actions)
         {
@@ -110,7 +101,7 @@ public static class BoardComposer
             }
         }
 
-        return new BoardSet(scenario, season, cards, sources, boards, current, turns);
+        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns);
     }
 
     /// <summary>Scenarios in the order the risk assessors rank them for this house, then the rest in catalogue order.</summary>

@@ -49,6 +49,8 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - A full-bleed band inside the centred column: `body` is an inline-size container and the band is `inline-size: 100cqi; margin-inline-start: calc(50% - 50cqi)`, padded back to the column. A `box-shadow: 0 0 0 100vmax` with `clip-path` does not widen the page but anything positioned past the box does, and `overflow-clip-margin` counts toward the scroll width; `overflow: clip` without a margin is the fence.
 - An SVG sprite used through `<use href="/img/marks.svg#id">` cannot carry a `<style>` element (the CSP has no inline style allowance); put the stroke and fill as presentation attributes on each `<symbol>`. Custom properties do inherit into the `<use>` shadow tree, so `fill="var(--c-lantern, #E8A33D)"` follows the theme.
 - A ternary in a Razor view is a branch the gate counts, and a view only renders what the tests post; put the choice in a helper (`BoardCopy.Unit`) and pin it there.
+- The load harness hosts the site in a console project: declare `ServerGarbageCollection` there or it measures the workstation collector under the web server's allocation and every scenario collapses together.
+- A page that pre-renders every variant for an in-place switch pays for all of them on every request; render the one in view and post for the next.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 
 ## Conventions

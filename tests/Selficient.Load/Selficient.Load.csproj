@@ -6,6 +6,9 @@
     build/run-load.ps1 and record the numbers in docs/benchmarks.md when they change.
   -->
   <PropertyGroup>
+    <!-- The web SDK turns these on for the site; the harness hosts the site in-process, so it must match or it measures a console app's collector under a web server's allocation. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <OutputType>Exe</OutputType>
     <IsTestProject>false</IsTestProject>
     <IsPackable>false</IsPackable>

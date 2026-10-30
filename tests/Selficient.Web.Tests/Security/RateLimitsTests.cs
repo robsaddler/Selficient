@@ -12,7 +12,7 @@ public sealed class RateLimitsTests
     private static DefaultHttpContext Context(IPAddress? address)
     {
         ServiceCollection services = new();
-        services.AddSingleton(Options.Create(new RateLimitOptions { PlanPerMinute = 3, ApiPerMinute = 5 }));
+        services.AddSingleton(Options.Create(new RateLimitOptions { PlanPerMinute = 3, ApiPerMinute = 5, BoardPerMinute = 4 }));
         DefaultHttpContext context = new() { RequestServices = services.BuildServiceProvider() };
         context.Connection.RemoteIpAddress = address;
         return context;
@@ -54,5 +54,15 @@ public sealed class RateLimitsTests
         }
 
         (await apiLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse();
+
+        RateLimitPartition<string> board = RateLimits.BoardPartition(context);
+        board.PartitionKey.ShouldBe(plan.PartitionKey, "the same address, its own bucket");
+        using RateLimiter boardLimiter = board.Factory(board.PartitionKey);
+        for (int i = 0; i < 4; i++)
+        {
+            (await boardLimiter.AcquireAsync()).IsAcquired.ShouldBeTrue();
+        }
+
+        (await boardLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("the board has its own window, so ticking never spends the plan's");
     }
 }

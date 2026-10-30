@@ -28,6 +28,7 @@ Nothing else is required: with no keys set the site runs with the map on its fal
 | `Ai:FreeAnalysesPerMonth` | `Ai__FreeAnalysesPerMonth` | `5` | 0 to 1,000 per household per month |
 | `Ai:DailyGlobalCap` | `Ai__DailyGlobalCap` | `500` | 1 to 1,000,000 per day for the site |
 | `RateLimits:PlanPerMinute` | `RateLimits__PlanPerMinute` | `30` | 1 to 10,000 per client address |
+| `RateLimits:BoardPerMinute` | `RateLimits__BoardPerMinute` | `120` | 1 to 10,000 per client address; the board fragment, one redraw per tick |
 | `RateLimits:ApiPerMinute` | `RateLimits__ApiPerMinute` | `60` | 1 to 10,000 |
 | `RateLimits:AiPerMinute` | `RateLimits__AiPerMinute` | `6` | 1 to 1,000, posts only |
 | `RateLimits:TilesPerMinute` | `RateLimits__TilesPerMinute` | `600` | 1 to 100,000 |

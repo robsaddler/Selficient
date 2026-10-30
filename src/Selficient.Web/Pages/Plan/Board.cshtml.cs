@@ -14,7 +14,7 @@ namespace Selficient.Web.Pages.Plan;
 /// Without script the board on the plan page itself is the one that counts.
 /// </summary>
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-[EnableRateLimiting(RateLimits.PlanPolicy)]
+[EnableRateLimiting(RateLimits.BoardPolicy)]
 public sealed class BoardModel : PageModel
 {
     private readonly PlanHouseholdHandler _handler;
