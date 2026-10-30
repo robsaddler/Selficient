@@ -8,6 +8,9 @@ using Selficient.TestKit;
 using Selficient.Web.Diagnostics;
 using Serilog.Core;
 using Serilog.Events;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
 
 namespace Selficient.Web.Tests.Pages;
 
@@ -69,6 +72,9 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("name=\"Postcode\" value=\"NP12 1GW\"");
         html.ShouldContain("name=\"DwellingType\" value=\"Detached\"");
         html.ShouldContain("Everything together:");
+        html.ShouldContain("Keep it going");
+        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true\"");
+        html.ShouldContain("Clear the leaf litter from under the decking");
     }
 
     [Fact]
@@ -190,19 +196,38 @@ public sealed partial class PlanPagesTests : IDisposable
     [Fact]
     public async Task The_full_postcode_is_never_logged()
     {
+        // Real adapters against a local stub, because the HttpClient factory's own handlers log
+        // request URLs and the fakes would never exercise them (found by the M2 security review).
+        using WireMockServer upstream = WireMockServer.Start();
+        upstream.Given(Request.Create().WithPath("/postcodes/NP12 1GW").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json")
+                .WithBody("""{"result":{"latitude":51.6655,"longitude":-3.2031,"country":"Wales","region":"Wales","outcode":"NP12"}}"""));
+        upstream.Given(Request.Create().WithPath("/v1/elevation").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json").WithBody("""{"elevation":[232.0]}"""));
+
         CapturingSink sink = new();
         LogTap.Attach(sink);
         try
         {
-            using SelficientWebApplicationFactory logging = new();
+            using SelficientWebApplicationFactory logging = new SelficientWebApplicationFactory()
+                .WithRealUpstreams()
+                .WithSetting("Upstreams:PostcodesBaseUrl", upstream.Url! + "/")
+                .WithSetting("Upstreams:ElevationBaseUrl", upstream.Url! + "/");
             using HttpClient client = logging.CreateClient();
 
             using HttpResponseMessage response = await PostPlan(client, RobsHouse());
+            string html = await response.Content.ReadAsStringAsync();
 
             response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            html.ShouldContain("232 m above sea level");
+            upstream.LogEntries.Count.ShouldBe(2, "both real adapters must have been used; saw: " + string.Join(" | ", upstream.LogEntries.Select(e => (e.RequestMessage?.Path ?? "?") + " -> " + (e.ResponseMessage?.StatusCode ?? "?"))));
             // The tap is process-wide, so other tests' hosts contribute too; every message still has to be clean.
             sink.Messages.ShouldContain(m => m.Contains("\"POST\"", StringComparison.Ordinal) && m.Contains("/plan", StringComparison.Ordinal), "request logging must record the plan POST for this test to mean anything");
-            sink.Messages.ShouldAllBe(m => !m.Contains("NP12 1GW", StringComparison.OrdinalIgnoreCase) && !m.Contains("NP121GW", StringComparison.OrdinalIgnoreCase));
+            sink.Messages.ShouldAllBe(m =>
+                !m.Contains("NP12 1GW", StringComparison.OrdinalIgnoreCase)
+                && !m.Contains("NP121GW", StringComparison.OrdinalIgnoreCase)
+                && !m.Contains("NP12%201GW", StringComparison.OrdinalIgnoreCase)
+                && !m.Contains("51.6655", StringComparison.Ordinal));
         }
         finally
         {

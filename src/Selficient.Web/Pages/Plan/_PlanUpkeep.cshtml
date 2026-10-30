@@ -1,0 +1,19 @@
+@model Selficient.Web.Pages.Plan.UpkeepView
+
+<section class="upkeep" aria-labelledby="upkeep-heading">
+  <h2 id="upkeep-heading">Keep it going</h2>
+  <p>A plan only works if the water is fresh and the batteries are charged. These come round on their own; add them to the family calendar once.</p>
+  <ul class="reminders">
+    @foreach (var reminder in Model.Reminders)
+    {
+      <li class="reminder">
+        <span class="reminder__title">@reminder.Title</span>
+        <span class="reminder__when data">@Selficient.Web.Pages.Plan.UpkeepView.When(reminder)</span>
+        <span class="reminder__why">@reminder.Why</span>
+      </li>
+    }
+  </ul>
+  <p class="cluster">
+    <a class="button" href="@Model.CalendarHref" download="selficient-calendar.ics">Add to your calendar</a>
+  </p>
+</section>

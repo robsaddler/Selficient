@@ -13,6 +13,14 @@
 | 5 | Anthropic API key; set `Selficient__Anthropic__ApiKey` on the runner and the vhost | F7 (photo inventory, plan narrative). Until set, the AI features show the "not available yet" state and the fakes answer in Development | A cupboard photo pre-ticks items on the live site |
 | 6 | Decide the monthly free AI allowance per household (default in code: 5) | Cost control; see spec F7 | Value set in `Selficient__Ai__FreeAnalysesPerMonth` or the default accepted |
 
+## 1a. Git and GitHub
+
+| # | Task | Why | Done when |
+|---|---|---|---|
+| A | Push `main` to `https://github.com/robsaddler/Selficient` (`git push -u origin main`) | You named this remote mid-build; the local `origin` already points at it, but the session's permission guard blocked the push, so commits after M1 are local only | `git status` says the branch is up to date with origin |
+| B | Delete or archive the earlier `Dev-Studios-Ltd/Selficient` repository | It was created before you named the personal one and holds the plan and M0 only | Repository gone or archived |
+| C | Optionally allow `git push` in the Claude Code settings for this folder | So later sessions can push without stopping | A `Bash(git push:*)` allow rule in `.claude/settings.local.json` |
+
 ## 2. Hosting
 
 | # | Task | Why | Done when |

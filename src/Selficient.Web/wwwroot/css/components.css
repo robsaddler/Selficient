@@ -492,3 +492,46 @@ progress.tier-progress {
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* Upkeep */
+.upkeep {
+  margin-block-start: var(--space-7);
+}
+
+.reminders {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.reminder {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "title when"
+    "why why";
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-4);
+  background: var(--c-paper);
+  border: var(--border);
+  border-radius: var(--radius-m);
+
+  & .reminder__title {
+    grid-area: title;
+    font-weight: 600;
+  }
+
+  & .reminder__when {
+    grid-area: when;
+    font-size: var(--text-s);
+    color: var(--c-ink-muted);
+  }
+
+  & .reminder__why {
+    grid-area: why;
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+}

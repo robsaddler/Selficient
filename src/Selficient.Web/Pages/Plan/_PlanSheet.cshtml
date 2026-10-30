@@ -49,6 +49,8 @@
   <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
 </section>
 
+@await Html.PartialAsync("_PlanUpkeep", new Selficient.Web.Pages.Plan.UpkeepView(planned.Plan.Profile.Dwelling))
+
 <section class="plan-tools" aria-labelledby="tools-heading">
   <h2 id="tools-heading">Keep it safe</h2>
   <p>Your plan and your ticks are stored only in this browser. Export a copy to keep or to move to another device.</p>

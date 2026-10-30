@@ -72,6 +72,9 @@ public static class InfrastructureServiceCollectionExtensions
         where TClient : class
     {
         services.AddHttpClient<TClient>((provider, client) => Configure(client, baseUrl(Upstreams(provider))))
+            // The factory's default handlers log every request URL at Information, and the URL
+            // carries the postcode. Nothing about these calls is logged below Warning.
+            .RemoveAllLoggers()
             .AddStandardResilienceHandler()
             .Configure(Resilience);
     }

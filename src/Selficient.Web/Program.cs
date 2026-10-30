@@ -15,6 +15,9 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) => configuration
     .WriteTo.Sink(LogTap.Sink)
     .MinimumLevel.Information()
+    // Belt and braces with RemoveAllLoggers(): the HTTP client categories would log full URLs.
+    .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Polly", Serilog.Events.LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
     .WriteTo.File(

@@ -31,6 +31,9 @@ The first screens with user input: a form that collects the household and home f
 | 12 | Plan page cached by a shared cache or the browser after logout-like scenarios | `Cache-Control: no-store` on the plan page | `The_plan_page_is_never_cached` |
 | 13 | Fakes leaking into production | Fakes are registered only when `Upstreams:UseFakes` is true; startup check refuses that in Production | `Fakes_are_refused_in_production` |
 
-## Outcomes
+## Outcomes (adversarial pass, 30 Oct 2026)
 
-*Filled in at the adversarial pass.*
+- All thirteen cases have passing tests. Web suite 61+, Infrastructure 47+, all gated assemblies at 100% lines and branches.
+- **Security review (Claude, security-review skill) found one Medium issue, now fixed and pinned:** the HttpClient factory's default handlers logged every upstream request URL at Information, and the URL carries the postcode, so real lookups would have written postcodes to the console and the 14-day file log. Case 6's test could not catch it because the test host used the fakes. Fixes: `RemoveAllLoggers()` on both typed clients, Serilog category overrides for `System.Net.Http.HttpClient` and `Polly`, loopback HTTP allowed in the options so the test can run the real adapters against a WireMock stub, and the test now asserts the escaped form (`NP12%201GW`) and the coordinates are absent too.
+- Checked hardest and found clean: upstream URL injection and SSRF (regex-validated postcode, escaped segment, fixed https hosts), the import path in `plan-store.js` (key regex excludes `__proto__`, values re-validated server-side), XSS via upstream strings (Razor-encoded, no raw HTML anywhere), CSRF (antiforgery on both hidden forms).
+- Found by the tests themselves: the 429 re-execution reached the error page as a POST and rendered an empty heading; framework binding messages are fragments unless every value-type field (including bools, whose checkboxes carry an implicit required) has its own sentence.

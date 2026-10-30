@@ -34,7 +34,9 @@ public sealed class UpstreamOptions : IValidatableObject
     {
         foreach ((string name, Uri uri) in new[] { (nameof(PostcodesBaseUrl), PostcodesBaseUrl), (nameof(ElevationBaseUrl), ElevationBaseUrl) })
         {
-            if (!uri.IsAbsoluteUri || uri.Scheme != Uri.UriSchemeHttps)
+            // https everywhere, except a loopback stub on the developer's own machine or in a test.
+            bool allowed = uri.IsAbsoluteUri && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback));
+            if (!allowed)
             {
                 yield return new ValidationResult($"{name} must be an absolute https URL.", [name]);
             }

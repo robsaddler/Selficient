@@ -94,6 +94,18 @@ public sealed class InfrastructureCompositionTests
         Should.Throw<OptionsValidationException>(() => provider.GetRequiredService<IOptions<UpstreamOptions>>().Value);
     }
 
+    [Theory]
+    [InlineData("http://127.0.0.1:5555/")]
+    [InlineData("http://localhost:5555/")]
+    public void Loopback_http_is_allowed_for_local_stubs(string url)
+    {
+        ServiceCollection services = new();
+        services.AddSelficientInfrastructure(Config(("Upstreams:PostcodesBaseUrl", url)), Environment("Development"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<IOptions<UpstreamOptions>>().Value.PostcodesBaseUrl.ShouldBe(new Uri(url));
+    }
+
     [Fact]
     public void Relative_urls_are_refused_too()
     {
