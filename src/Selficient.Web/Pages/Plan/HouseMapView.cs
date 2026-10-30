@@ -35,7 +35,7 @@ public sealed class HouseMapView
 
     private static string Describe(Locality locality, Elevation? elevation)
     {
-        string place = string.IsNullOrEmpty(locality.Region) ? locality.Outcode : $"{locality.Outcode}, {locality.Region}";
+        string place = Formatting.PlaceCopy.Place(locality);
         if (elevation is null)
         {
             return $"Your postcode is in {place}. We could not find how high it sits, so the plan assumes level ground.";

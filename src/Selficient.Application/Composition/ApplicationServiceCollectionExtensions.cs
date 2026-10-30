@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Selficient.Application.Planning;
+using Selficient.Application.Solar;
 using Selficient.Domain.Plans;
 using Selficient.Domain.Plans.Rules;
 using Selficient.Domain.Risks;
@@ -21,6 +22,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton(static _ => new PlanBuilder(Rules()));
         services.AddSingleton<GeneratePlanHandler>();
         services.AddSingleton<PlanHouseholdHandler>();
+        services.AddSingleton<EstimateSolarHandler>();
 
         return services;
     }

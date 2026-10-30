@@ -19,6 +19,14 @@ public sealed class UpstreamOptions : IValidatableObject
     [Required]
     public Uri ElevationBaseUrl { get; init; } = new("https://api.open-meteo.com/");
 
+    /// <summary>PVGIS 5.2, the European Commission's solar service, free and keyless.</summary>
+    [Required]
+    public Uri PvgisBaseUrl { get; init; } = new("https://re.jrc.ec.europa.eu/");
+
+    /// <summary>Google Solar API; only called with a key and consent.</summary>
+    [Required]
+    public Uri GoogleSolarBaseUrl { get; init; } = new("https://solar.googleapis.com/");
+
     /// <summary>Per-call timeout.</summary>
     [Range(1, 30)]
     public int TimeoutSeconds { get; init; } = 5;
@@ -32,7 +40,7 @@ public sealed class UpstreamOptions : IValidatableObject
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        foreach ((string name, Uri uri) in new[] { (nameof(PostcodesBaseUrl), PostcodesBaseUrl), (nameof(ElevationBaseUrl), ElevationBaseUrl) })
+        foreach ((string name, Uri uri) in new[] { (nameof(PostcodesBaseUrl), PostcodesBaseUrl), (nameof(ElevationBaseUrl), ElevationBaseUrl), (nameof(PvgisBaseUrl), PvgisBaseUrl), (nameof(GoogleSolarBaseUrl), GoogleSolarBaseUrl) })
         {
             // https everywhere, except a loopback stub on the developer's own machine or in a test.
             bool allowed = uri.IsAbsoluteUri && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback));

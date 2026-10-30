@@ -1,0 +1,134 @@
+@using Selficient.Domain.Solar
+@using Selficient.Web.Formatting
+@model Selficient.Web.Pages.Plan.SolarEstimateView
+@{
+    var estimate = Model.Estimate;
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+    var place = PlaceCopy.Place(Model.Report.Locality);
+    var withBattery = estimate.WithBattery;
+    var withoutBattery = estimate.WithoutBattery;
+    var hasBattery = estimate.Scenario.Battery.IsPresent;
+}
+
+<section class="hero hero--solar" aria-labelledby="solar-heading">
+  <div class="contour-band" aria-hidden="true"></div>
+  <p class="eyebrow">@place: @Model.Eyebrow</p>
+  <h1 id="solar-heading">Solar and a battery could save you about</h1>
+  <p class="figure">
+    <span class="figure__amount">@Model.AnnualSaving</span>
+    <span class="figure__unit">a year</span>
+  </p>
+  <p class="hero__lede">@Model.Lede</p>
+</section>
+
+<section class="solar-chart" aria-labelledby="chart-heading">
+  <h2 id="chart-heading">What the roof makes against what you use</h2>
+  <p>Generation in lantern, your electricity use in slate. The panels make <span class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(estimate.AnnualGeneration) kWh</span> a year on <span class="data">@estimate.Scenario.Yield.AnnualKwhPerKwp.ToString("0", invariant) kWh</span> per kilowatt of panels; you use about <span class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(estimate.Scenario.Demand.KilowattHours) kWh</span>. Winter is the gap a battery cannot close with sunshine, which is why the cheap overnight window matters.</p>
+  <figure class="chart">
+    <svg viewBox="0 0 480 200" role="img" aria-labelledby="chart-title chart-desc" class="chart__svg">
+      <title id="chart-title">Monthly generation and use in kilowatt-hours</title>
+      <desc id="chart-desc">@string.Join("; ", Model.Bars.Select(b => $"{b.Label}: made {b.Generated.ToString("0", invariant)}, used {b.Demanded.ToString("0", invariant)}")).</desc>
+      <line x1="0" y1="170" x2="480" y2="170" class="chart__axis"></line>
+      @for (var i = 0; i < Model.Bars.Count; i++)
+      {
+        var bar = Model.Bars[i];
+        var x = 8 + (i * 40);
+        <rect x="@x" y="@(170 - bar.GeneratedHeight)" width="14" height="@bar.GeneratedHeight" class="chart__bar chart__bar--made"><title>@bar.Label: made @bar.Generated.ToString("0", invariant) kWh</title></rect>
+        <rect x="@(x + 16)" y="@(170 - bar.DemandedHeight)" width="14" height="@bar.DemandedHeight" class="chart__bar chart__bar--used"><title>@bar.Label: used @bar.Demanded.ToString("0", invariant) kWh</title></rect>
+        @* Razor reserves <text>; the label is one of our twelve month names, never user data. *@
+        @Html.Raw($"<text x=\"{x + 15}\" y=\"190\" text-anchor=\"middle\" class=\"chart__label\">{bar.Label}</text>")
+      }
+    </svg>
+    <figcaption class="chart__key"><span class="chart__swatch chart__swatch--made" aria-hidden="true"></span> Made by the panels <span class="chart__swatch chart__swatch--used" aria-hidden="true"></span> Used by the house</figcaption>
+  </figure>
+</section>
+
+<section class="solar-flows" aria-labelledby="flows-heading">
+  <h2 id="flows-heading">Where the electricity goes</h2>
+  <div class="table-scroll">
+    <table class="flows-table">
+      <thead>
+        <tr>
+          <th scope="col">In a year, kWh</th>
+          <th scope="col">Panels alone</th>
+          @if (hasBattery)
+          {
+            <th scope="col">With the battery</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Solar used as it is made</th><td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withoutBattery.UsedDirectly)</td>@if (hasBattery) { <td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withBattery.UsedDirectly)</td> }</tr>
+        <tr><th scope="row">Solar stored by day, used in the evening</th><td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withoutBattery.UsedFromBattery)</td>@if (hasBattery) { <td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withBattery.UsedFromBattery)</td> }</tr>
+        <tr><th scope="row">Exported and paid for</th><td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withoutBattery.Exported)</td>@if (hasBattery) { <td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withBattery.Exported)</td> }</tr>
+        <tr><th scope="row">Bought by day</th><td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withoutBattery.ImportedByDay)</td>@if (hasBattery) { <td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withBattery.ImportedByDay)</td> }</tr>
+        <tr><th scope="row">Bought overnight on a cheap window</th><td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withoutBattery.ImportedOvernight)</td>@if (hasBattery) { <td class="data">@Selficient.Web.Pages.Plan.SolarEstimateView.Kwh(withBattery.ImportedOvernight)</td> }</tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="field__hint">The model uses @((SolarEstimator.DirectUseShare * 100).ToString("0", invariant)) percent of generation as it is made, stores the rest up to the battery's daily cycle, and fills what is left of the cycle overnight where the tariff has a cheap window. Your bill today, on the price cap with no panels, is about @Selficient.Web.Pages.Plan.SolarEstimateView.Bill(estimate.BaselineBill) before standing charges.</p>
+</section>
+
+<section class="solar-tariffs" aria-labelledby="tariffs-heading">
+  <h2 id="tariffs-heading">The tariffs you could be on</h2>
+  <ol class="tariff-list">
+    @foreach (var outcome in estimate.Tariffs)
+    {
+      <li class="tariff">
+        <span class="tariff__name">@outcome.Tariff.Name</span>
+        <span class="tariff__saving data">saves @MoneyFormat.Amount(Selficient.Web.Pages.Plan.SolarEstimateView.RoundToPound(outcome.AnnualSaving)) a year</span>
+        <span class="tariff__suits">@outcome.Tariff.Suits Your year's electricity would come to @Selficient.Web.Pages.Plan.SolarEstimateView.Bill(outcome.AnnualBill) before standing charges. Prices seen @outcome.Tariff.Seen.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB")).</span>
+      </li>
+    }
+  </ol>
+</section>
+
+<section class="solar-cost" aria-labelledby="cost-heading">
+  <h2 id="cost-heading">What it costs</h2>
+  <dl class="cost-list">
+    <div><dt>Panels, inverter and fitting</dt><dd class="data">@MoneyFormat.Range(estimate.Cost.Panels)</dd></div>
+    @if (hasBattery)
+    {
+      <div><dt>Battery</dt><dd class="data">@MoneyFormat.Range(estimate.Cost.Battery)</dd></div>
+    }
+    @if (estimate.Cost.Backup.To.Pence > 0)
+    {
+      <div><dt>Backup gateway or protected circuits</dt><dd class="data">@MoneyFormat.Range(estimate.Cost.Backup)</dd></div>
+    }
+    @if (estimate.Cost.Scaffolding.To.Pence > 0)
+    {
+      <div><dt>Scaffolding for a tall roof</dt><dd class="data">@MoneyFormat.Range(estimate.Cost.Scaffolding)</dd></div>
+    }
+    <div class="cost-list__total"><dt>Everything together</dt><dd class="data">@MoneyFormat.Range(estimate.Cost.Total)</dd></div>
+  </dl>
+  <p class="field__hint">Installed prices as seen in quotes and benchmarks in October 2026 at zero VAT. A three-storey roof is dearer because of the scaffolding, and a quote should show it as its own line.</p>
+</section>
+
+<section class="solar-notes" aria-labelledby="notes-heading">
+  <h2 id="notes-heading">Before you sign</h2>
+  <ul class="notes-list">
+    <li>Get three quotes from MCS-certified installers, and insist each includes a roof survey, the backup you chose, the G99 application to your network operator for anything above 3.68 kW of inverter, and scaffolding as its own line.</li>
+    <li>A battery may not go in a loft or on an escape route (PAS 63100). A garage or a utility room is the usual place.</li>
+    <li>Never sign a roof-lease or "free solar" deal: it is the installer's system on your roof, and it gets in the way of a mortgage.</li>
+    <li>Check the installer belongs to RECC or HIES, which protects your deposit.</li>
+    <li>Switch tariff once the system is commissioned and apply for the export tariff with the MCS certificate.</li>
+  </ul>
+</section>
+
+<section class="solar-grants" aria-labelledby="grants-heading">
+  <h2 id="grants-heading">Help with the money where you live</h2>
+  <ul class="grant-list">
+    @foreach (var grant in Model.Report.Grants)
+    {
+      <li class="grant">
+        <a href="@grant.Link" rel="noopener noreferrer">@grant.Title</a>
+        <span class="grant__sentence">@grant.Sentence</span>
+      </li>
+    }
+  </ul>
+  <p class="cluster">
+    <a class="button" href="https://mcscertified.com/find-an-installer/" rel="noopener noreferrer">Find an MCS installer</a>
+    <a class="button button--quiet" href="#change">Change the answers</a>
+  </p>
+  <p class="disclosure">This is an estimate from public data and documented assumptions, not a quote and not financial advice. Prices move with every price-cap change; the dates beside them say when we looked.</p>
+</section>

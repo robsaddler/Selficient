@@ -9,7 +9,7 @@
 | 1 | Register `selficient.co.uk`, `selficient.uk` and `selficient.app` | All three were free on 29 Oct; the .com was taken ten months ago | Domains in your registrar; `.app` pointed at the vhost, the other two redirecting to it |
 | 2 | Manual UK trade mark search at trademarks.ipo.gov.uk and TMview, then file SELFICIENT in classes 9 and 42 | Automated search was blocked; £170 + £50 | Filing receipt |
 | 3 | Rotate the Syncfusion key committed in `VanillaUIBaseApp/.mcp.json` and `AlacrityBaseApp/.mcp.json` and strip it from both repos | Found during the template review; it is in git history | New key issued, old revoked, file removed |
-| 4 | Google Cloud project with the Solar API enabled; set `Selficient__Google__SolarApiKey` on the runner and the vhost | F5 stage B (roof segments). Until set, the app uses the compass picker and the fake panel | The solar page shows live roof segments for NP12 1GW |
+| 4 | Google Cloud project with the Solar API enabled, the key restricted to the Solar API and the VPS address; set `Google__SolarApiKey` on the vhost (the app reads `Google:SolarApiKey`) | F5 stage B. Until set, the solar page shows no consent panel and the compass picker is the whole answer; in Development with the fakes a stand-in survey answers for every postcode | `/plan/solar` offers "Let an aerial survey measure the roof" and NP12 1GW comes back facing south-west |
 | 5 | Anthropic API key; set `Selficient__Anthropic__ApiKey` on the runner and the vhost | F7 (photo inventory, plan narrative). Until set, the AI features show the "not available yet" state and the fakes answer in Development | A cupboard photo pre-ticks items on the live site |
 | 6 | Decide the monthly free AI allowance per household (default in code: 5) | Cost control; see spec F7 | Value set in `Selficient__Ai__FreeAnalysesPerMonth` or the default accepted |
 
@@ -47,6 +47,7 @@ Run these on the live site, in this order. Each should take a few minutes.
 9. **Headers.** `curl -I https://selficient.app/` shows the CSP, HSTS and the rest; no `Server` or `X-Powered-By`.
 10. **Rate limits.** Hammer `/api/geo/postcode` from one IP for a minute; it should start answering 429 with the polite page.
 11. **The map.** On the plan page the street draws under "Where your house stands" with the OS attribution. Tap your roof: the pin moves and "Pin saved in this browser." appears. Reload: the pin is still there. "Back to the postcode" returns it. Switch to dark and the map follows. If the basemap is still downloading on the server, the panel says the map is not available yet and nothing spins.
+12. **The solar estimator.** From the plan, follow "Estimate what solar and a battery would make". NP12 1GW, south-west, 35°, 13 panels, 13.5 kWh, whole-home, 3 storeys, 4 people, 5,000 kWh: the saving should land between £1,250 and £1,650 a year with a 9 to 15 year payback and Green Homes Wales listed. Tick the consent box and press "Measure the roof": with the Google key set, the real roof segments appear and the compass moves to south-west.
 
 ## 4. Decisions still open (defaults chosen; change if you disagree)
 
@@ -54,3 +55,5 @@ Run these on the live site, in this order. Each should take a few minutes.
 
 - Days Ready baseline assumptions (half a day from kettle water, fridge food and phone torches) and the three dimensions water, food and light. Heating and power are not yet dimensions; they arrive with the power-station tick in a later refinement.
 - Benchmark allocation target revised from 10 KB to 50 KB per plan (`docs/benchmarks.md`).
+- The solar model's documented assumptions (30 percent of generation used as it is made, a 90 percent daily battery cycle, Ofgem typical consumption by household size, the four tariffs in `TariffBook`, the cost bands in `SolarEstimator`). They reproduce the committed review for your roof; change them in one place if an installer's quote says otherwise.
+- The Google roof panel shows the segments as a table rather than over aerial imagery. Imagery would need Google's map script and its origins in the CSP, which the design direction argued against; the figures the estimator needs are all there.

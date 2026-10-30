@@ -45,6 +45,14 @@ public static class DomainErrors
     public static Fault LookupUnavailable() =>
         new("lookup.unavailable", "We couldn't reach the postcode service just now. Wait a moment and try again.");
 
+    /// <summary>A solar input outside the range the model is built for.</summary>
+    public static Fault SolarInputOutOfRange(string what, int lowest, int highest) =>
+        new("solar.out-of-range", $"The {what} needs to be between {lowest} and {highest}.");
+
+    /// <summary>The yield service answered, but not with a usable year.</summary>
+    public static Fault YieldUnavailable() =>
+        new("solar.yield-unavailable", "We couldn't get the sunshine figures for your roof just now. Wait a moment and try again.");
+
     /// <summary>A catalogue entry with missing or overlong text.</summary>
     public static Fault KitPickTextOutOfRange() =>
         new("kit.text", "A kit entry needs a name and a retailer, each under 160 characters, and a note no longer than that.");

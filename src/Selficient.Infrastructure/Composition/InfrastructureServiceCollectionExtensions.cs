@@ -10,6 +10,8 @@ using Selficient.Application.Maps;
 using Selficient.Infrastructure.Geography;
 using Selficient.Infrastructure.Kit;
 using Selficient.Infrastructure.Maps;
+using Selficient.Application.Solar;
+using Selficient.Infrastructure.Solar;
 using Microsoft.Extensions.Logging;
 
 namespace Selficient.Infrastructure.Composition;
@@ -76,27 +78,55 @@ public static class InfrastructureServiceCollectionExtensions
         // and the trim analyzer is on. The bound, validated options are still what the clients use.
         bool useFakes = bool.TryParse(configuration[$"{UpstreamOptions.SectionName}:{nameof(UpstreamOptions.UseFakes)}"], out bool flag) && flag;
 
+        services.AddOptions<GoogleOptions>()
+            .Bind(configuration.GetSection(GoogleOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         if (useFakes)
         {
             services.AddSingleton<IGeocoder, FakeGeocoder>();
             services.AddSingleton<IElevationProvider, FakeElevationProvider>();
+            services.AddSingleton<ISolarYieldProvider, FakeSolarYieldProvider>();
+            services.AddSingleton<IRoofInsightsProvider, FakeRoofInsights>();
             return services;
         }
 
         AddUpstreamClient<PostcodesIoGeocoder>(services, static o => o.PostcodesBaseUrl);
         AddUpstreamClient<OpenMeteoElevationProvider>(services, static o => o.ElevationBaseUrl);
+        AddUpstreamClient<PvgisYieldProvider>(services, static o => o.PvgisBaseUrl);
 
         services.AddSingleton<IGeocoder>(static provider => new CachedGeocoder(provider.GetRequiredService<PostcodesIoGeocoder>(), provider.GetRequiredService<HybridCache>()));
         services.AddSingleton<IElevationProvider>(static provider => new CachedElevationProvider(provider.GetRequiredService<OpenMeteoElevationProvider>(), provider.GetRequiredService<HybridCache>()));
+        services.AddSingleton<ISolarYieldProvider>(static provider => new CachedSolarYieldProvider(provider.GetRequiredService<PvgisYieldProvider>(), provider.GetRequiredService<HybridCache>()));
+
+        // The Google key is read here as a string for the same reason as the fakes flag; the bound
+        // options still validate its shape. No key means the null object, and the page never offers
+        // the roof lookup.
+        string? googleKey = configuration[$"{GoogleOptions.SectionName}:{nameof(GoogleOptions.SolarApiKey)}"];
+        if (string.IsNullOrEmpty(googleKey))
+        {
+            services.AddSingleton<IRoofInsightsProvider, NoRoofInsights>();
+            return services;
+        }
+
+        // The key travels as a header, never in the URL, so it is in no log and no referrer.
+        AddUpstreamClient<GoogleSolarRoofInsights>(services, static o => o.GoogleSolarBaseUrl, (provider, client) =>
+            client.DefaultRequestHeaders.Add("X-Goog-Api-Key", provider.GetRequiredService<IOptions<GoogleOptions>>().Value.SolarApiKey));
+        services.AddSingleton<IRoofInsightsProvider>(static provider => provider.GetRequiredService<GoogleSolarRoofInsights>());
 
         return services;
     }
 
     /// <summary>One typed client per upstream, each with the fixed base address, body cap and resilience pipeline.</summary>
-    private static void AddUpstreamClient<TClient>(IServiceCollection services, Func<UpstreamOptions, Uri> baseUrl)
+    private static void AddUpstreamClient<TClient>(IServiceCollection services, Func<UpstreamOptions, Uri> baseUrl, Action<IServiceProvider, HttpClient>? extra = null)
         where TClient : class
     {
-        services.AddHttpClient<TClient>((provider, client) => Configure(client, baseUrl(Upstreams(provider))))
+        services.AddHttpClient<TClient>((provider, client) =>
+            {
+                Configure(client, baseUrl(Upstreams(provider)));
+                extra?.Invoke(provider, client);
+            })
             // The factory's default handlers log every request URL at Information, and the URL
             // carries the postcode. Nothing about these calls is logged below Warning.
             .RemoveAllLoggers()

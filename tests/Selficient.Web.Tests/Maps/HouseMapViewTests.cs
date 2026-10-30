@@ -27,6 +27,14 @@ public sealed class HouseMapViewTests
     }
 
     [Fact]
+    public void The_place_phrase_drops_an_empty_region()
+    {
+        Selficient.Web.Formatting.PlaceCopy.Place(Blackwood).ShouldBe("NP12, Wales");
+        Selficient.Web.Formatting.PlaceCopy.Place(Blackwood with { Region = string.Empty }).ShouldBe("NP12");
+        Should.Throw<ArgumentNullException>(() => Selficient.Web.Formatting.PlaceCopy.Place(null!));
+    }
+
+    [Fact]
     public void Northern_ireland_is_outside_the_basemap()
     {
         new HouseMapView(Blackwood with { Nation = Nation.NorthernIreland, Outcode = "BT1" }, null).Covered.ShouldBeFalse();

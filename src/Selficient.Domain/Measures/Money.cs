@@ -22,6 +22,15 @@ public readonly record struct Money
             ? Result.Failure<Money>(DomainErrors.NegativeQuantity("pounds"))
             : Result.Success(new Money(checked((long)Math.Round(pounds * 100m, MidpointRounding.AwayFromZero))));
 
+    /// <summary>
+    /// Creates an amount from pence, negative allowed: a bill with more export than import is a
+    /// credit, and a saving is a difference between two bills.
+    /// </summary>
+    public static Money FromPence(long pence) => new(pence);
+
+    /// <summary>The difference between two amounts, which may be negative.</summary>
+    public Money Minus(Money other) => new(checked(Pence - other.Pence));
+
     /// <summary>The sum of two amounts.</summary>
     public Money Add(Money other) => new(checked(Pence + other.Pence));
 

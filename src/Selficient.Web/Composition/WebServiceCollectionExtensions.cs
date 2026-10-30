@@ -27,6 +27,11 @@ public static class WebServiceCollectionExtensions
             options.ModelBindingMessageProvider.SetNonPropertyAttemptedValueIsInvalidAccessor(static _ => "That answer is not one of the options offered. Choose one from the list.");
             options.ModelBindingMessageProvider.SetNonPropertyValueMustBeANumberAccessor(static () => "Enter a whole number.");
         });
+        // Pounds, degrees and squared metres are everywhere on these pages. The default encoder
+        // turns every one into a numeric entity; Latin-1 carries no HTML-significant character, so
+        // letting it through is safe and the pages read as written.
+        services.Configure<Microsoft.Extensions.WebEncoders.WebEncoderOptions>(static options =>
+            options.TextEncoderSettings = new System.Text.Encodings.Web.TextEncoderSettings(System.Text.Unicode.UnicodeRanges.BasicLatin, System.Text.Unicode.UnicodeRanges.Latin1Supplement));
         services.AddScoped<CspNonce>();
         services.AddSelficientRateLimiting(configuration);
 

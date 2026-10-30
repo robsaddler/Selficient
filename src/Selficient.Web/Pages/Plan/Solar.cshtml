@@ -1,0 +1,155 @@
+@page "/plan/solar"
+@using Selficient.Domain.Solar
+@using Selficient.Web.Formatting
+@model Selficient.Web.Pages.Plan.SolarModel
+@{
+    ViewData["Title"] = Model.Report is null ? "Solar and battery estimate" : "Your solar and battery estimate";
+    ViewData["Description"] = "What rooftop solar and a battery would make, save and cost for your roof, with the backup that keeps the lights on in a cut.";
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+@if (Model.Report is { } report)
+{
+    @await Html.PartialAsync("_SolarEstimate", new Selficient.Web.Pages.Plan.SolarEstimateView(report))
+}
+else
+{
+    <section class="wizard" aria-labelledby="solar-heading">
+      <p class="eyebrow">Solar and battery</p>
+      <h1 id="solar-heading">What would your roof make, and what would it be worth?</h1>
+      <p>Point the compass the way your main roof slope faces, say how many panels would fit, and pick a battery. We fetch the sunshine for your postcode from the European Commission's PVGIS service and run the sums the same way every time, so you can compare roofs and batteries fairly. An installer's survey decides the real figures.</p>
+    </section>
+}
+
+@if (Model.Roof is { } roof)
+{
+    <section class="roof-survey" aria-labelledby="roof-heading">
+      <h2 id="roof-heading">What the aerial survey found</h2>
+      <p>The largest south-facing slope has been put into the compass and the panel count below. Change anything that looks wrong; the survey sees the roof from above and cannot see a chimney's shadow or a dormer.</p>
+      <table class="roof-table">
+        <thead>
+          <tr><th scope="col">Slope faces</th><th scope="col">Pitch</th><th scope="col">Area</th></tr>
+        </thead>
+        <tbody>
+          @foreach (var segment in roof.Segments)
+          {
+            <tr>
+              <td>@segment.Aspect.Words() (@segment.Bearing.ToString("0", invariant)°)</td>
+              <td class="data">@segment.PitchDegrees.ToString("0", invariant)°</td>
+              <td class="data">@segment.AreaSquareMetres.ToString("0", invariant) m²</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (roof.MaxPanels > 0)
+      {
+        <p>Up to <span class="data">@roof.MaxPanels</span> panels of @roof.PanelWatts W would fit across the whole roof.</p>
+      }
+    </section>
+}
+else if (Model.RoofNotice is { } notice)
+{
+    <p class="callout callout--warning" role="status">@notice</p>
+}
+
+<section class="solar-form-section" aria-labelledby="solar-form-heading" id="change">
+  <h2 id="solar-form-heading">@(Model.Report is null ? "Your roof and your home" : "Change the answers")</h2>
+  <form method="post" class="plan-form" novalidate>
+    <div asp-validation-summary="ModelOnly" class="callout callout--warning" role="alert"></div>
+
+    <fieldset class="form-section">
+      <legend>Where the roof is</legend>
+      <div class="field">
+        <label asp-for="Form.Postcode"></label>
+        <input asp-for="Form.Postcode" class="input input--short" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false">
+        <span asp-validation-for="Form.Postcode" class="field__error"></span>
+      </div>
+      @if (Model.RoofLookupOffered)
+      {
+        @await Html.PartialAsync("_SolarConsent")
+      }
+    </fieldset>
+
+    <fieldset class="form-section">
+      <legend>The roof</legend>
+      <fieldset class="compass" aria-describedby="compass-hint">
+        <legend>Which way does your main roof slope face?</legend>
+        <p id="compass-hint" class="field__hint">Stand with your back to the wall under the slope and look out: that is the direction. South is best; east or west still work; north rarely pays.</p>
+        <div class="compass__rose">
+          @foreach (var aspect in RoofAspects.All)
+          {
+            var id = $"aspect-{aspect}";
+            <input type="radio" asp-for="Form.Aspect" value="@aspect" id="@id" class="compass__input">
+            <label for="@id" class="compass__point" data-aspect="@aspect">
+              <span class="compass__letters" aria-hidden="true">@CompassCopy.Letters(aspect)</span>
+              <span class="sr-only">@aspect.Words()</span>
+            </label>
+          }
+          <span class="compass__house" aria-hidden="true"></span>
+        </div>
+        <span asp-validation-for="Form.Aspect" class="field__error"></span>
+      </fieldset>
+      <div class="field">
+        <label asp-for="Form.PitchDegrees"></label>
+        <input asp-for="Form.PitchDegrees" type="number" min="@RoofPitch.Lowest" max="@RoofPitch.Steepest" class="input input--short" inputmode="numeric">
+        <span asp-validation-for="Form.PitchDegrees" class="field__error"></span>
+        <p class="field__hint">Most UK houses are 30 to 40 degrees. A flat roof uses frames at about 10.</p>
+      </div>
+      <div class="field">
+        <label asp-for="Form.Panels"></label>
+        <input asp-for="Form.Panels" type="number" min="@PanelArray.Fewest" max="@PanelArray.Most" class="input input--short" inputmode="numeric">
+        <span asp-validation-for="Form.Panels" class="field__error"></span>
+        <p class="field__hint">Each panel is about 1.1 by 1.9 metres and makes @PanelArray.WattsPerPanel W. Count what would fit on the one slope, leaving a panel's width clear of the edges.</p>
+      </div>
+      <div class="field">
+        <label asp-for="Form.Storeys"></label>
+        <input asp-for="Form.Storeys" type="number" min="1" max="6" class="input input--short" inputmode="numeric">
+        <span asp-validation-for="Form.Storeys" class="field__error"></span>
+      </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+      <legend>The battery</legend>
+      <div class="field">
+        <label asp-for="Form.BatteryKilowattHours"></label>
+        <select asp-for="Form.BatteryKilowattHours" asp-items="Selficient.Web.Pages.Plan.SolarForm.Batteries" class="input"></select>
+        <span asp-validation-for="Form.BatteryKilowattHours" class="field__error"></span>
+      </div>
+      <div class="field">
+        <label asp-for="Form.Backup"></label>
+        <select asp-for="Form.Backup" asp-items="Selficient.Web.Pages.Plan.SolarForm.Backups" class="input"></select>
+        <span asp-validation-for="Form.Backup" class="field__error"></span>
+        <p class="field__hint">Without a gateway or protected circuits, a battery gives you nothing on the night the power goes: inverters must shut down in a cut by law.</p>
+      </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+      <legend>Your electricity</legend>
+      <div class="field">
+        <label asp-for="Form.People"></label>
+        <input asp-for="Form.People" type="number" min="1" max="20" class="input input--short" inputmode="numeric">
+        <span asp-validation-for="Form.People" class="field__error"></span>
+      </div>
+      <div class="field field--check">
+        <input asp-for="Form.HasElectricCar">
+        <label asp-for="Form.HasElectricCar"></label>
+      </div>
+      <div class="field field--check">
+        <input asp-for="Form.HasHeatPump">
+        <label asp-for="Form.HasHeatPump"></label>
+      </div>
+      <div class="field">
+        <label asp-for="Form.AnnualKilowattHours"></label>
+        <input asp-for="Form.AnnualKilowattHours" type="number" min="@AnnualDemand.Lowest" max="@AnnualDemand.Highest" step="1" class="input input--short" inputmode="numeric">
+        <span asp-validation-for="Form.AnnualKilowattHours" class="field__error"></span>
+        <p class="field__hint">Leave it blank and we use the typical figure for your household size.</p>
+      </div>
+    </fieldset>
+
+    <p class="cluster">
+      <button type="submit" class="button button--primary">@(Model.Report is null ? "Estimate it" : "Estimate it again")</button>
+      <a class="button button--quiet" href="/plan">Back to your plan</a>
+    </p>
+  </form>
+</section>

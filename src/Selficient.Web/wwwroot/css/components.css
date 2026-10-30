@@ -625,3 +625,320 @@ progress.tier-progress {
     aspect-ratio: 1;
   }
 }
+
+/* The solar estimate: the saving figure is the hero, in lantern, like Days Ready */
+.figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.figure__amount {
+  font-size: var(--text-display);
+  font-weight: 700;
+  font-stretch: 85%;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--c-lantern);
+}
+
+.figure__unit {
+  font-size: var(--text-xl);
+  font-weight: 500;
+  color: var(--c-ink-muted);
+}
+
+/* The compass: eight points around the house. Pure CSS; the radios do the work. */
+.compass {
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+
+  & legend {
+    font-weight: 600;
+    padding: 0;
+  }
+}
+
+.compass__rose {
+  position: relative;
+  inline-size: min(100%, 18rem);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  place-items: center;
+  border: var(--border);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c-paper) 55%, var(--c-pine-tint) 56%, var(--c-pine-tint) 100%);
+}
+
+.compass__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.compass__point {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  display: grid;
+  place-items: center;
+  border: var(--border);
+  border-radius: 50%;
+  background: var(--c-paper);
+  font-family: var(--font-data);
+  font-weight: 500;
+  font-size: var(--text-s);
+  cursor: pointer;
+  transition: background var(--duration-quick), border-color var(--duration-quick);
+
+  &:hover {
+    border-color: var(--c-pine);
+  }
+
+  &[data-aspect="North"] { grid-area: 1 / 3; }
+  &[data-aspect="NorthEast"] { grid-area: 2 / 4; }
+  &[data-aspect="East"] { grid-area: 3 / 5; }
+  &[data-aspect="SouthEast"] { grid-area: 4 / 4; }
+  &[data-aspect="South"] { grid-area: 5 / 3; }
+  &[data-aspect="SouthWest"] { grid-area: 4 / 2; }
+  &[data-aspect="West"] { grid-area: 3 / 1; }
+  &[data-aspect="NorthWest"] { grid-area: 2 / 2; }
+}
+
+.compass__input:checked + .compass__point {
+  background: var(--c-lantern);
+  border-color: var(--c-lantern);
+  color: var(--c-slate);
+}
+
+.compass__input:focus-visible + .compass__point {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.compass__house {
+  grid-area: 3 / 3;
+  inline-size: 2rem;
+  block-size: 2rem;
+  background: var(--c-slate);
+  clip-path: polygon(50% 0, 100% 45%, 85% 45%, 85% 100%, 15% 100%, 15% 45%, 0 45%);
+}
+
+/* The consent panel for the aerial survey */
+.consent {
+  border: var(--border);
+  border-radius: var(--radius-s);
+  padding: var(--space-3) var(--space-4);
+
+  & summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--c-pine);
+  }
+
+  & p {
+    margin-block-start: var(--space-3);
+  }
+
+  & .field--check {
+    margin-block-start: var(--space-3);
+  }
+}
+
+/* The monthly chart, drawn on the server as SVG */
+.solar-chart,
+.solar-flows,
+.solar-tariffs,
+.solar-cost,
+.solar-notes,
+.solar-grants,
+.roof-survey,
+.solar-form-section {
+  margin-block-start: var(--space-7);
+}
+
+.chart {
+  margin-block-start: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+}
+
+.chart__svg {
+  inline-size: 100%;
+  block-size: auto;
+  font-family: var(--font-data);
+}
+
+.chart__axis {
+  stroke: var(--c-contour);
+  stroke-width: 1;
+}
+
+.chart__bar--made {
+  fill: var(--c-lantern);
+}
+
+.chart__bar--used {
+  fill: var(--c-ink-muted);
+}
+
+.chart__label {
+  fill: var(--c-ink-muted);
+  font-size: 11px;
+}
+
+.chart__key {
+  margin-block-start: var(--space-3);
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.chart__swatch {
+  display: inline-block;
+  inline-size: 0.9rem;
+  block-size: 0.9rem;
+  border-radius: 2px;
+
+  &.chart__swatch--made {
+    background: var(--c-lantern);
+  }
+
+  &.chart__swatch--used {
+    background: var(--c-ink-muted);
+  }
+}
+
+/* Tables: flows and roof segments */
+.table-scroll {
+  overflow-x: auto;
+  margin-block-start: var(--space-4);
+}
+
+.flows-table,
+.roof-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  background: var(--c-paper);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  margin-block-start: var(--space-4);
+
+  & th,
+  & td {
+    text-align: start;
+    padding: var(--space-2) var(--space-3);
+    border-block-end: 1px solid var(--c-contour);
+  }
+
+  & thead th {
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+
+  & td.data {
+    text-align: end;
+  }
+}
+
+/* Tariffs and costs */
+.tariff-list,
+.grant-list,
+.notes-list {
+  margin-block-start: var(--space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.tariff-list {
+  list-style: none;
+  counter-reset: tariff;
+}
+
+.tariff {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & .tariff__name {
+    font-weight: 600;
+  }
+
+  & .tariff__suits {
+    grid-column: 1 / -1;
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+
+  &:first-child {
+    border-color: var(--c-lantern);
+  }
+}
+
+.cost-list {
+  margin-block-start: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  & dd {
+    margin: 0;
+  }
+
+  & .cost-list__total {
+    padding-block-start: var(--space-2);
+    border-block-start: var(--border);
+    font-weight: 600;
+  }
+}
+
+.notes-list {
+  padding-inline-start: 1.2em;
+}
+
+.grant-list {
+  list-style: none;
+}
+
+.grant {
+  display: grid;
+  gap: var(--space-1);
+
+  & .grant__sentence {
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+}
+
+@container (max-width: 28rem) {
+  .tariff {
+    grid-template-columns: 1fr;
+  }
+}

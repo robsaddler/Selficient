@@ -6,8 +6,7 @@
     var baseline = Selficient.Domain.Readiness.Inventory.Baseline(household);
     var days = baseline.DaysReady(household).Value;
     var culture = System.Globalization.CultureInfo.CurrentCulture;
-    var place = planned.Locality.Outcode
-        + (string.IsNullOrEmpty(planned.Locality.Region) ? "" : $", {planned.Locality.Region}")
+    var place = PlaceCopy.Place(planned.Locality)
         + (planned.Elevation is { } e ? $", {e.Metres.ToString("0", culture)} m above sea level" : "");
 }
 
@@ -49,6 +48,10 @@
     @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue))
   }
   <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
+  @if (planned.Plan.Profile.Dwelling.HasOwnRoof)
+  {
+    <p class="plan__solar">The biggest line is the roof. <a href="/plan/solar">Estimate what solar and a battery would make, save and cost for your house</a>, with the backup that keeps the lights on.</p>
+  }
   <p class="disclosure">Where we point to a shop, some links earn Selficient a small commission at no cost to you. Prices are what we saw on the date shown and will have moved; the sentence beside each item is why we chose it.</p>
 </section>
 

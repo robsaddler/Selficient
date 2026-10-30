@@ -56,3 +56,14 @@ public static class RiskCopy
 
     private static string Impact(Domain.Risks.Impact impact) => impact == Domain.Risks.Impact.Severe ? "severe" : impact.ToString();
 }
+
+/// <summary>Where a postcode is, as a phrase: "NP12, Wales" or just "NP12" when the region is unknown.</summary>
+public static class PlaceCopy
+{
+    /// <summary>The outcode, then the region where there is one.</summary>
+    public static string Place(Selficient.Application.Geography.Locality locality)
+    {
+        ArgumentNullException.ThrowIfNull(locality);
+        return string.IsNullOrEmpty(locality.Region) ? locality.Outcode : $"{locality.Outcode}, {locality.Region}";
+    }
+}

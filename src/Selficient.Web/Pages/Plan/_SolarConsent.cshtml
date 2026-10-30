@@ -1,0 +1,13 @@
+@* The consent step for the aerial survey. Its own partial so the tag helpers inside it do not
+   attach their branches to the enclosing condition on the page. *@
+<details class="consent">
+  <summary>Let an aerial survey measure the roof</summary>
+  <p>With your say-so, we send the centre of your postcode to Google's Solar API, which answers with the slopes of the nearest roof, their pitch and how many panels fit. Google receives the location and nothing else about you. We do not keep the answer.</p>
+  <label class="field field--check">
+    <input type="checkbox" name="consent" value="true">
+    <span>Send my postcode's location to Google for this one lookup</span>
+  </label>
+  <p class="cluster">
+    <button type="submit" class="button" asp-page-handler="Roof">Measure the roof</button>
+  </p>
+</details>
