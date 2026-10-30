@@ -737,7 +737,8 @@ progress.tier-progress {
 .compass__input:checked + .compass__point {
   background: var(--c-lantern);
   border-color: var(--c-lantern);
-  color: var(--c-slate);
+  /* Dark ink on the lantern in both themes: the slate token is near white in the dark. */
+  color: oklch(18% 0.03 230);
 }
 
 .compass__input:focus-visible + .compass__point {
