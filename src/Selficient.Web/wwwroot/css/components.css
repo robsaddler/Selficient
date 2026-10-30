@@ -202,10 +202,10 @@ progress.tier-progress {
 
 .action label {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   grid-template-areas:
-    "box title price"
-    "box why price";
+    "box mark title price"
+    "box mark why price";
   column-gap: var(--space-3);
   align-items: start;
   cursor: pointer;
@@ -215,6 +215,13 @@ progress.tier-progress {
     inline-size: 1.5rem;
     block-size: 1.5rem;
     margin-block-start: 0.1rem;
+  }
+
+  & .action__mark {
+    grid-area: mark;
+    inline-size: 2rem;
+    block-size: 2rem;
+    color: var(--c-ink-muted);
   }
 
   & .action__title {
@@ -241,11 +248,11 @@ progress.tier-progress {
 
 @container (max-width: 28rem) {
   .action label {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto auto 1fr;
     grid-template-areas:
-      "box title"
-      "box why"
-      "box price";
+      "box mark title"
+      "box mark why"
+      "box mark price";
   }
 }
 
@@ -1458,6 +1465,30 @@ progress.tier-progress {
 
   & .still-life__glow--small {
     fill: var(--c-glow);
+  }
+
+  /* Filled shapes: the panel colour of the surface the picture sits on, heavy outlines, and the pale light a lantern throws. */
+  & .still-life__fill {
+    fill: var(--c-paper);
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+  }
+
+  & .still-life__heavy {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  & .still-life__pale {
+    fill: color-mix(in oklab, var(--c-lantern) 35%, var(--c-paper));
+  }
+
+  & .still-life__flame {
+    fill: oklch(97% 0.04 85);
   }
 }
 }

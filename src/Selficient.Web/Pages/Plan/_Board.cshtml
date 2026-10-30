@@ -25,6 +25,7 @@
     @foreach (var card in set.Cards)
     {
       <button type="submit" name="Form.Scenario" value="@card.Id" class="scenario" aria-pressed="@(card.Selected ? "true" : "false")" data-scenario-card>
+        <svg class="scenario__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForScenario(card.Id)"/></svg>
         <span class="scenario__name">@card.Name</span>
         <span class="scenario__days"><span class="data">@card.DaysReady.ToString("0.#", culture)</span> <small>@Selficient.Web.Pages.Plan.BoardCopy.Unit(card.DaysReady)</small></span>
       </button>

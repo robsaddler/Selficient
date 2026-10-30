@@ -435,15 +435,15 @@
   gap: var(--space-3);
 }
 
+/* A scenario card is paper, so the sheet reads as one surface in both themes; the chosen one carries the lantern. */
 .scenario {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
   border-radius: var(--radius-m);
-  background: var(--c-roof);
-  color: var(--c-on-roof);
-  color-scheme: dark;
-  border: 2px solid var(--c-on-roof-line);
+  background: var(--c-paper);
+  color: var(--c-ink);
+  border: var(--border);
   text-align: start;
   cursor: pointer;
   font: inherit;
@@ -451,11 +451,18 @@
   &[aria-pressed="true"] {
     border-color: var(--c-lantern);
     box-shadow: inset 0 0 0 1px var(--c-lantern);
+    background: var(--c-lantern-tint);
   }
 
   &:hover {
-    border-color: var(--c-on-roof-muted);
+    border-color: var(--c-ink-muted);
   }
+}
+
+.scenario__mark {
+  inline-size: 2.4rem;
+  block-size: 2.4rem;
+  color: var(--c-ink-muted);
 }
 
 .scenario__name {
@@ -472,12 +479,12 @@
   font-stretch: 85%;
   font-size: 2.2rem;
   line-height: 1;
-  color: var(--c-lantern);
+  color: var(--c-lantern-ink);
 
   & small {
     font-family: var(--font-data);
     font-size: var(--text-s);
-    color: var(--c-on-roof-muted);
+    color: var(--c-ink-muted);
     margin-inline-start: var(--space-1);
   }
 }

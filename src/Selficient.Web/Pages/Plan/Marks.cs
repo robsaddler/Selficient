@@ -38,6 +38,33 @@ public static class Marks
         return sourceId == BoardSet.HouseSource ? House : $"source-{sourceId}";
     }
 
+    /// <summary>The mark for a plan action that provides nothing on the board: a job on the list.</summary>
+    public const string ActionGeneral = "action-general";
+
+    /// <summary>The symbol id for a scenario card.</summary>
+    public static string ForScenario(string scenarioId)
+    {
+        ArgumentNullException.ThrowIfNull(scenarioId);
+        return $"scenario-{scenarioId}";
+    }
+
+    /// <summary>
+    /// The symbol id for a plan action: the source it is where the board offers it as one, else the
+    /// first need its provider meets, else the general mark. So the bottled water carries the bottle
+    /// and the arborist's survey carries the list.
+    /// </summary>
+    public static string ForAction(string actionId)
+    {
+        ArgumentNullException.ThrowIfNull(actionId);
+        if (SourceIds.Contains(actionId))
+        {
+            return ForSource(actionId);
+        }
+
+        Provider? provider = Providers.Find(actionId);
+        return provider is { Meets.Count: > 0 } ? ForNeed(provider.Meets[0].Need) : ActionGeneral;
+    }
+
     /// <summary>Every source id the sprite must carry, so a test can hold the drawing to the catalogue.</summary>
     public static IReadOnlyList<string> SourceIds { get; } =
         ["power-banks", "portable-power-station", "large-power-station", "rooftop-solar-and-battery", "ev-output", "petrol-generator"];

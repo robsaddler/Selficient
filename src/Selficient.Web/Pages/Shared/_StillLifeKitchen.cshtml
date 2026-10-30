@@ -1,44 +1,55 @@
-@* The kitchen table on the night the power goes: the storm lantern lit, the wind-up radio, the headtorch, a bottle of water and the tins, with the contour map on the wall behind. Flat, geometric, 2 px strokes; the lantern is the only light. *@
-<svg class="still-life still-life--kitchen" viewBox="0 0 480 360" role="img" aria-labelledby="still-life-kitchen-title" focusable="false">
+@* The kitchen table on the night the power goes: the storm lantern lit, the wind-up radio, the headtorch, a bottle of water and the tins, with the contour map on the wall behind. Flat, geometric, filled shapes with heavy strokes; the lantern is the only light. *@
+<svg class="still-life still-life--kitchen" viewBox="0 20 520 380" role="img" aria-labelledby="still-life-kitchen-title" focusable="false">
   <title id="still-life-kitchen-title">A kitchen table at night with a lit storm lantern, a wind-up radio, a headtorch, a bottle of water and a row of tins, and a contour map on the wall behind.</title>
   <defs>
     <radialGradient id="kitchen-glow" cx="0.5" cy="0.5" r="0.5">
       <stop offset="0" stop-color="var(--c-lantern, #E8A33D)" stop-opacity="0.55"/>
-      <stop offset="0.55" stop-color="var(--c-lantern, #E8A33D)" stop-opacity="0.12"/>
+      <stop offset="0.6" stop-color="var(--c-lantern, #E8A33D)" stop-opacity="0.12"/>
       <stop offset="1" stop-color="var(--c-lantern, #E8A33D)" stop-opacity="0"/>
     </radialGradient>
   </defs>
+  @* The map on the wall: a framed panel with the contour lines of the hill and the house as one lit point. *@
+  <rect class="still-life__fill" x="300" y="28" width="190" height="150" rx="4"/>
   <g class="still-life__lines">
-    @* The map on the wall: a frame and the contour rings of the hill. *@
-    <rect x="252" y="28" width="196" height="136" rx="4"/>
-    <ellipse cx="350" cy="96" rx="78" ry="48"/>
-    <ellipse cx="356" cy="92" rx="56" ry="34"/>
-    <ellipse cx="362" cy="88" rx="36" ry="21"/>
-    <ellipse cx="366" cy="86" rx="17" ry="10"/>
-    <path d="M252 142c40-10 70-6 96 8M252 60c30 8 48 8 62 2"/>
-    @* The table. *@
-    <path d="M24 262h432M48 262v70M432 262v70M60 262l-8 70M420 262l8 70"/>
-    @* The bottle of water. *@
-    <path d="M78 262v-96a8 8 0 0 1 8-8h20a8 8 0 0 1 8 8v96zM88 158v-16h16v16M84 190h28"/>
-    @* The tins. *@
-    <rect x="136" y="216" width="40" height="46" rx="3"/>
-    <rect x="182" y="216" width="40" height="46" rx="3"/>
-    <rect x="159" y="170" width="40" height="46" rx="3"/>
-    <path d="M136 230h40M182 230h40M159 184h40"/>
-    @* The headtorch. *@
-    <ellipse cx="300" cy="248" rx="38" ry="14"/>
-    <rect x="286" y="226" width="28" height="18" rx="3"/>
-    @* The wind-up radio. *@
-    <rect x="356" y="196" width="92" height="66" rx="6"/>
-    <circle cx="384" cy="229" r="16"/>
-    <path d="M414 212h24M414 224h24M414 236h14M372 196v-30l34-14M440 262c10 0 14 6 14 14"/>
-    <circle cx="454" cy="282" r="5"/>
+    <path d="M312 150c28-30 68-10 98-40s60-30 72-50"/>
+    <path d="M312 130c33-30 66-8 93-38s57-26 77-48"/>
+    <path d="M322 168c28-28 70-10 98-38s54-28 62-44"/>
+    <path d="M312 108c28-22 58-4 84-32s56-24 74-38"/>
   </g>
-  @* The lantern: its glow first, then its body. *@
-  <circle class="still-life__glow" cx="248" cy="192" r="118" fill="url(#kitchen-glow)"/>
-  <g class="still-life__lines">
-    <path d="M226 262v-24h44v24M236 238v-48h24v48M248 190v-20M240 170h16M232 160a16 16 0 0 1 32 0"/>
-    <path d="M222 238h52"/>
-  </g>
-  <rect class="still-life__light" x="240" y="196" width="16" height="36" rx="2"/>
+  <circle class="still-life__light" cx="405" cy="95" r="3.5"/>
+  @* The glow, then the table. *@
+  <circle class="still-life__glow" cx="150" cy="200" r="150" fill="url(#kitchen-glow)"/>
+  <rect class="still-life__fill" x="0" y="330" width="520" height="14" rx="3"/>
+  <path class="still-life__heavy" d="M40 344v50M480 344v50M52 344l-10 50M468 344l10 50"/>
+  @* The storm lantern: handle, cap, the glass full of light, the flame, the base. *@
+  <path class="still-life__heavy" d="M118 112q32-40 64 0"/>
+  <rect class="still-life__fill" x="104" y="112" width="92" height="22" rx="6"/>
+  <rect class="still-life__pale" x="116" y="134" width="68" height="150" rx="8"/>
+  <rect class="still-life__heavy" x="116" y="134" width="68" height="150" rx="8"/>
+  <path class="still-life__light" d="M150 262c-14-12-14-34 0-54 14 20 14 42 0 54z"/>
+  <path class="still-life__flame" d="M150 254c-6-6-6-18 0-28 6 10 6 22 0 28z"/>
+  <rect class="still-life__fill" x="104" y="284" width="92" height="46" rx="6"/>
+  @* The wind-up radio: speaker, tuning dial, aerial and the handle. *@
+  <rect class="still-life__fill" x="228" y="228" width="130" height="102" rx="10"/>
+  <circle class="still-life__heavy" cx="268" cy="279" r="26"/>
+  <path class="still-life__lines" d="M252 268h32M248 279h40M252 290h32"/>
+  <rect class="still-life__light" x="306" y="258" width="38" height="12" rx="3"/>
+  <circle class="still-life__heavy" cx="325" cy="296" r="10"/>
+  <path class="still-life__heavy" d="M300 228v-32M330 236l26-14"/>
+  <circle class="still-life__fill" cx="356" cy="222" r="5"/>
+  @* The headtorch, strap and lamp. *@
+  <path class="still-life__heavy" d="M372 330c0-30 30-46 56-30"/>
+  <rect class="still-life__fill" x="414" y="286" width="42" height="28" rx="6"/>
+  <rect class="still-life__light" x="424" y="294" width="22" height="12" rx="2"/>
+  @* The bottle of water. *@
+  <rect class="still-life__fill" x="22" y="234" width="42" height="96" rx="8"/>
+  <rect class="still-life__fill" x="31" y="214" width="24" height="22" rx="3"/>
+  <rect class="still-life__fill" x="28" y="206" width="30" height="10" rx="3"/>
+  <rect class="still-life__pale" x="30" y="262" width="26" height="48" rx="3"/>
+  @* The tins. *@
+  <rect class="still-life__fill" x="464" y="286" width="46" height="44" rx="4"/>
+  <ellipse class="still-life__fill" cx="487" cy="286" rx="23" ry="7"/>
+  <rect class="still-life__light" x="464" y="300" width="46" height="14"/>
+  <rect class="still-life__fill" x="208" y="298" width="40" height="32" rx="4"/>
+  <ellipse class="still-life__fill" cx="228" cy="298" rx="20" ry="6"/>
 </svg>

@@ -49,9 +49,15 @@ public sealed class LookTests : IDisposable
             ids.ShouldContain(Marks.ForSource(source), customMessage: $"{source} has no mark");
         }
 
+        foreach (Scenario scenario in Scenarios.All)
+        {
+            ids.ShouldContain(Marks.ForScenario(scenario.Id), customMessage: $"{scenario.Id} has no pictogram");
+        }
+
         ids.ShouldContain(Marks.Dependency);
         ids.ShouldContain(Marks.House);
-        ids.Count.ShouldBe(Enum.GetValues<NeedId>().Length + Marks.SourceIds.Count + 2, "no mark is drawn for nothing");
+        ids.ShouldContain(Marks.ActionGeneral);
+        ids.Count.ShouldBe(Enum.GetValues<NeedId>().Length + Marks.SourceIds.Count + Scenarios.All.Count + 3, "no mark is drawn for nothing");
     }
 
     [Fact]
@@ -80,11 +86,21 @@ public sealed class LookTests : IDisposable
     [InlineData("99", "need-dependency")]
     public void A_row_key_finds_its_mark_or_the_generic_one(string key, string id) => Marks.ForRow(key).ShouldBe(id);
 
+    [Theory]
+    [InlineData("water-bottled-three-days", "need-drinkingwater")]
+    [InlineData("headtorches", "need-light")]
+    [InlineData("portable-power-station", "source-portable-power-station")]
+    [InlineData("rooftop-solar-and-battery", "source-rooftop-solar-and-battery")]
+    [InlineData("arborist-survey", "action-general")]
+    public void An_action_carries_its_source_its_first_need_or_the_list(string action, string id) => Marks.ForAction(action).ShouldBe(id);
+
     [Fact]
     public void The_helpers_refuse_null()
     {
         Should.Throw<ArgumentNullException>(() => Marks.ForRow(null!));
         Should.Throw<ArgumentNullException>(() => Marks.ForSource(null!));
+        Should.Throw<ArgumentNullException>(() => Marks.ForScenario(null!));
+        Should.Throw<ArgumentNullException>(() => Marks.ForAction(null!));
         Should.Throw<ArgumentNullException>(() => Strip.From(null!));
     }
 
@@ -147,6 +163,8 @@ public sealed class LookTests : IDisposable
         page.ShouldContain("<use href=\"/img/marks.svg#need-drinkingwater\"/>");
         page.ShouldContain("<use href=\"/img/marks.svg#source-house\"/>");
         page.ShouldContain("<use href=\"/img/marks.svg#source-power-banks\"/>");
+        page.ShouldContain("<use href=\"/img/marks.svg#scenario-storm\"/>", customMessage: "every scenario card carries its pictogram");
+        page.ShouldContain("<use href=\"/img/marks.svg#action-general\"/>", customMessage: "an action that provides nothing on the board carries the list");
         fragment.ShouldContain("<ul hidden data-board-strip>");
         fragment.ShouldContain("data-strip-need=\"Food\"");
         fragment.ShouldNotContain("data-strip-need=\"Food\" data-days=\"1\"", customMessage: "a month of tins moves the food bar");
