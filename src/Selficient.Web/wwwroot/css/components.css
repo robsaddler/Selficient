@@ -1509,6 +1509,13 @@ progress.tier-progress {
   color: var(--c-ink-muted);
 }
 
+/* The box fills what the button and the "or" leave, so the row runs the full width of its panel. */
+.locate-row > .input,
+.locate-row > .input.input--short {
+  flex: 1 1 10rem;
+  max-inline-size: none;
+}
+
 .locate__status {
   font-size: var(--text-s);
   color: var(--c-ink-muted);
