@@ -16,7 +16,7 @@ public sealed class PagesTests : IDisposable
 
         string html = await client.GetStringAsync(new Uri("/", UriKind.Relative));
 
-        html.ShouldContain("<days-ready value=\"0.5\"");
+        html.ShouldContain($"<days-ready value=\"{IndexModel.TypicalBoard.DaysReady:0.#}\"", customMessage: "the figure on the landing page is the engine's for a typical house");
         html.ShouldContain("Your house could stand on its own for");
         html.ShouldContain("Start your plan");
         html.ShouldContain("<html lang=\"en-GB\" data-sw-build=\"sw-");

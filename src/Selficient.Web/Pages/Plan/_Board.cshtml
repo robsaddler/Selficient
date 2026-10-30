@@ -26,7 +26,7 @@
     {
       <button type="submit" name="Form.Scenario" value="@card.Id" class="scenario" aria-pressed="@(card.Selected ? "true" : "false")" data-scenario-card>
         <span class="scenario__name">@card.Name</span>
-        <span class="scenario__days"><span class="data">@card.DaysReady.ToString("0.#", culture)</span> <small>@(card.DaysReady == 1m ? "day" : "days")</small></span>
+        <span class="scenario__days"><span class="data">@card.DaysReady.ToString("0.#", culture)</span> <small>@Selficient.Web.Pages.Plan.BoardCopy.Unit(card.DaysReady)</small></span>
       </button>
     }
   </form>
@@ -38,7 +38,7 @@
       {
         var id = $"source-{source.Id}";
         <input type="radio" name="board-source" id="@id" value="@source.Id" class="seg__input" checked="@(source.Id == BoardSet.HouseSource)">
-        <label for="@id" class="seg__pill" title="@source.Sentence">@source.Name</label>
+        <label for="@id" class="seg__pill" title="@source.Sentence"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForSource(source.Id)"/></svg>@source.Name</label>
       }
     </fieldset>
     <fieldset class="seg" data-board-seasons>
@@ -74,7 +74,7 @@
           {
             <details class="board__row">
               <summary class="board__summary">
-                <span class="board__need">@row.Name</span>
+                <span class="board__need"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForRow(row.Key)"/></svg>@row.Name</span>
                 @foreach (var cell in row.Cells)
                 {
                   <span class="cell cell--@cell.State.ToString().ToLowerInvariant()" role="img" aria-label="@Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell)" data-when="@BoardComposer.HorizonWords(cell.Horizon)">
@@ -105,6 +105,14 @@
   {
     <p class="board__note">A home battery needs a roof of your own, so it is not among the sources for a flat.</p>
   }
+
+  @* The strip under the figure follows the board for what the house has; the script copies these onto it. *@
+  <ul hidden data-board-strip>
+    @foreach (var bar in Selficient.Web.Pages.Plan.Strip.From(set.Current))
+    {
+      <li data-strip-need="@bar.Key" data-days="@bar.Figure" data-reduced="@(bar.Reduced ? "true" : "false")" data-throughout="@(bar.HeldThroughout ? "true" : "false")">@bar.Sentence</li>
+    }
+  </ul>
 
   @* What each untaken action would turn, for the plan's actions to show; the script moves these under the actions. *@
   <ul hidden data-board-turns>

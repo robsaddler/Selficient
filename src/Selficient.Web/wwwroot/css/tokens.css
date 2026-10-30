@@ -61,6 +61,10 @@
   --c-on-roof-muted: oklch(76% 0.014 200);
   --c-on-roof-link: oklch(82% 0.09 165);
   --c-on-roof-line: oklch(36% 0.025 225);
+  /* The night: the hero ground, deeper than the roofline so the glow has somewhere to sit. One value in both themes. */
+  --c-night: oklch(20% 0.03 230);
+  --c-on-night-line: oklch(52% 0.02 220);
+  --c-glow: oklch(80% 0.16 75 / 0.35);
 
   /* Derived */
   --c-ink: var(--c-slate);
@@ -112,6 +116,7 @@
   /* Motion */
   --duration-quick: 150ms;
   --duration-reveal: 900ms;
+  --duration-glow: 600ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

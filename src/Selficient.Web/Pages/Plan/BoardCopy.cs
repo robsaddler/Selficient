@@ -86,5 +86,9 @@ public static class BoardCopy
     public static string Days(int days) => days == 1 ? "1 day" : string.Create(CultureInfo.InvariantCulture, $"{days} days");
 
     /// <summary>The headline figure as the page says it.</summary>
+    /// <summary>The unit after a figure: "day" for one, "days" for anything else.</summary>
+    public static string Unit(decimal days) => days == 1m ? "day" : "days";
+
+    /// <summary>The headline figure as words: "half a day", "1 day", "3 days".</summary>
     public static string DaysReady(decimal days) => days == 0.5m ? "half a day" : days == 1m ? "1 day" : string.Create(CultureInfo.InvariantCulture, $"{days:0.#} days");
 }

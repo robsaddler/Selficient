@@ -1244,4 +1244,220 @@ progress.tier-progress {
 .site-footer__made {
   margin-block-start: var(--space-3);
 }
+
+/* The night: a surface where the figure is the flame. Everything inside reads its colours from here. */
+.night {
+  --c-ink: var(--c-on-roof);
+  --c-ink-muted: var(--c-on-roof-muted);
+  --c-contour: var(--c-on-roof-line);
+  --c-paper: var(--c-night);
+  --c-ground: var(--c-night);
+  --c-lantern-ink: var(--c-lantern);
+  --c-pine: oklch(68% 0.1 165);
+  --c-pine-tint: color-mix(in oklab, var(--c-pine) 22%, var(--c-night));
+  --c-lantern-tint: color-mix(in oklab, var(--c-lantern) 22%, var(--c-night));
+  background: var(--c-night);
+  color: var(--c-on-roof);
+  color-scheme: dark;
+
+  & a {
+    color: var(--c-on-roof-link);
+  }
+
+  & .days-ready__figure {
+    color: var(--c-lantern);
+    font-weight: 300;
+    font-stretch: 85%;
+  }
+
+  & .input {
+    background: oklch(26% 0.03 230);
+    color: var(--c-on-roof);
+    border-color: var(--c-on-roof-line);
+  }
+
+  & .still-life {
+    color: var(--c-on-night-line);
+  }
+}
+
+/* The glow: the light behind the figure, which comes in once and pulses when the figure moves. */
+.glow {
+  position: absolute;
+  z-index: -1;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 34rem;
+  block-size: 34rem;
+  translate: -30% -35%;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c-glow) 0, transparent 62%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .glow {
+    animation: glow-in var(--duration-glow) var(--ease-out) both;
+  }
+
+  [data-pulse] .glow {
+    animation: pulse var(--duration-glow) var(--ease-out);
+  }
+}
+
+@keyframes glow-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 1;
+    scale: 1.15;
+  }
+}
+
+/* The strip: a bar per need from now, ending where it runs out, against the 3, 7 and 30 marks. */
+.strip {
+  --scale: attr(data-scale type(<number>), 30);
+  margin-block-start: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-s);
+}
+
+.strip__bar,
+.strip__ticks {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) 3.2rem;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.strip__bar {
+  --d: attr(data-days type(<number>), 0);
+}
+
+.strip__name {
+  font-weight: 600;
+  color: var(--c-ink);
+}
+
+.strip__track {
+  position: relative;
+  block-size: 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--c-contour) 60%, transparent);
+  overflow: hidden;
+}
+
+.strip__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: max(0.5rem, calc(min(var(--d), var(--scale)) / var(--scale) * 100%));
+  border-radius: 999px;
+  background: var(--c-pine);
+  transform-origin: left center;
+}
+
+.strip__bar[data-reduced="true"] .strip__fill {
+  background: repeating-linear-gradient(135deg, var(--c-lantern) 0 3px, var(--c-lantern-tint) 3px 7px);
+}
+
+.strip__days {
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+  text-align: end;
+}
+
+.strip__bar[data-throughout="true"] .strip__days::after {
+  content: "+";
+}
+
+.strip__ticks {
+  color: var(--c-ink-muted);
+  font-size: 0.7rem;
+
+  &::before,
+  &::after {
+    content: "";
+  }
+}
+
+.strip__ticks > .strip__tick {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  --at: attr(data-at type(<number>), 0);
+  inset-inline-start: calc(var(--at) / var(--scale) * 100%);
+  inline-size: 0;
+  white-space: nowrap;
+  translate: -50% 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block-end: 100%;
+    inset-inline-start: 50%;
+    block-size: 0.4rem;
+    border-inline-start: 1px solid var(--c-ink-muted);
+  }
+}
+
+.strip__ticks > .strip__tick:last-child {
+  translate: -100% 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .strip__fill {
+    animation: draw var(--duration-reveal) var(--ease-out) both;
+  }
+
+  .strip__bar:nth-child(2) .strip__fill { animation-delay: 120ms; }
+  .strip__bar:nth-child(3) .strip__fill { animation-delay: 240ms; }
+  .strip__bar:nth-child(4) .strip__fill { animation-delay: 360ms; }
+}
+
+@keyframes draw {
+  from {
+    scale: 0 1;
+  }
+}
+
+/* The marks: one small drawing per need and per source, in the text colour, from the sprite. */
+.mark-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  flex: none;
+  vertical-align: -0.3em;
+  margin-inline-end: var(--space-2);
+  color: var(--c-ink-muted);
+}
+
+/* The still lifes: flat, geometric, 2 px strokes, the lantern the only light. */
+.still-life {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  color: var(--c-ink-muted);
+
+  & .still-life__lines {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  & .still-life__light {
+    fill: var(--c-lantern);
+  }
+
+  & .still-life__glow--small {
+    fill: var(--c-glow);
+  }
+}
 }

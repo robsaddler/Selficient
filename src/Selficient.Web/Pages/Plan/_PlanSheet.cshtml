@@ -12,15 +12,17 @@
 
 <div class="plan-layout">
 <aside class="plan-aside">
-<section class="hero hero--plan" aria-labelledby="plan-heading" data-plan>
+<section class="hero hero--plan night" aria-labelledby="plan-heading" data-plan>
   <div class="contour-band" aria-hidden="true" data-elevation="@(planned.Elevation is { } el ? el.Metres.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "0")"></div>
+  <div class="glow" aria-hidden="true"></div>
   <p class="eyebrow">@place</p>
   <h1 id="plan-heading">Your house could stand on its own for</h1>
   <days-ready value="@days.ToString("0.#", culture)" class="days-ready" data-people="@household.Size.Count">
     <span class="days-ready__figure">@days.ToString("0.#", culture)</span>
-    <span class="days-ready__unit">@(days == 1m ? "day" : "days")</span>
+    <span class="days-ready__unit">@Selficient.Web.Pages.Plan.BoardCopy.Unit(days)</span>
   </days-ready>
   <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
+  @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(Model.Board.Current))
 </section>
 
 @await Html.PartialAsync("_PlanMap", new Selficient.Web.Pages.Plan.HouseMapView(planned.Locality, planned.Elevation))

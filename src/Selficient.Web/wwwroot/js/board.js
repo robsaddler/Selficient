@@ -20,6 +20,14 @@ export function initBoard(doc) {
     return;
   }
 
+  // The lantern pulses once when the figure moves; the attribute comes off when the keyframe ends.
+  const plan = doc.querySelector("[data-plan]");
+  plan?.addEventListener("animationend", (event) => {
+    if (event.target instanceof HTMLElement && event.target.classList.contains("glow")) {
+      plan.removeAttribute("data-pulse");
+    }
+  });
+
   /** @type {number | undefined} */
   let pending;
   let scenario = slot.querySelector("[data-board]")?.getAttribute("data-scenario") ?? "";
@@ -126,6 +134,7 @@ async function redraw(doc, slot, echo, scenario) {
   restoreChoice(slot, "board-season", season);
   showSheet(slot);
   updateHeadline(doc, slot);
+  updateStrip(doc, slot);
   placeTurns(doc, slot);
 }
 
@@ -176,8 +185,10 @@ function updateHeadline(doc, slot) {
     return;
   }
   const days = board.dataset.daysReady ?? "";
-  if (days) {
+  if (days && figure.getAttribute("value") !== days) {
     figure.setAttribute("value", days);
+    // The lantern pulses once when the figure moves; the attribute comes off when the keyframe ends.
+    figure.closest("[data-plan]")?.setAttribute("data-pulse", "");
     const unit = figure.querySelector(".days-ready__unit");
     if (unit) {
       unit.textContent = days === "1" ? "day" : "days";
@@ -187,6 +198,46 @@ function updateHeadline(doc, slot) {
   const name = board.dataset.scenarioName;
   if (lede && name) {
     lede.textContent = `In ${name.charAt(0).toLowerCase()}${name.slice(1)}. Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.`;
+  }
+}
+
+/**
+ * The strip under the figure follows the board for what the house has: each bar takes its days and
+ * its state from the fragment, and a bar for a need the house no longer has is hidden.
+ * @param {Document} doc
+ * @param {HTMLElement} slot
+ */
+function updateStrip(doc, slot) {
+  const strip = doc.querySelector("[data-strip]");
+  if (!(strip instanceof HTMLElement)) {
+    return;
+  }
+  const bars = new Map();
+  for (const item of slot.querySelectorAll("[data-board-strip] li")) {
+    if (item instanceof HTMLElement && item.dataset.stripNeed) {
+      bars.set(item.dataset.stripNeed, item);
+    }
+  }
+  for (const bar of strip.querySelectorAll("[data-need]")) {
+    if (!(bar instanceof HTMLElement) || !bar.dataset.need) {
+      continue;
+    }
+    const item = bars.get(bar.dataset.need);
+    bar.hidden = item === undefined;
+    if (item === undefined) {
+      continue;
+    }
+    bar.dataset.days = item.dataset.days ?? "0";
+    bar.dataset.reduced = item.dataset.reduced ?? "false";
+    bar.dataset.throughout = item.dataset.throughout ?? "false";
+    const figure = bar.querySelector("[data-strip-figure]");
+    if (figure) {
+      figure.textContent = item.dataset.days ?? "0";
+    }
+    const sentence = bar.querySelector("[data-strip-sentence]");
+    if (sentence) {
+      sentence.textContent = item.textContent ?? "";
+    }
   }
 }
 

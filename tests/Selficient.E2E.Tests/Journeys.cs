@@ -45,6 +45,8 @@ public sealed class Journeys
         decimal after = decimal.Parse((await page.Locator("days-ready").GetAttributeAsync("value"))!, CultureInfo.InvariantCulture);
         after.ShouldBeGreaterThan(1m);
         await Expect(page.Locator("[data-turns-for=\"headtorches\"]")).ToBeVisibleAsync();
+        // The strip under the figure follows the board: the food bar grows with the tins.
+        await Expect(page.Locator("[data-strip] [data-need=\"Food\"]")).ToHaveAttributeAsync("data-days", new System.Text.RegularExpressions.Regex("^(?!1$).+"));
 
         await page.ReloadAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Your house could stand on its own for" }).WaitForAsync();

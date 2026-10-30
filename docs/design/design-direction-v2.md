@@ -123,3 +123,7 @@ Unchanged from v1, with one addition: every cell on the Board has a sentence tha
 ## The self-critique
 
 Against the three generic defaults: not cream-and-serif (night slate and a grotesque), not black-and-neon (the accent is a warm lantern, used as light, on a palette with paper and pine), not broadsheet hairlines (2 px rules, round-cornered sheets). The risk taken is the night hero with a glow, which could tip into "dashboard"; the still life, the Atkinson body and the plain sentences hold it in the kitchen. Removed before building: a ring gauge (hides the limiting resource), photography (competes with the data, as BBC Weather learned), and any hazard stripes or triangles.
+
+## Built (M14, 30 Oct 2026)
+
+Everything above is on the page except two things. The scroll-driven cells ("as the tiers arrive, the cells they turn light up") are not built: the actions name the cells they turn in words instead, which reads on a phone and needs no scroll position. The cupboard-under-the-stairs still life is not drawn; the kitchen table, the larder shelf and the hill are. The landing hero is the engine's board for a typical house with nothing put by, which came out at a day rather than the half a day the copy guessed, so the copy now says what the engine says. The marks live in `src/Selficient.Web/wwwroot/img/marks.svg`, the still lifes in `Pages/Shared/_StillLifeKitchen.cshtml`, `_Larder.cshtml` and `_Hill.cshtml`, the strip in `_Strip.cshtml` with its maths in `Pages/Plan/Strip.cs`.

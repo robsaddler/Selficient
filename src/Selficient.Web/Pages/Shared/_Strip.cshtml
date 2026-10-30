@@ -1,0 +1,22 @@
+@using System.Globalization
+@model IReadOnlyList<Selficient.Web.Pages.Plan.StripBar>
+@{
+    var scale = Model.Select(bar => bar.Scale).DefaultIfEmpty(30).First();
+}
+@* The strip: a bar per need from now, ending where it runs out, with the 3, 7 and 30 marks. The shortest Survive bar is the figure above it. *@
+<div class="strip" data-strip data-scale="@scale" role="group" aria-label="How long each need holds">
+  @foreach (var bar in Model)
+  {
+    <div class="strip__bar" data-need="@bar.Key" data-days="@bar.Figure" data-reduced="@(bar.Reduced ? "true" : "false")" data-throughout="@(bar.HeldThroughout ? "true" : "false")">
+      <span class="strip__name">@bar.Name</span>
+      <span class="strip__track" aria-hidden="true"><span class="strip__fill"></span></span>
+      <span class="strip__days data" aria-hidden="true"><span data-strip-figure>@bar.Figure</span> d</span>
+      <span class="sr-only" data-strip-sentence>@bar.Sentence</span>
+    </div>
+  }
+  <div class="strip__ticks" aria-hidden="true">
+    <span class="strip__tick data" data-at="3">3</span>
+    <span class="strip__tick data" data-at="7">7</span>
+    <span class="strip__tick data" data-at="@scale">@scale</span>
+  </div>
+</div>

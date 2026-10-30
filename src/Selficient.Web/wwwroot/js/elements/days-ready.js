@@ -19,8 +19,9 @@ export class DaysReady extends HTMLElement {
 
   connectedCallback() {
     this.#abort = new AbortController();
-    this.#render(this.value, { animate: false });
-    // Reveal once per page load; the CSS keyframe lifts the figure into place.
+    // The one orchestrated moment: the figure counts up from nothing as the glow comes in behind it.
+    // The server's text stands until the first frame, so a reader without motion sees the figure at once.
+    this.#render(this.value, { animate: true, from: 0 });
     requestAnimationFrame(() => this.setAttribute("data-revealed", ""));
   }
 

@@ -40,55 +40,6 @@
   }
 }
 
-/* The contour map card: paper, rings from the house's elevation, the house itself on the hill */
-.contour-map {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  min-block-size: 14rem;
-  aspect-ratio: 4 / 3;
-  border: var(--border);
-  border-radius: var(--radius-m);
-  background: var(--c-paper);
-
-  & .contour-band {
-    inset: -10%;
-  }
-}
-
-.contour-map__house {
-  position: absolute;
-  inset-inline-start: 60%;
-  inset-block-start: 44%;
-  inline-size: 2.4rem;
-  block-size: 2.4rem;
-  translate: -50% -50%;
-  background: var(--c-slate);
-  clip-path: polygon(50% 0, 100% 45%, 85% 45%, 85% 100%, 15% 100%, 15% 45%, 0 45%);
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset-inline-start: 38%;
-    inset-block-start: 55%;
-    inline-size: 24%;
-    block-size: 30%;
-    background: var(--c-lantern);
-  }
-}
-
-.contour-map__label {
-  position: absolute;
-  inset-inline-start: var(--space-4);
-  inset-block-end: var(--space-3);
-  font-family: var(--font-data);
-  font-size: var(--text-s);
-  color: var(--c-ink-muted);
-  background: color-mix(in oklab, var(--c-paper) 85%, transparent);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-s);
-}
-
 @media (min-width: 60rem) {
   .hero:not(.hero--plan) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -113,10 +64,6 @@
     & .hero__lede {
       font-size: var(--text-l);
     }
-  }
-
-  .contour-map {
-    aspect-ratio: 4 / 3;
   }
 }
 
@@ -824,5 +771,146 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
+}
+
+/* The landing hero on the night ground, bleeding to the viewport edges without widening the page */
+.hero--night {
+  /*
+    Full bleed without widening the page: the body is the inline-size container, so 100cqi is the
+    viewport less its scrollbar, and the hero is pulled out to it and padded back to the page column.
+  */
+  --edge: max(var(--gutter), calc((100cqi - var(--page-max)) / 2 + var(--gutter)));
+  inline-size: 100cqi;
+  margin-inline-start: calc(50% - 50cqi);
+  padding-inline: var(--edge);
+  padding-block: var(--space-7);
+  margin-block-start: calc(-1 * var(--space-6));
+  overflow: clip;
+
+  & .contour-band {
+    inset: -10%;
+    opacity: 0.6;
+    mask-image: radial-gradient(ellipse at 70% 40%, oklch(0% 0 0), transparent 70%);
+  }
+
+  /* The glow is centred behind the figure, which sits a little below and to the right of the column edge. */
+  & .glow {
+    inset-block-start: -2rem;
+    inset-inline-start: calc(var(--edge) - 10rem);
+    inline-size: 32rem;
+    block-size: 32rem;
+    translate: none;
+  }
+
+  & .hero__start label {
+    color: var(--c-on-roof);
+  }
+}
+
+.hero__picture {
+  max-inline-size: 30rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 60rem) {
+  .hero--night {
+    padding-block: var(--space-8);
+  }
+
+  .hero__picture {
+    max-inline-size: none;
+  }
+}
+
+/* The plan's night panel: the figure, its glow and the strip, with the contour band behind */
+.hero--plan.night {
+  border-color: var(--c-on-roof-line);
+
+  & .contour-band {
+    opacity: 0.8;
+  }
+
+  & .glow {
+    inset-block-start: 6rem;
+    inset-inline-start: -2rem;
+    inline-size: 26rem;
+    block-size: 26rem;
+  }
+
+  & .strip {
+    margin-block-start: var(--space-5);
+  }
+}
+
+/* What it covers: the larder beside the words, then the grid */
+.covers__head {
+  max-inline-size: var(--measure);
+
+  & p {
+    margin-block-start: var(--space-3);
+    color: var(--c-ink-muted);
+  }
+}
+
+.covers__picture {
+  margin: var(--space-5) 0 0;
+  max-inline-size: 30rem;
+  color: var(--c-ink-muted);
+}
+
+@media (min-width: 60rem) {
+  .covers {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-5) var(--space-8);
+    align-items: end;
+  }
+
+  .covers__picture {
+    margin: 0;
+    max-inline-size: none;
+  }
+
+  .covers > .covers__grid {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The closing band carries the hill */
+.closing__picture {
+  color: var(--c-on-roof-muted);
+  max-inline-size: 28rem;
+}
+
+@media (min-width: 60rem) {
+  .closing {
+    grid-template-columns: minmax(0, 1fr) auto minmax(14rem, 20rem);
+  }
+
+  .closing__picture {
+    max-inline-size: none;
+  }
+}
+
+/* Motion: the scenario cards settle in a step apart */
+@media (prefers-reduced-motion: no-preference) {
+  .scenario {
+    animation: settle 400ms var(--ease-out) both;
+  }
+
+  .scenario:nth-child(2) { animation-delay: 80ms; }
+  .scenario:nth-child(3) { animation-delay: 160ms; }
+  .scenario:nth-child(4) { animation-delay: 240ms; }
+  .scenario:nth-child(5) { animation-delay: 320ms; }
+  .scenario:nth-child(6) { animation-delay: 400ms; }
+  .scenario:nth-child(7) { animation-delay: 480ms; }
+  .scenario:nth-child(8) { animation-delay: 560ms; }
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
 }
 }

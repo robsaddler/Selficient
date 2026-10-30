@@ -7,15 +7,18 @@
     var culture = System.Globalization.CultureInfo.CurrentCulture;
 }
 
-<section class="hero" aria-labelledby="hero-heading">
+<section class="hero hero--night night" aria-labelledby="hero-heading">
+  <div class="contour-band" aria-hidden="true" data-elevation="120"></div>
+  <div class="glow" aria-hidden="true"></div>
   <div class="hero__copy">
-    <p class="eyebrow">Your household</p>
+    <p class="eyebrow">A typical house, nothing put by</p>
     <h1 id="hero-heading">Your house could stand on its own for</h1>
     <days-ready value="@Model.DaysReady.ToString("0.#", culture)" class="days-ready">
       <span class="days-ready__figure">@Model.DaysReady.ToString("0.#", culture)</span>
-      <span class="days-ready__unit">days</span>
+      <span class="days-ready__unit">@Selficient.Web.Pages.Plan.BoardCopy.Unit(Model.DaysReady)</span>
     </days-ready>
-    <p class="hero__lede">Most houses start at about half a day. Three days is the government's ask. Seven is where a storm becomes an inconvenience rather than a crisis. A minute of questions tells you where yours stands and what closes the gap.</p>
+    <p class="hero__lede">That is a typical house when a storm takes the power out: the tap keeps running, the fridge and the cupboard last a day, then the shops want cash. Three days is the government's ask. Seven is where a storm becomes an inconvenience rather than a crisis. A minute of questions tells you where yours stands and what closes the gap.</p>
+    @await Html.PartialAsync("_Strip", Model.Bars)
     <form class="hero__start" method="get" action="/plan/start">
       <label for="hero-postcode">Start with your postcode</label>
       <div class="hero__start-row">
@@ -25,10 +28,8 @@
     </form>
     <p class="hero__actions"><a href="#how">See how it works</a></p>
   </div>
-  <div class="contour-map" aria-hidden="true" data-elevation="232">
-    <div class="contour-band"></div>
-    <span class="contour-map__house"></span>
-    <span class="contour-map__label">Your house, on its own contour</span>
+  <div class="hero__picture">
+    @await Html.PartialAsync("_StillLifeKitchen")
   </div>
 </section>
 
@@ -79,7 +80,11 @@
 </section>
 
 <section class="covers" aria-labelledby="covers-heading">
-  <h2 id="covers-heading">What it covers</h2>
+  <div class="covers__head">
+    <h2 id="covers-heading">What it covers</h2>
+    <p>The larder is the half of it you can see. The rest is the sums behind it: what the house needs each day, what each thing on the shelf is worth, and which one runs out first.</p>
+  </div>
+  <figure class="covers__picture">@await Html.PartialAsync("_Larder")</figure>
   <ul class="covers__grid">
     <li><h3>The plan</h3><p>Risks ranked for your address and a four-tier checklist with costs, built the same way every time by rules you can read.</p></li>
     <li><h3>Where to buy</h3><p>One to three products under each action, with the price and the date we saw it, and a sentence on why that one.</p></li>
@@ -111,6 +116,7 @@
   <p class="closing__actions">
     <a class="button button--lantern" href="/plan/start">Start your plan</a>
   </p>
+  <div class="closing__picture" aria-hidden="true">@await Html.PartialAsync("_Hill")</div>
 </section>
 
 @await Html.PartialAsync("_JsonLd", IndexModel.Questions)

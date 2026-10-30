@@ -173,6 +173,8 @@ public sealed class BoardPagesTests : IDisposable
         BoardCopy.Days(3).ShouldBe("3 days");
         BoardCopy.DaysReady(0.5m).ShouldBe("half a day");
         BoardCopy.DaysReady(1m).ShouldBe("1 day");
+        BoardCopy.Unit(1m).ShouldBe("day");
+        BoardCopy.Unit(0.5m).ShouldBe("days");
         BoardCopy.DaysReady(14m).ShouldBe("14 days");
         BoardCopy.State(CellState.Rationed).ShouldBe("Not enough");
         Should.Throw<ArgumentNullException>(() => BoardCopy.Row(null!));
@@ -218,7 +220,7 @@ public sealed class BoardPagesTests : IDisposable
         IndexModel.FormFields.ShouldContain(nameof(PlanForm.Floor));
     }
 
-    private static Dictionary<string, string> RobsHouse() => new()
+    internal static Dictionary<string, string> RobsHouse() => new()
     {
         ["Form.Postcode"] = "NP12 1GW",
         ["Form.People"] = "4",
@@ -256,7 +258,7 @@ public sealed class BoardPagesTests : IDisposable
         ["Form.FloodRisk"] = "Unknown",
     };
 
-    private static async Task<string> Post(HttpClient client, string path, Dictionary<string, string> form, params string[] extra)
+    internal static async Task<string> Post(HttpClient client, string path, Dictionary<string, string> form, params string[] extra)
     {
         using HttpResponseMessage response = await PostRaw(client, path, form, extra);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);

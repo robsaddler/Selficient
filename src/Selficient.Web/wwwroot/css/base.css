@@ -10,6 +10,8 @@ html {
 body {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* The inline-size container a full-bleed band measures itself against (100cqi is the viewport less its scrollbar). */
+  container-type: inline-size;
   font-size: var(--text-m);
   line-height: var(--leading-body);
 }

@@ -46,6 +46,9 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - Fields a fragment endpoint re-posts must carry the page model's prefix (`Form.Postcode`, `Form.Dependencies[0].Name`); a bare `Postcode` binds to nothing and every redraw is a 400 with the first required-field sentence.
 - A data attribute used as a selector (`data-action-id`) must name one thing; a second list that reused it broke the first's `querySelectorAll`. Give each list its own attribute.
 - A compound predicate over an ordered list (`First(b => b.Source == house && b.Season == season)`) leaves a branch no input can reach when the matching item is always first; store the value instead of searching for it.
+- A full-bleed band inside the centred column: `body` is an inline-size container and the band is `inline-size: 100cqi; margin-inline-start: calc(50% - 50cqi)`, padded back to the column. A `box-shadow: 0 0 0 100vmax` with `clip-path` does not widen the page but anything positioned past the box does, and `overflow-clip-margin` counts toward the scroll width; `overflow: clip` without a margin is the fence.
+- An SVG sprite used through `<use href="/img/marks.svg#id">` cannot carry a `<style>` element (the CSP has no inline style allowance); put the stroke and fill as presentation attributes on each `<symbol>`. Custom properties do inherit into the `<use>` shadow tree, so `fill="var(--c-lantern, #E8A33D)"` follows the theme.
+- A ternary in a Razor view is a branch the gate counts, and a view only renders what the tests post; put the choice in a helper (`BoardCopy.Unit`) and pin it there.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 
 ## Conventions

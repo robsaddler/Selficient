@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Selficient.Domain.Households;
+using Selficient.Domain.Resilience;
+using Selficient.Web.Pages.Plan;
 
 namespace Selficient.Web.Pages;
 
@@ -7,10 +10,16 @@ namespace Selficient.Web.Pages;
 public sealed class IndexModel : PageModel
 {
     /// <summary>
-    /// The figure shown before a plan exists. Half a day is what a typical house holds in the tap,
-    /// the fridge and the phone battery.
+    /// The board for a typical house with nothing put by, in the most likely scenario, so the figure
+    /// and the strip on the landing page are the engine's and not a number someone typed.
     /// </summary>
-    public decimal DaysReady { get; private set; } = 0.5m;
+    public static Board TypicalBoard { get; } = OutageBoard.Simulate(ResilienceProfile.FromProfile(TypicalHouse()), new HashSet<string>(), Scenarios.Storm, Season.Winter);
+
+    /// <summary>The figure shown before a plan exists: the typical house's Days Ready.</summary>
+    public decimal DaysReady => TypicalBoard.DaysReady;
+
+    /// <summary>How long each need on the strip holds for the typical house.</summary>
+    public IReadOnlyList<StripBar> Bars { get; } = Strip.From(TypicalBoard);
 
     /// <summary>The questions on the page, which the structured data repeats word for word.</summary>
     public static IReadOnlyList<Faq> Questions { get; } =
@@ -28,10 +37,17 @@ public sealed class IndexModel : PageModel
     ];
 
     /// <summary>Renders the page.</summary>
-    public IActionResult OnGet()
+    public IActionResult OnGet() => Page();
+
+    /// <summary>
+    /// A typical British household: four people, two of them children, a semi-detached house of two
+    /// storeys with a gas boiler, an electric hob, a car and a garden, nowhere in particular.
+    /// </summary>
+    internal static HouseholdProfile TypicalHouse()
     {
-        DaysReady = 0.5m;
-        return Page();
+        Household household = Household.Create(people: 4, children: 2, hasVulnerablePerson: false, hasPets: false, runsBusinessFromHome: false).Value;
+        Dwelling dwelling = Dwelling.Create(DwellingType.SemiDetached, storeys: 2, HeatingType.GasBoiler, HobType.Electric, hasCar: true, hasGarden: true, hasDecking: false, hasTallTreeNearHouse: false, elevation: null, floodRisk: FloodRisk.Unknown).Value;
+        return new HouseholdProfile(household, dwelling);
     }
 
     /// <summary>One question and its answer.</summary>
