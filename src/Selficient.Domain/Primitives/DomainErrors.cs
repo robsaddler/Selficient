@@ -45,6 +45,18 @@ public static class DomainErrors
     public static Fault LookupUnavailable() =>
         new("lookup.unavailable", "We couldn't reach the postcode service just now. Wait a moment and try again.");
 
+    /// <summary>A catalogue entry with missing or overlong text.</summary>
+    public static Fault KitPickTextOutOfRange() =>
+        new("kit.text", "A kit entry needs a name and a retailer, each under 160 characters, and a note no longer than that.");
+
+    /// <summary>A catalogue link that is not absolute https.</summary>
+    public static Fault KitPickLinkNotHttps() =>
+        new("kit.link", "A kit entry's link must be an absolute https address.");
+
+    /// <summary>A catalogue entry naming an action id that is not well formed.</summary>
+    public static Fault KitPickActionInvalid() =>
+        new("kit.action", "A kit entry must name a plan action by its id.");
+
     /// <summary>Two rules produced the same action.</summary>
     public static Fault DuplicateAction(string actionId) =>
         new("plan.duplicate-action", string.Create(CultureInfo.InvariantCulture, $"The plan already contains the action '{actionId}'."));

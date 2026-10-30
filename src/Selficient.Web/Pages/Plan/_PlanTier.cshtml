@@ -1,26 +1,29 @@
 @using Selficient.Web.Formatting
-@model Selficient.Domain.Plans.PlanTier
+@model Selficient.Web.Pages.Plan.PlanTierView
 @{
     var culture = System.Globalization.CultureInfo.InvariantCulture;
-    var index = (int)Model.Tier + 1;
+    var tier = Model.Tier;
+    var index = (int)tier.Tier + 1;
+    var gb = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
 }
 
-<article class="sheet" data-tier="@Model.Tier">
+<article class="sheet" data-tier="@tier.Tier">
   <header class="sheet__header">
     <span class="sheet__index" aria-hidden="true">@index</span>
-    <h3>@Model.Title</h3>
-    <span class="data">@MoneyFormat.Range(Model.Cost)</span>
+    <h3>@tier.Title</h3>
+    <span class="data">@MoneyFormat.Range(tier.Cost)</span>
   </header>
-  @if (Model.Actions.Count == 0)
+  @if (tier.Actions.Count == 0)
   {
     <p class="sheet__empty">Nothing extra for your home in this stretch.</p>
   }
   else
   {
-    <progress class="tier-progress" value="0" max="@Model.Actions.Count" data-tier-progress aria-label="Actions done in this stretch">0 of @Model.Actions.Count</progress>
+    <progress class="tier-progress" value="0" max="@tier.Actions.Count" data-tier-progress aria-label="Actions done in this stretch">0 of @tier.Actions.Count</progress>
     <ul class="actions">
-      @foreach (var action in Model.Actions)
+      @foreach (var action in tier.Actions)
       {
+        var picks = Model.Picks[action.Id];
         <li class="action">
           <label>
             <input type="checkbox" name="tick" value="@action.Id.Value"
@@ -32,6 +35,25 @@
             <span class="action__why">@action.Why</span>
             <span class="data">@MoneyFormat.Range(action.Cost)</span>
           </label>
+          @if (picks.Count > 0)
+          {
+            <details class="picks">
+              <summary>Where to look</summary>
+              <ul class="picks__list">
+                @foreach (var pick in picks)
+                {
+                  <li class="pick">
+                    <a href="@pick.Link" rel="sponsored noopener noreferrer" target="_blank">@pick.Name</a>
+                    <span class="pick__meta">@pick.Retailer, <span class="data">@MoneyFormat.Amount(pick.Price)</span>, seen @pick.Seen.ToString("d MMM yyyy", gb)</span>
+                    @if (pick.Note.Length > 0)
+                    {
+                      <span class="pick__note">@pick.Note</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </details>
+          }
         </li>
       }
     </ul>

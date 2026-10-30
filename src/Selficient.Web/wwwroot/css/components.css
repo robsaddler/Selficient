@@ -535,3 +535,41 @@ progress.tier-progress {
     font-size: var(--text-s);
   }
 }
+
+/* Kit picks */
+.picks {
+  grid-column: 1 / -1;
+  margin-block-start: var(--space-2);
+  margin-inline-start: calc(1.5rem + var(--space-3));
+
+  & summary {
+    cursor: pointer;
+    color: var(--c-pine);
+    font-size: var(--text-s);
+    font-weight: 600;
+  }
+}
+
+.picks__list {
+  list-style: none;
+  padding: 0;
+  margin-block-start: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pick {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-s);
+
+  & .pick__meta,
+  & .pick__note {
+    color: var(--c-ink-muted);
+  }
+}
+
+.disclosure {
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}

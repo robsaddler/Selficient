@@ -5,7 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Selficient.Application.Geography;
+using Selficient.Application.Kit;
 using Selficient.Infrastructure.Geography;
+using Selficient.Infrastructure.Kit;
 
 namespace Selficient.Infrastructure.Composition;
 
@@ -46,6 +48,12 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .Validate(options => !(options.UseFakes && environment.IsProduction()), "Upstreams:UseFakes cannot be true in Production.")
             .ValidateOnStart();
+
+        services.AddOptions<AffiliateOptions>()
+            .Bind(configuration.GetSection(AffiliateOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<IKitCatalogue>(static provider => EmbeddedKitCatalogue.Load(provider.GetRequiredService<IOptions<AffiliateOptions>>().Value));
 
         // Read as a string rather than binding the whole object here: binding is reflection-based
         // and the trim analyzer is on. The bound, validated options are still what the clients use.

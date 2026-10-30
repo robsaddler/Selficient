@@ -44,9 +44,10 @@
   <h2 id="actions-heading">Your plan, in order</h2>
   @foreach (var tier in planned.Plan.Tiers)
   {
-    @await Html.PartialAsync("_PlanTier", tier)
+    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue))
   }
   <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
+  <p class="disclosure">Where we point to a shop, some links earn Selficient a small commission at no cost to you. Prices are what we saw on the date shown and will have moved; the sentence beside each item is why we chose it.</p>
 </section>
 
 @await Html.PartialAsync("_PlanUpkeep", new Selficient.Web.Pages.Plan.UpkeepView(planned.Plan.Profile.Dwelling))

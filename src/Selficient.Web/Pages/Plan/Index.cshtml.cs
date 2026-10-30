@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
+using Selficient.Application.Kit;
 using Selficient.Application.Planning;
 using Selficient.Domain.Primitives;
 using Selficient.Web.Security;
@@ -32,11 +33,16 @@ public sealed class IndexModel : PageModel
     private readonly PlanHouseholdHandler _handler;
 
     /// <summary>Creates the page.</summary>
-    public IndexModel(PlanHouseholdHandler handler)
+    public IndexModel(PlanHouseholdHandler handler, IKitCatalogue catalogue)
     {
         ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(catalogue);
         _handler = handler;
+        Catalogue = catalogue;
     }
+
+    /// <summary>The product picks, for the tier partials.</summary>
+    public IKitCatalogue Catalogue { get; }
 
     /// <summary>The form field names, for the hidden re-submit form the browser fills in.</summary>
     public static IReadOnlyList<string> FormFields { get; } =

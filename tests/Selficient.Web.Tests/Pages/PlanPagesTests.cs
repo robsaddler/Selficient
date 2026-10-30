@@ -245,6 +245,9 @@ public sealed partial class PlanPagesTests : IDisposable
 
     public void Dispose() => _factory.Dispose();
 
+    /// <summary>Posts Rob's house through the wizard, for other test classes.</summary>
+    internal static Task<HttpResponseMessage> PostRobsHouse(HttpClient client) => PostPlan(client, RobsHouse());
+
     private static async Task<HttpResponseMessage> PostPlan(HttpClient client, Dictionary<string, string> form)
     {
         string wizard = await client.GetStringAsync(new Uri("/plan/start", UriKind.Relative));
