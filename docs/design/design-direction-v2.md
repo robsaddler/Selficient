@@ -139,3 +139,7 @@ Rob, on the light theme: "Doesn't change most of the homepage." He was right. Th
 ### Fourth pass: the roofline is a dark-theme thing
 
 Rob asked whether the header and footer staying slate in daylight was a bug or a choice. It was a choice, the last one left from this document, and once the hero was paper it had lost its argument: a dark bar top and bottom of a light page. Both now follow the theme, paper with a slate rule in daylight and the roofline in the dark. The light theme has no dark surface left on it.
+
+### The photos leave the landing page
+
+Rob asked what the AI photos bring. Honestly: the boiler plate reading answers a question nobody can answer themselves, the consumer unit answers a niche one, the cupboard count saves a minute and could move the figure if it were wrong (it cannot: nothing ticks until a person presses), and the narrative repeats the plan's own sentences. The differentiator is the engine and the board, so "Three photos" is no longer one of the six things the landing page says it covers. The photos page stays as a tool reached from the plan.

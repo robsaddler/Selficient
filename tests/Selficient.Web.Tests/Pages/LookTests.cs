@@ -154,6 +154,7 @@ public sealed class LookTests : IDisposable
         html.ShouldContain("still-life--kitchen");
         html.ShouldContain("still-life--larder");
         html.ShouldContain("still-life--hill");
+        html.ShouldNotContain("<h3>Three photos</h3>", customMessage: "the photos are a tool on the plan, not a headline on the landing page");
         html.ShouldContain("A kitchen table at night with a lit storm lantern");
         html.ShouldNotContain("contour-map", customMessage: "the card gave way to the still life");
     }
