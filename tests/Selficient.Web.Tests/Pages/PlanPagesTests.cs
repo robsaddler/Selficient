@@ -51,6 +51,20 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("Build my plan");
     }
 
+    [Theory]
+    [InlineData("?postcode=np12%201gw", "NP12 1GW")]
+    [InlineData("?postcode=%20%20", "")]
+    [InlineData("?postcode=this-is-far-too-long-to-be-a-postcode", "")]
+    [InlineData("", "")]
+    public async Task The_wizard_takes_the_postcode_typed_on_the_landing_page(string query, string expected)
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string html = await client.GetStringAsync(new Uri("/plan/start" + query, UriKind.Relative));
+
+        html.ShouldContain($"id=\"Form_Postcode\" name=\"Form.Postcode\" value=\"{expected}\"");
+    }
+
     [Fact]
     public async Task Robs_house_renders_the_plan_with_its_place_and_height()
     {

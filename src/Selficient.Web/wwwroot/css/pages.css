@@ -1,0 +1,467 @@
+@layer pages {
+/*
+  Page layouts. The components are phone-first; this sheet is where each page grows up for a
+  desktop: the hero as a two-column panel, the plan as a sticky instrument panel beside a sheet,
+  the landing sections set across the width, forms centred and two-column.
+*/
+
+/* The hero on the landing page: copy on the left, the contour map on the right */
+.hero {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-6);
+}
+
+.hero__copy {
+  max-inline-size: var(--measure);
+}
+
+.hero__start {
+  margin-block-start: var(--space-6);
+  display: grid;
+  gap: var(--space-2);
+
+  & label {
+    font-weight: 600;
+  }
+}
+
+.hero__start-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+
+  & .input {
+    flex: 1 1 10rem;
+    max-inline-size: 14rem;
+    font-family: var(--font-data);
+    font-size: var(--text-l);
+    text-transform: uppercase;
+  }
+}
+
+/* The contour map card: paper, rings from the house's elevation, the house itself on the hill */
+.contour-map {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-block-size: 14rem;
+  aspect-ratio: 4 / 3;
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & .contour-band {
+    inset: -10%;
+  }
+}
+
+.contour-map__house {
+  position: absolute;
+  inset-inline-start: 60%;
+  inset-block-start: 44%;
+  inline-size: 2.4rem;
+  block-size: 2.4rem;
+  translate: -50% -50%;
+  background: var(--c-slate);
+  clip-path: polygon(50% 0, 100% 45%, 85% 45%, 85% 100%, 15% 100%, 15% 45%, 0 45%);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 38%;
+    inset-block-start: 55%;
+    inline-size: 24%;
+    block-size: 30%;
+    background: var(--c-lantern);
+  }
+}
+
+.contour-map__label {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  inset-block-end: var(--space-3);
+  font-family: var(--font-data);
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+  background: color-mix(in oklab, var(--c-paper) 85%, transparent);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-s);
+}
+
+@media (min-width: 60rem) {
+  .hero:not(.hero--plan) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-8);
+    padding-block: var(--space-8);
+  }
+
+  .hero:not(.hero--plan) {
+    & .days-ready__figure {
+      font-size: clamp(7rem, 5rem + 4vw, 10rem);
+    }
+
+    & .days-ready__unit {
+      font-size: var(--text-2xl);
+    }
+
+    & h1 {
+      font-size: var(--text-2xl);
+    }
+
+    & .hero__lede {
+      font-size: var(--text-l);
+    }
+  }
+
+  .contour-map {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Landing sections */
+.pitch h2,
+.how h2,
+.covers h2,
+.faq h2,
+.privacy-strip h2 {
+  font-size: var(--text-2xl);
+  text-wrap: balance;
+}
+
+.pitch,
+.how,
+.covers,
+.faq {
+  margin-block-start: var(--space-8);
+  padding-block-start: var(--space-7);
+  border-block-start: var(--border);
+}
+
+.how__steps {
+  max-inline-size: none;
+}
+
+@media (min-width: 60rem) {
+  .how__steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-6);
+
+    & li {
+      grid-template-columns: 1fr;
+      row-gap: var(--space-2);
+
+      &::before {
+        grid-row: auto;
+        font-size: var(--text-display);
+        line-height: 0.9;
+      }
+
+      & p {
+        grid-column: 1;
+      }
+    }
+  }
+
+  .privacy-strip {
+    max-inline-size: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--space-7);
+    align-items: start;
+    padding: var(--space-7);
+
+    & h2 {
+      grid-row: 1 / span 2;
+    }
+
+    & p {
+      margin-block-start: 0;
+    }
+
+    & p + p {
+      margin-block-start: var(--space-3);
+    }
+  }
+
+  .faq {
+    max-inline-size: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--space-7);
+    align-items: start;
+
+    & h2 {
+      position: sticky;
+      inset-block-start: var(--space-5);
+    }
+
+    & .faq__item + .faq__item {
+      margin-block-start: 0;
+    }
+  }
+
+  .faq__list {
+    display: grid;
+    gap: var(--space-3);
+  }
+}
+
+.faq__list {
+  margin-block-start: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.faq__item {
+  padding: var(--space-4) var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: var(--text-l);
+  }
+
+  & p {
+    margin-block-start: var(--space-3);
+    color: var(--c-ink-muted);
+  }
+}
+
+/* The closing band: the roofline once more, with the lantern as the door */
+.closing {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  max-inline-size: none;
+  margin-block-start: var(--space-8);
+  padding: var(--space-7);
+  border-radius: var(--radius-m);
+  background: var(--c-roof);
+  color: var(--c-on-roof);
+  color-scheme: dark;
+  display: grid;
+  gap: var(--space-5);
+
+  & h2 {
+    font-size: var(--text-2xl);
+  }
+
+  & p {
+    color: var(--c-on-roof-muted);
+    max-inline-size: var(--measure);
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    z-index: -1;
+    background-image: repeating-radial-gradient(ellipse 50% 60% at 85% 50%, transparent 0 1.6rem, var(--c-on-roof-line) 1.6rem calc(1.6rem + 1.5px));
+    mask-image: linear-gradient(to left, oklch(0% 0 0 / 0.9), transparent 70%);
+  }
+}
+
+@media (min-width: 60rem) {
+  .closing {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: var(--space-8);
+  }
+}
+
+/* The plan: a sticky instrument panel beside the sheet */
+.plan-layout {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.hero--plan {
+  padding: var(--space-6);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  overflow: hidden;
+
+  & .contour-band {
+    inset: -10%;
+    opacity: 0.55;
+    mask-image: radial-gradient(circle at 80% 20%, oklch(0% 0 0), transparent 75%);
+  }
+
+  & .eyebrow {
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  & .days-ready {
+    margin-block-start: var(--space-4);
+  }
+
+  & .days-ready__figure {
+    font-size: clamp(4.5rem, 3rem + 4vw, 7rem);
+  }
+}
+
+.plan-aside {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.plan-aside .house-map {
+  margin-block-start: 0;
+}
+
+.plan-body {
+  min-inline-size: 0;
+}
+
+.plan-body > :first-child {
+  margin-block-start: 0;
+}
+
+.risk-list {
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+@media (min-width: 64rem) {
+  .plan-layout {
+    grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .plan {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+
+    & > :not(.sheet) {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+@media (min-width: 64rem) and (min-height: 48rem) {
+  .plan-aside {
+    position: sticky;
+    inset-block-start: var(--space-5);
+  }
+}
+
+/* Tier sheets fold: the header is the summary, with a chevron that turns */
+.sheet > summary {
+  list-style: none;
+  cursor: pointer;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  & h3 {
+    flex: 1;
+  }
+}
+
+.sheet:not([open]) > summary {
+  padding-block-end: 0;
+  border-block-end: none;
+}
+
+.sheet__chevron {
+  inline-size: 0.6rem;
+  block-size: 0.6rem;
+  margin-inline-start: var(--space-2);
+  border-inline-end: 2px solid var(--c-ink-muted);
+  border-block-end: 2px solid var(--c-ink-muted);
+  rotate: 45deg;
+  translate: 0 -0.15rem;
+  transition: rotate var(--duration-quick);
+}
+
+.sheet:not([open]) .sheet__chevron {
+  rotate: -45deg;
+  translate: 0 0.1rem;
+}
+
+/* Wizard pages: the intro beside the form */
+.wizard {
+  padding-block: var(--space-5);
+
+  & h1 {
+    font-size: var(--text-2xl);
+    text-wrap: balance;
+  }
+
+  & > p {
+    max-inline-size: var(--measure);
+    text-wrap: pretty;
+  }
+}
+
+.plan-form {
+  max-inline-size: 46rem;
+}
+
+.form-section {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+
+  & legend {
+    font-size: var(--text-l);
+  }
+
+  & .field--check,
+  & .field:has(select),
+  & .field:has(.input:not(.input--short)) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 60rem) {
+  .wizard:has(> .plan-form) {
+    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+    column-gap: var(--space-8);
+    align-content: start;
+
+    & > * {
+      grid-column: 1;
+    }
+
+    & > .plan-form {
+      grid-column: 2;
+      grid-row: 1 / span 8;
+    }
+  }
+
+  .photo-moments {
+    max-inline-size: none;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    align-items: start;
+  }
+}
+
+/* The solar form has four fieldsets: two by two on a desktop, the submit row across both */
+@media (min-width: 60rem) {
+  .solar-form-section .plan-form {
+    max-inline-size: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+
+    & > :not(fieldset) {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.notice,
+.byok,
+.narrative,
+.wizard:not(:has(> .plan-form)) > p {
+  max-inline-size: var(--measure);
+}
+}

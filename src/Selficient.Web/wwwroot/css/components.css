@@ -56,39 +56,50 @@
   color: var(--c-ink-muted);
 }
 
-/* Hero with the Days Ready figure over the contour band */
+/* Hero with the Days Ready figure. The layout of each hero lives in pages.css. */
 .hero {
   position: relative;
   isolation: isolate;
-  padding-block: var(--space-7);
-  max-inline-size: var(--measure);
-
-  & .contour-band {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background-image: repeating-linear-gradient(
-      to bottom,
-      var(--c-contour) 0 1px,
-      transparent 1px calc(1.25rem + var(--contour-gap, 0px))
-    );
-    mask-image: linear-gradient(to bottom, transparent, oklch(0% 0 0 / 0.35) 30%, transparent);
-    pointer-events: none;
-  }
 
   & h1 {
     font-size: var(--text-xl);
     font-weight: 500;
     color: var(--c-ink-muted);
+    text-wrap: balance;
   }
 
   & .hero__lede {
     margin-block-start: var(--space-5);
     color: var(--c-ink-muted);
+    text-wrap: pretty;
   }
 
   & .hero__actions {
-    margin-block-start: var(--space-6);
+    margin-block-start: var(--space-5);
+  }
+}
+
+/* The contour band: the hill the house stands on, drawn as rings spaced by its elevation */
+.contour-band {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --elev: attr(data-elevation type(<number>), 0);
+  --ring: calc(0.8rem + (1 - min(var(--elev), 300) / 300) * 1.3rem);
+  background-image:
+    repeating-radial-gradient(ellipse 64% 50% at 60% 44%, transparent 0 calc(var(--ring) - 1.5px), var(--c-contour) calc(var(--ring) - 1.5px) var(--ring)),
+    repeating-radial-gradient(ellipse 42% 64% at 16% 82%, transparent 0 calc(var(--ring) * 1.35 - 1.5px), color-mix(in oklab, var(--c-contour) 55%, transparent) calc(var(--ring) * 1.35 - 1.5px) calc(var(--ring) * 1.35));
+}
+
+.button--lantern {
+  background: var(--c-lantern);
+  border-color: var(--c-lantern);
+  color: oklch(18% 0.03 230);
+
+  &:hover {
+    background: color-mix(in oklab, var(--c-lantern) 88%, white);
+    border-color: color-mix(in oklab, var(--c-lantern) 88%, white);
   }
 }
 

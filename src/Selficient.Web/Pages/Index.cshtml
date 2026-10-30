@@ -8,18 +8,28 @@
 }
 
 <section class="hero" aria-labelledby="hero-heading">
-  <div class="contour-band" aria-hidden="true" data-elevation="0"></div>
-  <p class="eyebrow">Your household</p>
-  <h1 id="hero-heading">Your house could stand on its own for</h1>
-  <days-ready value="@Model.DaysReady.ToString("0.#", culture)" class="days-ready">
-    <span class="days-ready__figure">@Model.DaysReady.ToString("0.#", culture)</span>
-    <span class="days-ready__unit">days</span>
-  </days-ready>
-  <p class="hero__lede">Most houses start at about half a day. Three days is the government's ask. Seven days is where a storm becomes an inconvenience rather than a crisis.</p>
-  <p class="hero__actions">
-    <a class="button button--primary" href="/plan/start">Start your plan</a>
-    <a class="button button--quiet" href="#how">See how it works</a>
-  </p>
+  <div class="hero__copy">
+    <p class="eyebrow">Your household</p>
+    <h1 id="hero-heading">Your house could stand on its own for</h1>
+    <days-ready value="@Model.DaysReady.ToString("0.#", culture)" class="days-ready">
+      <span class="days-ready__figure">@Model.DaysReady.ToString("0.#", culture)</span>
+      <span class="days-ready__unit">days</span>
+    </days-ready>
+    <p class="hero__lede">Most houses start at about half a day. Three days is the government's ask. Seven is where a storm becomes an inconvenience rather than a crisis. A minute of questions tells you where yours stands and what closes the gap.</p>
+    <form class="hero__start" method="get" action="/plan/start">
+      <label for="hero-postcode">Start with your postcode</label>
+      <div class="hero__start-row">
+        <input id="hero-postcode" name="postcode" class="input" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="NP12 1GW">
+        <button type="submit" class="button button--primary">Start your plan</button>
+      </div>
+    </form>
+    <p class="hero__actions"><a href="#how">See how it works</a></p>
+  </div>
+  <div class="contour-map" aria-hidden="true" data-elevation="232">
+    <div class="contour-band"></div>
+    <span class="contour-map__house"></span>
+    <span class="contour-map__label">Your house, on its own contour</span>
+  </div>
 </section>
 
 <section class="pitch" aria-labelledby="pitch-heading">
@@ -82,20 +92,24 @@
 
 <section class="faq" aria-labelledby="faq-heading">
   <h2 id="faq-heading">Questions people ask</h2>
-  @foreach (var faq in IndexModel.Questions)
-  {
-    <details class="faq__item" name="faq">
-      <summary>@faq.Question</summary>
-      <p>@faq.Answer</p>
-    </details>
-  }
+  <div class="faq__list">
+    @foreach (var faq in IndexModel.Questions)
+    {
+      <details class="faq__item" name="faq">
+        <summary>@faq.Question</summary>
+        <p>@faq.Answer</p>
+      </details>
+    }
+  </div>
 </section>
 
 <section class="closing" aria-labelledby="closing-heading">
-  <h2 id="closing-heading">Start with the postcode</h2>
-  <p>A minute of questions, then a plan you can act on this week.</p>
-  <p class="hero__actions">
-    <a class="button button--primary" href="/plan/start">Start your plan</a>
+  <div class="closing__copy">
+    <h2 id="closing-heading">Start with the postcode</h2>
+    <p>A minute of questions, then a plan you can act on this week. Nothing to sign up for, nothing to pay.</p>
+  </div>
+  <p class="closing__actions">
+    <a class="button button--lantern" href="/plan/start">Start your plan</a>
   </p>
 </section>
 

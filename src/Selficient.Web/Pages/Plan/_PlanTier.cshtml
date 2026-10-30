@@ -7,12 +7,15 @@
     var gb = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
 }
 
-<article class="sheet" data-tier="@tier.Tier">
-  <header class="sheet__header">
+@* The first two stretches open; the later ones are for later, and fold away so a phone is not a
+   thirty-action scroll. Every action stays in the page for the script and for search. *@
+<details class="sheet" data-tier="@tier.Tier" open="@(index <= 2)">
+  <summary class="sheet__header">
     <span class="sheet__index" aria-hidden="true">@index</span>
     <h3>@tier.Title</h3>
     <span class="data">@MoneyFormat.Range(tier.Cost)</span>
-  </header>
+    <span class="sheet__chevron" aria-hidden="true"></span>
+  </summary>
   @if (tier.Actions.Count == 0)
   {
     <p class="sheet__empty">Nothing extra for your home in this stretch.</p>
@@ -58,4 +61,4 @@
       }
     </ul>
   }
-</article>
+</details>

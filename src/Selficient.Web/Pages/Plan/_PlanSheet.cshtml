@@ -10,8 +10,10 @@
         + (planned.Elevation is { } e ? $", {e.Metres.ToString("0", culture)} m above sea level" : "");
 }
 
+<div class="plan-layout">
+<aside class="plan-aside">
 <section class="hero hero--plan" aria-labelledby="plan-heading" data-plan>
-  <div class="contour-band" aria-hidden="true"></div>
+  <div class="contour-band" aria-hidden="true" data-elevation="@(planned.Elevation is { } el ? el.Metres.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "0")"></div>
   <p class="eyebrow">@place</p>
   <h1 id="plan-heading">Your house could stand on its own for</h1>
   <days-ready value="@days.ToString("0.#", culture)" class="days-ready"
@@ -26,7 +28,9 @@
 </section>
 
 @await Html.PartialAsync("_PlanMap", new Selficient.Web.Pages.Plan.HouseMapView(planned.Locality, planned.Elevation))
+</aside>
 
+<div class="plan-body">
 <section class="risks" aria-labelledby="risks-heading">
   <h2 id="risks-heading">What is most likely to go wrong here</h2>
   <ol class="risk-list">
@@ -68,6 +72,8 @@
     <a class="button button--quiet" href="/plan/start">Start again</a>
   </p>
 </section>
+</div>
+</div>
 
 <form class="profile-echo" data-profile-echo hidden aria-hidden="true">
   @foreach (var (field, value) in Model.EchoedProfile)

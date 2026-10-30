@@ -70,54 +70,105 @@ code {
   background: var(--c-lantern-tint);
 }
 
+/* The roofline: slate across the top in both themes, with the mark and the wordmark on it */
 .site-header {
+  background: var(--c-roof);
+  color: var(--c-on-roof);
+  color-scheme: dark;
+  border-block-end: 1px solid var(--c-on-roof-line);
+}
+
+.site-header__inner {
+  inline-size: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  min-block-size: var(--header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-block-size: var(--header-height);
-  padding-inline: var(--gutter);
-  border-block-end: var(--border);
-  background: var(--c-paper);
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: var(--text-l);
+  font-stretch: 90%;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
   text-decoration: none;
-  color: var(--c-ink);
+  color: var(--c-on-roof);
+}
+
+.mark {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  flex: none;
 }
 
 .site-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-5);
 
   & a {
     text-decoration: none;
     font-weight: 500;
+    color: var(--c-on-roof);
+
+    &:hover {
+      color: var(--c-on-roof-link);
+    }
   }
 }
 
 .site-main {
   inline-size: min(100%, var(--page-max));
   margin-inline: auto;
-  padding-block: var(--space-6);
+  padding-block: var(--space-6) var(--space-8);
   padding-inline: var(--gutter);
 }
 
+/* The footer is the roofline again, so the page is held between two slates */
 .site-footer {
-  padding-block: var(--space-6);
-  padding-inline: var(--gutter);
-  border-block-start: var(--border);
-  color: var(--c-ink-muted);
+  background: var(--c-roof);
+  color: var(--c-on-roof-muted);
+  color-scheme: dark;
   font-size: var(--text-s);
-  max-inline-size: none;
+}
+
+.site-footer__inner {
+  inline-size: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding-block: var(--space-7);
+  padding-inline: var(--gutter);
+  display: grid;
+  gap: var(--space-4);
 
   & p {
     max-inline-size: var(--measure);
   }
+
+  & a {
+    color: var(--c-on-roof-link);
+  }
+
+  & .button--quiet {
+    color: var(--c-on-roof-link);
+  }
+}
+
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.site-footer__made {
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--c-on-roof-line);
 }
 
 .skip-link {

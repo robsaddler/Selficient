@@ -55,6 +55,12 @@
   --c-contour: light-dark(oklch(85% 0.012 190), oklch(38% 0.02 220));
   --c-ember: light-dark(oklch(50% 0.19 28), oklch(68% 0.17 28));
   --c-paper: light-dark(oklch(100% 0 0), oklch(26% 0.03 230));
+  /* The roofline: the header, the footer and the closing band are wet slate in both themes. */
+  --c-roof: oklch(24% 0.03 230);
+  --c-on-roof: oklch(94% 0.008 200);
+  --c-on-roof-muted: oklch(76% 0.014 200);
+  --c-on-roof-link: oklch(82% 0.09 165);
+  --c-on-roof-line: oklch(36% 0.025 225);
 
   /* Derived */
   --c-ink: var(--c-slate);
@@ -100,8 +106,8 @@
 
   /* Layout */
   --measure: 62ch;
-  --page-max: 72rem;
-  --header-height: 3.5rem;
+  --page-max: 78rem;
+  --header-height: 4rem;
 
   /* Motion */
   --duration-quick: 150ms;

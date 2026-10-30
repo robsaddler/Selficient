@@ -20,14 +20,18 @@ public sealed class Browser : IAsyncLifetime
     public string Origin { get; private set; } = string.Empty;
 
     /// <summary>A fresh context at phone width.</summary>
-    public async Task<IBrowserContext> PhoneAsync()
+    public Task<IBrowserContext> PhoneAsync() => SizedAsync(390, 844, mobile: true, theme: "light");
+
+    /// <summary>A fresh context at the given size, as a phone or a desktop, in one theme.</summary>
+    public async Task<IBrowserContext> SizedAsync(int width, int height, bool mobile, string theme)
     {
         IBrowserContext context = await _browser!.NewContextAsync(new BrowserNewContextOptions
         {
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-            DeviceScaleFactor = 3,
-            IsMobile = true,
-            HasTouch = true,
+            ViewportSize = new ViewportSize { Width = width, Height = height },
+            DeviceScaleFactor = mobile ? 3 : 1,
+            IsMobile = mobile,
+            HasTouch = mobile,
+            ColorScheme = theme == "dark" ? ColorScheme.Dark : ColorScheme.Light,
             Locale = "en-GB",
             TimezoneId = "Europe/London",
             BaseURL = Origin,

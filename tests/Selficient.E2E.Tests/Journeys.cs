@@ -184,7 +184,7 @@ public sealed class Journeys
         await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
     }
 
-    private static async Task FillRobsHouseAsync(IPage page)
+    internal static async Task FillRobsHouseAsync(IPage page)
     {
         await page.GetByLabel("Postcode", new() { Exact = true }).FillAsync("NP12 1GW");
         await page.GetByLabel("How many people live in your home?").FillAsync("4");
