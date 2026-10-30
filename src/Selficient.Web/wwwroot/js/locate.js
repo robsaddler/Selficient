@@ -48,8 +48,16 @@ async function locate(doc, button) {
     }
   };
 
+  // While it looks, the button itself says so: the pin gives way to a turning ring and the label changes. The
+  // sentence under the row is kept for the outcome.
+  const label = button.querySelector("[data-locate-label]");
+  const resting = label?.textContent ?? "";
   button.disabled = true;
-  say("Finding the postcode where you are.");
+  button.setAttribute("aria-busy", "true");
+  if (label) {
+    label.textContent = "Finding your postcode";
+  }
+  say("");
   try {
     const position = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 });
@@ -80,5 +88,9 @@ async function locate(doc, button) {
       : "We couldn't work out where you are. Type the postcode instead.");
   } finally {
     button.disabled = false;
+    button.removeAttribute("aria-busy");
+    if (label) {
+      label.textContent = resting;
+    }
   }
 }

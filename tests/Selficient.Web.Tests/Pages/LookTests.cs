@@ -141,9 +141,9 @@ public sealed class LookTests : IDisposable
         html.ShouldContain("class=\"hero hero--night night\"");
         html.ShouldContain("<p class=\"hero__brand\">Selficient</p>");
         html.ShouldContain("data-locate data-locate-for=\"#hero-postcode\" data-locate-status=\"#hero-locate-status\" data-locate-submit>", customMessage: "always a button, before the box, that opens the questions");
-        html.IndexOf("Use my location</button>", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("id=\"hero-postcode\"", StringComparison.Ordinal), "the location comes first, then or, then the postcode");
+        html.IndexOf("Use my location</span>", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("id=\"hero-postcode\"", StringComparison.Ordinal), "the location comes first, then or, then the postcode");
         html.ShouldContain("<span class=\"locate-row__or\" aria-hidden=\"true\">or</span>");
-        html.ShouldContain("#mark-locate\"/></svg>Use my location</button>");
+        html.ShouldContain("#mark-locate\"/></svg><span data-locate-label>Use my location</span></button>");
         html.ShouldContain("<strong>Self-sufficient, efficiently.</strong> How long your house could stand on its own when the power, the water or the roads stop, and the shortest list that closes the gap.");
         html.ShouldNotContain("placeholder=\"NP12 1GW\"", customMessage: "a new household must not see Rob's postcode as if it were preloaded");
         html.ShouldContain("placeholder=\"Enter postcode\"");

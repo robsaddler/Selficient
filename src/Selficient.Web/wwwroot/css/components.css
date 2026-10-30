@@ -1530,6 +1530,31 @@ progress.tier-progress {
     margin: 0;
     color: currentColor;
   }
+
+  /* While it looks: the pin gives way to a ring that turns, and the button cannot be pressed again. */
+  &[aria-busy="true"] {
+    cursor: progress;
+
+    & .mark-icon {
+      display: none;
+    }
+
+    &::before {
+      content: "";
+      inline-size: 1.1rem;
+      block-size: 1.1rem;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-inline-end-color: var(--c-lantern);
+      animation: turn 0.8s linear infinite;
+    }
+  }
+}
+
+@keyframes turn {
+  to {
+    rotate: 1turn;
+  }
 }
 
 .hero__start-row + .locate__status {
