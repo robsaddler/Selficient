@@ -86,6 +86,13 @@ public sealed class BoardComposerTests
         set.Turns.ShouldNotContain(turn => turn.Action.Value == "headtorches", "already held");
         set.Turns.ShouldNotContain(turn => turn.Action.Value == "arborist-survey", "not a provider of anything on the board");
         set.Turns.ShouldAllBe(turn => turn.Turns.Count > 0);
+        set.Tiers.Count.ShouldBe(plan.Tiers.Count, "a destination per tier");
+        set.Tiers.Select(tier => tier.Tier).ShouldBe(plan.Tiers.Select(tier => tier.Tier));
+        set.Tiers[0].DaysReady.ShouldBeGreaterThan(set.DaysReady, "this week's shelf takes the house past where it stands");
+        for (int i = 1; i < set.Tiers.Count; i++)
+        {
+            set.Tiers[i].DaysReady.ShouldBeGreaterThanOrEqualTo(set.Tiers[i - 1].DaysReady, "each tier assumes the ones before it and never makes the house worse");
+        }
     }
 
     [Fact]

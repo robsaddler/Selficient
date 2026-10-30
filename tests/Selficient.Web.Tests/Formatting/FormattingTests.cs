@@ -30,6 +30,8 @@ public sealed class FormattingTests
     public void Every_risk_kind_has_a_title(RiskKind kind, string title)
     {
         RiskCopy.Title(kind).ShouldBe(title);
+        RiskCopy.More(1).ShouldBe("One more, lower down the list");
+        RiskCopy.More(5).ShouldBe("5 more, lower down the list");
     }
 
     [Fact]

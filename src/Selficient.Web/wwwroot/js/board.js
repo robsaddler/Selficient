@@ -63,7 +63,7 @@ export function initBoard(doc) {
     if (target instanceof HTMLButtonElement) {
       event.preventDefault();
       scenario = target.value;
-      for (const card of slot.querySelectorAll("[data-scenario-card]")) {
+      for (const card of doc.querySelectorAll("[data-scenario-card]")) {
         card.setAttribute("aria-pressed", card === target ? "true" : "false");
       }
       refresh();
@@ -95,7 +95,8 @@ export function initBoard(doc) {
  * @param {{ scenario: string, source: string, season: string }} choice
  */
 async function redraw(doc, slot, echo, choice) {
-  const token = slot.querySelector("input[name='__RequestVerificationToken']");
+  // Any form on the page carries the token; the chips form in the hero is the nearest.
+  const token = doc.querySelector("input[name='__RequestVerificationToken']");
   if (!(token instanceof HTMLInputElement)) {
     return;
   }
@@ -143,6 +144,8 @@ async function redraw(doc, slot, echo, choice) {
   slot.innerHTML = html;
   updateHeadline(doc, slot);
   updateStrip(doc, slot);
+  updateChips(doc, slot);
+  updateTiers(doc, slot);
   placeTurns(doc, slot);
 }
 
@@ -169,9 +172,81 @@ function updateHeadline(doc, slot) {
   }
   const lede = doc.querySelector("[data-hero-scenario]");
   const name = board.dataset.scenarioName;
+  const lower = name ? `${name.charAt(0).toLowerCase()}${name.slice(1)}` : "";
   if (lede && name) {
-    lede.textContent = `In ${name.charAt(0).toLowerCase()}${name.slice(1)}. Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.`;
+    lede.textContent = `In ${lower}. Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.`;
   }
+  // The verdict bar is the hero's shadow: same figure, same unit, same scenario.
+  const barDays = doc.querySelector("[data-verdict-days]");
+  const barUnit = doc.querySelector("[data-verdict-unit]");
+  const barScenario = doc.querySelector("[data-verdict-scenario]");
+  if (barDays && days) {
+    barDays.textContent = days;
+  }
+  if (barUnit && days) {
+    barUnit.textContent = days === "1" ? "day" : "days";
+  }
+  if (barScenario && name) {
+    barScenario.textContent = `in ${lower}`;
+  }
+}
+
+/**
+ * The figure on each scenario chip follows the board, as the ticks change what every scenario would do.
+ * @param {Document} doc
+ * @param {HTMLElement} slot
+ */
+function updateChips(doc, slot) {
+  for (const item of slot.querySelectorAll("[data-board-cards] li")) {
+    if (!(item instanceof HTMLElement) || !item.dataset.cardId) {
+      continue;
+    }
+    const days = item.dataset.days ?? "";
+    const figure = doc.querySelector(`[data-card-days="${CSS.escape(item.dataset.cardId)}"]`);
+    if (figure) {
+      figure.replaceChildren(doc.createTextNode(`${days} `), Object.assign(doc.createElement("small"), { textContent: days === "1" ? "day" : "days" }));
+    }
+    const chip = figure?.closest("[data-scenario-card]");
+    chip?.setAttribute("aria-pressed", item.dataset.selected === "true" ? "true" : "false");
+  }
+}
+
+/**
+ * Each tier header says where that tier takes the house; the sentence comes from the fragment.
+ * @param {Document} doc
+ * @param {HTMLElement} slot
+ */
+function updateTiers(doc, slot) {
+  for (const item of slot.querySelectorAll("[data-board-tiers] li")) {
+    if (!(item instanceof HTMLElement) || !item.dataset.tier) {
+      continue;
+    }
+    const outcome = doc.querySelector(`[data-tier-outcome="${CSS.escape(item.dataset.tier)}"]`);
+    if (outcome) {
+      outcome.textContent = item.textContent ?? "";
+    }
+  }
+}
+
+/**
+ * The verdict bar shows once the hero has scrolled away and hides when it is back, without a scroll listener.
+ * @param {Document} doc
+ */
+export function initVerdictBar(doc) {
+  const hero = doc.querySelector("[data-hero]");
+  const bar = doc.querySelector("[data-verdict]");
+  if (!(hero instanceof HTMLElement) || !(bar instanceof HTMLElement) || !("IntersectionObserver" in window)) {
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      // Shown only once the whole hero is above the viewport, so a tall viewport (or a full-page capture) never shows it over the hero.
+      const shown = !entry.isIntersecting && entry.boundingClientRect.bottom < 0;
+      bar.hidden = !shown;
+      bar.setAttribute("aria-hidden", shown ? "false" : "true");
+    }
+  }, { threshold: 0 });
+  observer.observe(hero);
 }
 
 /**
@@ -181,17 +256,14 @@ function updateHeadline(doc, slot) {
  * @param {HTMLElement} slot
  */
 function updateStrip(doc, slot) {
-  const strip = doc.querySelector("[data-strip]");
-  if (!(strip instanceof HTMLElement)) {
-    return;
-  }
   const bars = new Map();
   for (const item of slot.querySelectorAll("[data-board-strip] li")) {
     if (item instanceof HTMLElement && item.dataset.stripNeed) {
       bars.set(item.dataset.stripNeed, item);
     }
   }
-  for (const bar of strip.querySelectorAll("[data-need]")) {
+  // The hero's strip and the verdict bar's both follow.
+  for (const bar of doc.querySelectorAll("[data-strip] [data-need]")) {
     if (!(bar instanceof HTMLElement) || !bar.dataset.need) {
       continue;
     }

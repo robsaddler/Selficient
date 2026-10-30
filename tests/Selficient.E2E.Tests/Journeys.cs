@@ -46,7 +46,10 @@ public sealed class Journeys
         after.ShouldBeGreaterThan(1m);
         await Expect(page.Locator("[data-turns-for=\"headtorches\"]")).ToBeVisibleAsync();
         // The strip under the figure follows the board: the food bar grows with the tins.
-        await Expect(page.Locator("[data-strip] [data-need=\"Food\"]")).ToHaveAttributeAsync("data-days", new System.Text.RegularExpressions.Regex("^(?!1$).+"));
+        await Expect(page.Locator(".hero--plan [data-strip] [data-need=\"Food\"]")).ToHaveAttributeAsync("data-days", new System.Text.RegularExpressions.Regex("^(?!1$).+"));
+        // The verdict bar at the top of the viewport says the same figure as the hero.
+        await Expect(page.Locator("[data-verdict-days]")).ToHaveTextAsync(after.ToString(CultureInfo.InvariantCulture));
+        await Expect(page.Locator("[data-tier-outcome=\"ThisWeek\"]")).ToContainTextAsync("With everything up to here ticked, the house stands for");
 
         await page.ReloadAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Your house could stand on its own for" }).WaitForAsync();

@@ -1497,6 +1497,188 @@ progress.tier-progress {
   }
 }
 
+/* The verdict bar: the hero's shadow, fixed to the top once the hero has scrolled away */
+.verdict {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 20;
+  border-block-end: 2px solid var(--c-contour);
+  box-shadow: 0 0.25rem 1rem oklch(20% 0.03 230 / 0.15);
+}
+
+.verdict__inner {
+  inline-size: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding: var(--space-2) var(--gutter);
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--space-3);
+}
+
+.verdict__figure {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-stretch: 85%;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--c-lantern-ink);
+}
+
+.verdict__unit,
+.verdict__scenario {
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+.verdict__strip {
+  grid-column: 1 / -1;
+
+  & .strip {
+    margin-block-start: var(--space-1);
+    gap: 0.15rem;
+    font-size: 0.7rem;
+  }
+
+  & .strip__bar,
+  & .strip__ticks {
+    grid-template-columns: 5.5rem minmax(0, 1fr) 3.4rem;
+    gap: var(--space-2);
+    white-space: nowrap;
+  }
+
+  & .strip__track {
+    block-size: 0.4rem;
+  }
+
+  & .strip__ticks {
+    display: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .verdict__inner {
+    grid-template-columns: auto auto auto minmax(0, 1fr);
+  }
+
+  .verdict__strip {
+    grid-column: 4;
+    max-inline-size: 28rem;
+    justify-self: end;
+    inline-size: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .verdict:not([hidden]) {
+    animation: settle 240ms var(--ease-out) both;
+  }
+}
+
+/* Scenario chips: what could happen, in a row that scrolls sideways on a phone */
+.chips {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-block: var(--space-1) var(--space-2);
+  scrollbar-width: thin;
+}
+
+.chip {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "mark name"
+    "mark days";
+  column-gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  color: var(--c-ink);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  inline-size: 11rem;
+
+  &[aria-pressed="true"] {
+    border-color: var(--c-lantern);
+    box-shadow: inset 0 0 0 1px var(--c-lantern);
+    background: var(--c-lantern-tint);
+  }
+
+  &:hover {
+    border-color: var(--c-ink-muted);
+  }
+}
+
+.chip__mark {
+  grid-area: mark;
+  inline-size: 2rem;
+  block-size: 2rem;
+  color: var(--c-ink-muted);
+}
+
+.chip__name {
+  grid-area: name;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-s);
+  line-height: 1.2;
+}
+
+.chip__days {
+  grid-area: days;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-stretch: 85%;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--c-lantern-ink);
+
+  & small {
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    color: var(--c-ink-muted);
+  }
+}
+
+@media (min-width: 64rem) {
+  .chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+/* Where a tier takes the house, under its header */
+.sheet__outcome {
+  flex-basis: 100%;
+  font-size: var(--text-s);
+  color: var(--c-pine);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.sheet__header {
+  flex-wrap: wrap;
+}
+
+/* The risks beyond the top three fold away */
+.risks__more {
+  margin-block-start: var(--space-4);
+
+  & summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--c-pine);
+  }
+}
+
 /* Use my location: the button first, then "or", then the postcode box, and the sentence it leaves beneath */
 .locate-row {
   display: flex;

@@ -228,10 +228,12 @@
   }
 }
 
-/* The plan: a sticky instrument panel beside the sheet */
-.plan-layout {
+/* The plan: one column in the order the questions come, with the verdict bar keeping the first answer in view */
+.plan-flow {
   display: grid;
   gap: var(--space-7);
+  max-inline-size: 66rem;
+  margin-inline: auto;
 }
 
 .hero--plan {
@@ -261,21 +263,35 @@
   }
 }
 
-.plan-aside {
+/* The hero's second half: what could happen, as chips */
+.hero__scenarios {
+  margin-block-start: var(--space-6);
+}
+
+.hero__scenarios-heading {
+  font-size: var(--text-l);
+}
+
+.hero__scenarios-lede,
+.plan__lede,
+.risks__lede {
+  margin-block: var(--space-2) var(--space-3);
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+}
+
+.rely__fields {
   display: grid;
-  gap: var(--space-5);
-  align-content: start;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
-.plan-aside .house-map {
-  margin-block-start: 0;
-}
-
-.plan-body {
-  min-inline-size: 0;
-}
-
-.plan-body > :first-child {
+.plan-flow > .house-map,
+.plan-flow > .risks,
+.plan-flow > .rely,
+.plan-flow > .plan-tools,
+.plan-flow > .upkeep,
+.plan-flow > .plan {
   margin-block-start: 0;
 }
 
@@ -284,10 +300,15 @@
 }
 
 @media (min-width: 64rem) {
-  .plan-layout {
-    grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr);
+  .hero--plan {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: var(--space-8);
     align-items: start;
+  }
+
+  .hero__scenarios {
+    margin-block-start: 0;
   }
 
   .plan {
@@ -297,13 +318,6 @@
     & > :not(.sheet) {
       grid-column: 1 / -1;
     }
-  }
-}
-
-@media (min-width: 64rem) and (min-height: 48rem) {
-  .plan-aside {
-    position: sticky;
-    inset-block-start: var(--space-5);
   }
 }
 

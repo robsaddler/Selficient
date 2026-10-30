@@ -30,6 +30,9 @@ public static class MoneyFormat
 /// <summary>Risk wording for the page, kept out of the Domain so copy can change without a rule change.</summary>
 public static class RiskCopy
 {
+    /// <summary>The summary of the risks folded under the top three.</summary>
+    public static string More(int count) => count == 1 ? "One more, lower down the list" : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{count} more, lower down the list");
+
     /// <summary>A short title for a risk kind.</summary>
     public static string Title(Domain.Risks.RiskKind kind) => kind switch
     {

@@ -1,0 +1,17 @@
+@model Selficient.Web.Pages.Plan.IndexModel
+@{
+    var set = Model.Board!;
+    var days = set.DaysReady;
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+}
+@* The hero's shadow: once the hero has scrolled away this bar holds the figure, the scenario and the strip at the top of the viewport, so a tick anywhere on the page answers where the eye already is. The script shows it; without script it stays out of the way. *@
+<div class="verdict night" data-verdict hidden aria-hidden="true">
+  <div class="verdict__inner">
+    <span class="verdict__figure data" data-verdict-days>@days.ToString("0.#", culture)</span>
+    <span class="verdict__unit" data-verdict-unit>@Selficient.Web.Pages.Plan.BoardCopy.Unit(days)</span>
+    <span class="verdict__scenario" data-verdict-scenario>in @set.Scenario.Name.ToLowerInvariant()</span>
+    <div class="verdict__strip">
+      @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(set.Current))
+    </div>
+  </div>
+</div>

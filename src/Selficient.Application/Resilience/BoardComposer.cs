@@ -13,6 +13,9 @@ public sealed record SourceOption(string Id, string Name, string Sentence);
 /// <summary>What one untaken plan action would turn on the current board: the rows and horizons it improves.</summary>
 public sealed record ActionTurn(ActionId Action, IReadOnlyList<string> Turns);
 
+/// <summary>Where a tier takes the house: the figure with everything up to and including that tier ticked, in the chosen scenario and season.</summary>
+public sealed record TierOutcome(Tier Tier, decimal DaysReady);
+
 /// <summary>Everything the Board page draws for one household and one chosen scenario.</summary>
 public sealed record BoardSet(
     Scenario Scenario,
@@ -22,7 +25,8 @@ public sealed record BoardSet(
     IReadOnlyList<SourceOption> Sources,
     Board Sheet,
     Board Current,
-    IReadOnlyList<ActionTurn> Turns)
+    IReadOnlyList<ActionTurn> Turns,
+    IReadOnlyList<TierOutcome> Tiers)
 {
     /// <summary>The id of the "nothing extra" source.</summary>
     public const string HouseSource = "house";
@@ -101,7 +105,23 @@ public static class BoardComposer
             }
         }
 
-        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns);
+        // Each tier's destination is cumulative: this month assumes this week is done, as the plan does.
+        List<TierOutcome> tiers = [];
+        HashSet<string> sofar = new(request.Held, StringComparer.Ordinal);
+        foreach (PlanTier tier in request.Plan.Tiers)
+        {
+            foreach (PlanAction action in tier.Actions)
+            {
+                if (Providers.Find(action.Id.Value) is not null)
+                {
+                    sofar.Add(action.Id.Value);
+                }
+            }
+
+            tiers.Add(new TierOutcome(tier.Tier, OutageBoard.Simulate(request.Profile, sofar, scenario, season).DaysReady));
+        }
+
+        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers);
     }
 
     /// <summary>Scenarios in the order the risk assessors rank them for this house, then the rest in catalogue order.</summary>

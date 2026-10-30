@@ -8,16 +8,20 @@ namespace Selficient.Web.Pages.Plan;
 public sealed class PlanTierView
 {
     /// <summary>Builds the view.</summary>
-    public PlanTierView(PlanTier tier, IKitCatalogue catalogue)
+    public PlanTierView(PlanTier tier, IKitCatalogue catalogue, decimal? outcome = null)
     {
         ArgumentNullException.ThrowIfNull(tier);
         ArgumentNullException.ThrowIfNull(catalogue);
         Tier = tier;
+        Outcome = outcome;
         Picks = tier.Actions.ToDictionary(static a => a.Id, a => catalogue.PicksFor(a.Id));
     }
 
     /// <summary>The tier.</summary>
     public PlanTier Tier { get; }
+
+    /// <summary>Where this tier takes the house in the chosen scenario, with everything up to it ticked; null when the board has not said.</summary>
+    public decimal? Outcome { get; }
 
     /// <summary>Picks by action id.</summary>
     public IReadOnlyDictionary<ActionId, IReadOnlyList<KitPick>> Picks { get; }

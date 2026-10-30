@@ -51,6 +51,7 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - A ternary in a Razor view is a branch the gate counts, and a view only renders what the tests post; put the choice in a helper (`BoardCopy.Unit`) and pin it there.
 - The load harness hosts the site in a console project: declare `ServerGarbageCollection` there or it measures the workstation collector under the web server's allocation and every scenario collapses together.
 - A page that pre-renders every variant for an in-place switch pays for all of them on every request; render the one in view and post for the next.
+- A fragment that redraws itself must not be the only place the script reads the antiforgery token from: when the scenario form left the board fragment, `redraw` found no token and returned silently, and every journey that ticked a box failed with no error anywhere. Read the token from the document.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 
 ## Conventions

@@ -12,7 +12,7 @@ import { initHouseMap } from "selficient/house-map.js";
 import { initShell } from "selficient/shell.js";
 import { initInstall } from "selficient/install.js";
 import { initPhotos } from "selficient/photos.js";
-import { initBoard } from "selficient/board.js";
+import { initBoard, initVerdictBar } from "selficient/board.js";
 import { initLocate } from "selficient/locate.js";
 
 if (!customElements.get("days-ready")) {
@@ -25,6 +25,7 @@ initTheme(document);
 initDialogs(document);
 void initPlanPage(document);
 initBoard(document);
+initVerdictBar(document);
 initLocate(document);
 void initHouseMap(document);
 initPhotos(document);

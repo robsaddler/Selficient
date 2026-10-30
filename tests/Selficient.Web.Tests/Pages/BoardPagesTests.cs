@@ -45,6 +45,11 @@ public sealed class BoardPagesTests : IDisposable
         snow.ShouldContain("data-scenario=\"snow\"");
         snow.ShouldContain("data-days-ready=\"3\"", customMessage: "three days of tins before the road is wanted");
         snow.ShouldContain("data-turns-action=\"food-one-month\"", customMessage: "the month of food would turn cells");
+        snow.ShouldContain("<ul hidden data-board-cards>", customMessage: "the chips in the hero take their figures from the fragment");
+        snow.ShouldContain("data-card-id=\"snow\" data-days=\"3\" data-selected=\"true\"");
+        snow.ShouldContain("<ul hidden data-board-tiers>");
+        snow.ShouldContain("data-tier=\"ThisWeek\" data-days=\"");
+        snow.ShouldNotContain("data-scenario-card", customMessage: "the cards left the fragment for the hero");
     }
 
     [Fact]
@@ -175,6 +180,8 @@ public sealed class BoardPagesTests : IDisposable
         BoardCopy.DaysReady(1m).ShouldBe("1 day");
         BoardCopy.Unit(1m).ShouldBe("day");
         BoardCopy.Unit(0.5m).ShouldBe("days");
+        BoardCopy.TierOutcome(4m).ShouldBe("With everything up to here ticked, the house stands for 4 days.");
+        BoardCopy.TierOutcome(null).ShouldBe("");
         BoardCopy.DaysReady(14m).ShouldBe("14 days");
         BoardCopy.State(CellState.Rationed).ShouldBe("Not enough");
         Should.Throw<ArgumentNullException>(() => BoardCopy.Row(null!));

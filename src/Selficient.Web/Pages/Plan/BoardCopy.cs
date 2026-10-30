@@ -86,6 +86,9 @@ public static class BoardCopy
     public static string Days(int days) => days == 1 ? "1 day" : string.Create(CultureInfo.InvariantCulture, $"{days} days");
 
     /// <summary>The headline figure as the page says it.</summary>
+    /// <summary>What a tier buys, as the tier header says it.</summary>
+    public static string TierOutcome(decimal? days) => days is { } d ? $"With everything up to here ticked, the house stands for {DaysReady(d)}." : string.Empty;
+
     /// <summary>The unit after a figure: "day" for one, "days" for anything else.</summary>
     public static string Unit(decimal days) => days == 1m ? "day" : "days";
 

@@ -19,18 +19,20 @@
   <h2 id="board-heading">@set.Scenario.Name: what holds, what goes, and when</h2>
   <p class="board__sentence">@set.Scenario.Sentence</p>
 
-  <form method="post" asp-page="/Plan/Index" class="board__scenarios" data-board-scenarios aria-label="Choose what happens">
-    @* The profile rides along so a choice without script re-renders the plan for it. *@
-    <input type="hidden" name="Form.Scenario" value="@set.Scenario.Id" data-board-scenario>
+  @* The scenario chips live in the hero; the figures on them follow the board, so the fragment carries them here for the script. *@
+  <ul hidden data-board-cards>
     @foreach (var card in set.Cards)
     {
-      <button type="submit" name="Form.Scenario" value="@card.Id" class="scenario" aria-pressed="@(card.Selected ? "true" : "false")" data-scenario-card>
-        <svg class="scenario__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForScenario(card.Id)"/></svg>
-        <span class="scenario__name">@card.Name</span>
-        <span class="scenario__days"><span class="data">@card.DaysReady.ToString("0.#", culture)</span> <small>@Selficient.Web.Pages.Plan.BoardCopy.Unit(card.DaysReady)</small></span>
-      </button>
+      <li data-card-id="@card.Id" data-days="@card.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)" data-selected="@(card.Selected ? "true" : "false")">@Selficient.Web.Pages.Plan.BoardCopy.DaysReady(card.DaysReady)</li>
     }
-  </form>
+  </ul>
+  @* Where each tier takes the house, for the tier headers on the plan. *@
+  <ul hidden data-board-tiers>
+    @foreach (var tier in set.Tiers)
+    {
+      <li data-tier="@tier.Tier" data-days="@tier.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(tier.DaysReady)</li>
+    }
+  </ul>
 
   <div class="board__switches">
     <fieldset class="seg" data-board-sources>

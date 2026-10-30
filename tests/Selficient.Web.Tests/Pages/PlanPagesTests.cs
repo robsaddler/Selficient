@@ -84,6 +84,12 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("<summary>Clear my plan from this browser</summary>");
         html.ShouldContain("This removes your answers, your ticks, the pin on the map and what you rely on from this browser. Export a file first if you want them back. Your theme choice stays.");
         html.ShouldContain("data-clear-plan>Clear it</button>");
+        // The page in job order: the verdict, the plan, the board, what you rely on, the risks, the map, upkeep, the tools.
+        int[] order = new[] { "id=\"plan-heading\"", "data-verdict", "id=\"actions-heading\"", "id=\"board-heading\"", "id=\"rely-heading\"", "id=\"risks-heading\"", "id=\"map-heading\"", "id=\"tools-heading\"" }.Select(marker => html.IndexOf(marker, StringComparison.Ordinal)).ToArray();
+        order.ShouldAllBe(at => at >= 0, "every section is on the page");
+        order.ShouldBeInOrder(customMessage: "the sections come in the order the questions come");
+        html.ShouldContain("With everything up to here ticked, the house stands for", customMessage: "each tier header says where it takes the house");
+        html.ShouldContain("more, lower down the list</summary>", customMessage: "the risks beyond the top three fold away");
         html.ShouldContain("data-scenario-card");
         html.ShouldContain("data-people=\"4\"");
         html.ShouldContain("data-action-id=\"water-bottled-three-days\"");

@@ -15,6 +15,7 @@
     <h3>@tier.Title</h3>
     <span class="data">@MoneyFormat.Range(tier.Cost)</span>
     <span class="sheet__chevron" aria-hidden="true"></span>
+    <span class="sheet__outcome" data-tier-outcome="@tier.Tier">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(Model.Outcome)</span>
   </summary>
   @if (tier.Actions.Count == 0)
   {

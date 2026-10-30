@@ -3,33 +3,69 @@
 @{
     var planned = Model.Planned!;
     var household = planned.Plan.Profile.Household;
-    var baseline = Selficient.Domain.Readiness.Inventory.Baseline(household);
     var days = Model.Board!.DaysReady;
     var culture = System.Globalization.CultureInfo.CurrentCulture;
     var place = PlaceCopy.Place(planned.Locality)
         + (planned.Elevation is { } e ? $", {e.Metres.ToString("0", culture)} m above sea level" : "");
+    var risks = planned.Plan.Risks.Ranked;
+    var topRisks = risks.Take(3).ToList();
+    var moreRisks = risks.Skip(3).ToList();
+    var outcomes = Model.Board.Tiers.ToDictionary(tier => tier.Tier, tier => tier.DaysReady);
 }
 
-<div class="plan-layout">
-<aside class="plan-aside">
-<section class="hero hero--plan night" aria-labelledby="plan-heading" data-plan>
+@*
+  One column, in the order a household has the questions: how exposed are we; what do we do first;
+  what would actually happen; what about our own needs; why these risks; where are we; how do we
+  keep this going. The verdict bar keeps the first answer on the screen while the rest is read.
+*@
+<div class="plan-flow">
+
+<section class="hero hero--plan night" aria-labelledby="plan-heading" data-plan data-hero>
   <div class="contour-band" aria-hidden="true" data-elevation="@(planned.Elevation is { } el ? el.Metres.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "0")"></div>
   <div class="glow" aria-hidden="true"></div>
-  <p class="eyebrow">@place</p>
-  <h1 id="plan-heading">Your house could stand on its own for</h1>
-  <days-ready value="@days.ToString("0.#", culture)" class="days-ready" data-people="@household.Size.Count">
-    <span class="days-ready__figure">@days.ToString("0.#", culture)</span>
-    <span class="days-ready__unit">@Selficient.Web.Pages.Plan.BoardCopy.Unit(days)</span>
-  </days-ready>
-  <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
-  @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(Model.Board.Current))
+  <div class="hero__verdict">
+    <p class="eyebrow">@place</p>
+    <h1 id="plan-heading">Your house could stand on its own for</h1>
+    <days-ready value="@days.ToString("0.#", culture)" class="days-ready" data-people="@household.Size.Count">
+      <span class="days-ready__figure">@days.ToString("0.#", culture)</span>
+      <span class="days-ready__unit">@Selficient.Web.Pages.Plan.BoardCopy.Unit(days)</span>
+    </days-ready>
+    <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
+    @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(Model.Board.Current))
+  </div>
+  <div class="hero__scenarios">
+    <h2 class="hero__scenarios-heading">What could happen here</h2>
+    <p class="hero__scenarios-lede">Ranked for your address. Choose one and the page redraws for it.</p>
+    @await Html.PartialAsync("_ScenarioChips", Model)
+  </div>
 </section>
 
-@await Html.PartialAsync("_PlanMap", new Selficient.Web.Pages.Plan.HouseMapView(planned.Locality, planned.Elevation))
+@await Html.PartialAsync("_VerdictBar", Model)
+
+<section class="plan" aria-labelledby="actions-heading">
+  <h2 id="actions-heading">Your plan, in order</h2>
+  <p class="plan__lede">Tick what you already have. Each action says what it changes on the board, and each stretch says where it takes the house.</p>
+  @foreach (var tier in planned.Plan.Tiers)
+  {
+    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier]))
+  }
+  <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
+  @if (planned.Plan.Profile.Dwelling.HasOwnRoof)
+  {
+    <p class="plan__solar">The biggest line is the roof. <a href="/plan/solar">Estimate what solar and a battery would make, save and cost for your house</a>, with the backup that keeps the lights on.</p>
+  }
+  <p class="plan__photos">Rather than count by hand, <a href="/plan/photos">photograph your kit cupboard, the boiler's plate and the fuse board</a> and let the photos fill the plan in.</p>
+  @await Html.PartialAsync("_PlanExplain", Model)
+  <p class="disclosure">Where we point to a shop, some links earn Selficient a small commission at no cost to you. Prices are what we saw on the date shown and will have moved; the sentence beside each item is why we chose it.</p>
+</section>
+
+<div data-board-slot>
+  @await Html.PartialAsync("_Board", new Selficient.Web.Pages.Plan.BoardView(Model.Board, planned.Plan.Profile.Dwelling.HasOwnRoof))
+</div>
 
 <section class="rely" aria-labelledby="rely-heading">
   <h2 id="rely-heading">What you rely on</h2>
-  <p>A device that needs power, a medicine that must stay cold, a supply you cannot run out of. Each gets its own row on the board, with what carries it.</p>
+  <p>A device that needs power, a medicine that must stay cold, a supply you cannot run out of. Each gets its own row on the board above, with what carries it.</p>
   <ul class="rely__list" data-rely-list hidden></ul>
   <form method="post" asp-page="/Plan/Index" class="rely__form" data-rely-form>
     @foreach (var (field, value) in Model.EchoedProfile)
@@ -48,13 +84,15 @@
       <input type="hidden" name="Form.Dependencies[@n].DaysOfStock" value="@existing.DaysOfStock">
       <input type="hidden" name="Form.Dependencies[@n].MustStayCold" value="@(existing.MustStayCold ? "true" : "false")">
     }
-    <div class="field">
-      <label for="rely-name">What is it?</label>
-      <input id="rely-name" name="Form.Dependencies[0].Name" class="input" maxlength="40" autocomplete="off" placeholder="Oxygen concentrator">
-    </div>
-    <div class="field">
-      <label for="rely-kind">Which kind of thing?</label>
-      <select id="rely-kind" name="Form.Dependencies[0].Kind" class="input" asp-items="Selficient.Web.Pages.Plan.PlanForm.DependencyKinds"></select>
+    <div class="rely__fields">
+      <div class="field">
+        <label for="rely-name">What is it?</label>
+        <input id="rely-name" name="Form.Dependencies[0].Name" class="input" maxlength="40" autocomplete="off" placeholder="Oxygen concentrator">
+      </div>
+      <div class="field">
+        <label for="rely-kind">Which kind of thing?</label>
+        <select id="rely-kind" name="Form.Dependencies[0].Kind" class="input" asp-items="Selficient.Web.Pages.Plan.PlanForm.DependencyKinds"></select>
+      </div>
     </div>
     <div class="rely__grid">
       <div class="field">
@@ -79,17 +117,12 @@
     <p><button type="submit" class="button">Add it to the board</button></p>
   </form>
 </section>
-</aside>
-
-<div class="plan-body">
-<div data-board-slot>
-  @await Html.PartialAsync("_Board", new Selficient.Web.Pages.Plan.BoardView(Model.Board, planned.Plan.Profile.Dwelling.HasOwnRoof))
-</div>
 
 <section class="risks" aria-labelledby="risks-heading">
   <h2 id="risks-heading">What is most likely to go wrong here</h2>
+  <p class="risks__lede">The three that decide the order of your plan, and the rest for the record.</p>
   <ol class="risk-list">
-    @foreach (var risk in planned.Plan.Risks.Ranked)
+    @foreach (var risk in topRisks)
     {
       <li class="risk">
         <span class="risk__kind">@RiskCopy.Title(risk.Kind)</span>
@@ -98,23 +131,25 @@
       </li>
     }
   </ol>
+  @if (moreRisks.Count > 0)
+  {
+    <details class="risks__more">
+      <summary>@RiskCopy.More(moreRisks.Count)</summary>
+      <ol class="risk-list" start="@(topRisks.Count + 1)">
+        @foreach (var risk in moreRisks)
+        {
+          <li class="risk">
+            <span class="risk__kind">@RiskCopy.Title(risk.Kind)</span>
+            <span class="risk__rating data">@RiskCopy.Rating(risk)</span>
+            <p class="risk__why">@risk.Rationale</p>
+          </li>
+        }
+      </ol>
+    </details>
+  }
 </section>
 
-<section class="plan" aria-labelledby="actions-heading">
-  <h2 id="actions-heading">Your plan, in order</h2>
-  @foreach (var tier in planned.Plan.Tiers)
-  {
-    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue))
-  }
-  <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
-  @if (planned.Plan.Profile.Dwelling.HasOwnRoof)
-  {
-    <p class="plan__solar">The biggest line is the roof. <a href="/plan/solar">Estimate what solar and a battery would make, save and cost for your house</a>, with the backup that keeps the lights on.</p>
-  }
-  <p class="plan__photos">Rather than count by hand, <a href="/plan/photos">photograph your kit cupboard, the boiler's plate and the fuse board</a> and let the photos fill the plan in.</p>
-  @await Html.PartialAsync("_PlanExplain", Model)
-  <p class="disclosure">Where we point to a shop, some links earn Selficient a small commission at no cost to you. Prices are what we saw on the date shown and will have moved; the sentence beside each item is why we chose it.</p>
-</section>
+@await Html.PartialAsync("_PlanMap", new Selficient.Web.Pages.Plan.HouseMapView(planned.Locality, planned.Elevation))
 
 @await Html.PartialAsync("_PlanUpkeep", new Selficient.Web.Pages.Plan.UpkeepView(planned.Plan.Profile.Dwelling))
 
@@ -132,7 +167,6 @@
     <p><button type="button" class="button button--danger" data-clear-plan>Clear it</button></p>
   </details>
 </section>
-</div>
 </div>
 
 <form class="profile-echo" data-profile-echo hidden aria-hidden="true">

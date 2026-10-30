@@ -1,0 +1,20 @@
+@model Selficient.Web.Pages.Plan.IndexModel
+@{
+    var set = Model.Board!;
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+}
+@* What could happen, as a row of chips under the figure. A choice redraws the page for it; without script the form posts and the plan re-renders. The profile rides along for that. *@
+<form method="post" asp-page="/Plan/Index" class="chips" data-board-scenarios aria-label="Choose what happens">
+  @foreach (var (field, value) in Model.EchoedProfile)
+  {
+    <input type="hidden" name="Form.@field" value="@value">
+  }
+  @foreach (var card in set.Cards)
+  {
+    <button type="submit" name="Form.Scenario" value="@card.Id" class="chip" aria-pressed="@(card.Selected ? "true" : "false")" data-scenario-card>
+      <svg class="chip__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForScenario(card.Id)"/></svg>
+      <span class="chip__name">@card.Name</span>
+      <span class="chip__days data" data-card-days="@card.Id">@card.DaysReady.ToString("0.#", culture) <small>@Selficient.Web.Pages.Plan.BoardCopy.Unit(card.DaysReady)</small></span>
+    </button>
+  }
+</form>
