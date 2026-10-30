@@ -180,7 +180,7 @@
   }
 }
 
-/* The closing band: the roofline once more, with the lantern as the door */
+/* The closing band: paper in daylight, the roofline once more in the dark, with the lantern as the door */
 .closing {
   position: relative;
   isolation: isolate;
@@ -188,10 +188,10 @@
   max-inline-size: none;
   margin-block-start: var(--space-8);
   padding: var(--space-7);
+  border: 2px solid light-dark(var(--c-contour), var(--c-on-roof-line));
   border-radius: var(--radius-m);
-  background: var(--c-roof);
-  color: var(--c-on-roof);
-  color-scheme: dark;
+  background: light-dark(var(--c-paper), var(--c-roof));
+  color: light-dark(var(--c-ink), var(--c-on-roof));
   display: grid;
   gap: var(--space-5);
 
@@ -200,7 +200,7 @@
   }
 
   & p {
-    color: var(--c-on-roof-muted);
+    color: light-dark(var(--c-ink-muted), var(--c-on-roof-muted));
     max-inline-size: var(--measure);
   }
 
@@ -209,7 +209,7 @@
     position: absolute;
     inset: -20%;
     z-index: -1;
-    background-image: repeating-radial-gradient(ellipse 50% 60% at 85% 50%, transparent 0 1.6rem, var(--c-on-roof-line) 1.6rem calc(1.6rem + 1.5px));
+    background-image: repeating-radial-gradient(ellipse 50% 60% at 85% 50%, transparent 0 1.6rem, light-dark(var(--c-contour), var(--c-on-roof-line)) 1.6rem calc(1.6rem + 1.5px));
     mask-image: linear-gradient(to left, oklch(0% 0 0 / 0.9), transparent 70%);
   }
 }
@@ -810,7 +810,7 @@
   }
 
   & .hero__start label {
-    color: var(--c-on-roof);
+    color: var(--c-ink);
   }
 }
 
@@ -822,7 +822,7 @@
   font-size: var(--text-2xl);
   letter-spacing: -0.01em;
   line-height: 1;
-  color: var(--c-on-roof);
+  color: var(--c-ink);
 }
 
 .hero__tagline {
@@ -830,11 +830,11 @@
   margin-block-end: var(--space-7);
   max-inline-size: 48ch;
   font-size: var(--text-l);
-  color: var(--c-on-roof-muted);
+  color: var(--c-ink-muted);
   text-wrap: pretty;
 
   & strong {
-    color: var(--c-lantern);
+    color: var(--c-lantern-ink);
     font-weight: 600;
   }
 }
@@ -856,7 +856,7 @@
 
 /* The plan's night panel: the figure, its glow and the strip, with the contour band behind */
 .hero--plan.night {
-  border-color: var(--c-on-roof-line);
+  border-color: var(--c-contour);
 
   & .contour-band {
     opacity: 0.8;
@@ -910,7 +910,7 @@
 
 /* The closing band carries the hill */
 .closing__picture {
-  color: var(--c-on-roof-muted);
+  color: light-dark(var(--c-ink-muted), var(--c-on-roof-muted));
   max-inline-size: 28rem;
 }
 

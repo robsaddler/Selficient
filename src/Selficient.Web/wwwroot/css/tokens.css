@@ -63,6 +63,7 @@
   --c-on-roof-line: oklch(36% 0.025 225);
   /* The night: the hero ground, deeper than the roofline so the glow has somewhere to sit. One value in both themes. */
   --c-night: oklch(20% 0.03 230);
+  /* The lines of a still life on the night surface; in daylight the picture takes the muted ink instead. */
   --c-on-night-line: oklch(52% 0.02 220);
   --c-glow: oklch(80% 0.16 75 / 0.35);
 

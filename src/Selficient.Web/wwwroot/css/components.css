@@ -1253,38 +1253,42 @@ progress.tier-progress {
 }
 
 /* The night: a surface where the figure is the flame. Everything inside reads its colours from here. */
+/*
+  In daylight the surface is paper: the kitchen at dawn, the figure a deep amber. In the dark it is
+  the night the design direction drew, deeper than the roofline so the glow has somewhere to sit.
+  Every token is set with light-dark() so the toggle flips the whole page, not most of it.
+*/
 .night {
-  --c-ink: var(--c-on-roof);
-  --c-ink-muted: var(--c-on-roof-muted);
-  --c-contour: var(--c-on-roof-line);
-  --c-paper: var(--c-night);
-  --c-ground: var(--c-night);
-  --c-lantern-ink: var(--c-lantern);
-  --c-pine: oklch(68% 0.1 165);
-  --c-pine-tint: color-mix(in oklab, var(--c-pine) 22%, var(--c-night));
-  --c-lantern-tint: color-mix(in oklab, var(--c-lantern) 22%, var(--c-night));
-  background: var(--c-night);
-  color: var(--c-on-roof);
-  color-scheme: dark;
+  --c-ink: light-dark(var(--c-slate), var(--c-on-roof));
+  --c-ink-muted: light-dark(color-mix(in oklab, var(--c-slate) 70%, var(--c-sky)), var(--c-on-roof-muted));
+  --c-contour: light-dark(oklch(85% 0.012 190), var(--c-on-roof-line));
+  --c-paper: light-dark(oklch(100% 0 0), var(--c-night));
+  --c-ground: light-dark(oklch(100% 0 0), var(--c-night));
+  --c-lantern-ink: light-dark(oklch(45% 0.12 75), var(--c-lantern));
+  --c-pine: light-dark(oklch(43% 0.08 165), oklch(68% 0.1 165));
+  --c-pine-tint: light-dark(color-mix(in oklab, oklch(43% 0.08 165) 12%, oklch(100% 0 0)), color-mix(in oklab, oklch(68% 0.1 165) 22%, var(--c-night)));
+  --c-lantern-tint: light-dark(color-mix(in oklab, var(--c-lantern) 18%, oklch(100% 0 0)), color-mix(in oklab, var(--c-lantern) 22%, var(--c-night)));
+  background: var(--c-paper);
+  color: var(--c-ink);
 
   & a {
-    color: var(--c-on-roof-link);
+    color: light-dark(var(--c-pine), var(--c-on-roof-link));
   }
 
   & .days-ready__figure {
-    color: var(--c-lantern);
+    color: var(--c-lantern-ink);
     font-weight: 300;
     font-stretch: 85%;
   }
 
   & .input {
-    background: oklch(26% 0.03 230);
-    color: var(--c-on-roof);
-    border-color: var(--c-on-roof-line);
+    background: light-dark(oklch(100% 0 0), oklch(26% 0.03 230));
+    color: var(--c-ink);
+    border-color: var(--c-contour);
   }
 
   & .still-life {
-    color: var(--c-on-night-line);
+    color: light-dark(var(--c-ink-muted), var(--c-on-night-line));
   }
 }
 
@@ -1518,7 +1522,7 @@ progress.tier-progress {
 
 .hero__start-row + .locate__status {
   margin-block-start: var(--space-2);
-  color: var(--c-on-roof-muted);
+  color: var(--c-ink-muted);
 }
 
 /* Clearing the plan: folded away, with its sentence, and a button that looks like what it does */
