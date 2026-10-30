@@ -1,6 +1,7 @@
 @page "/error/{code:int?}"
 @model ErrorModel
 @{
+    ViewData["NoIndex"] = true;
     ViewData["Title"] = Model.Title;
 }
 

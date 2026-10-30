@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
 @model Selficient.Web.Pages.Plan.IndexModel
 @{
+    ViewData["NoIndex"] = true;
     ViewData["Title"] = Model.View == Selficient.Web.Pages.Plan.PlanView.Plan ? "Your plan is ready" : "Your plan";
 }
 

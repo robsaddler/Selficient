@@ -194,6 +194,6 @@ public sealed partial class TilesEndpointsTests : IDisposable
         TestMbTiles.Delete(_archive);
     }
 
-    [GeneratedRegex("<(script|link)[^>]+(src|href)=\"(https?:)?//", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("<(script|link)[^>]+(src|href)=\"(?!https://selficient\\.app/)(https?:)?//", RegexOptions.IgnoreCase)]
     private static partial Regex RemoteAsset();
 }

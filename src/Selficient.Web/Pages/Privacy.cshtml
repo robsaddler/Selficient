@@ -1,0 +1,40 @@
+@page "/privacy"
+@model Selficient.Web.Pages.PrivacyModel
+@{
+    ViewData["Title"] = "How your data is handled";
+    ViewData["Description"] = "What leaves your browser, where it goes and why. Short, because there is not much to say.";
+    ViewData["Canonical"] = "https://selficient.app/privacy";
+    var gb = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+}
+
+<article class="legal" aria-labelledby="privacy-heading">
+  <p class="eyebrow">Privacy</p>
+  <h1 id="privacy-heading">How your data is handled</h1>
+  <p>This page is short because there is not much to say. Selficient has no accounts, sets no cookies, runs no analytics and keeps no record of who you are. Reviewed @Selficient.Web.Pages.LegalCopy.Reviewed.ToString("d MMMM yyyy", gb).</p>
+
+  <h2>What stays in your browser</h2>
+  <p>Your answers about your home, your plan, your ticks, the pin you put on the map, the household id the photo page makes up, and your own Anthropic key if you choose to keep one. They live in your browser's own storage for this site and nowhere else. "Start again" removes the plan; your browser's own settings remove everything. "Export as a file" gives you a copy you control.</p>
+
+  <h2>What leaves your browser, and where it goes</h2>
+  <p>Each of these happens only when you do the thing that needs it, and nothing is kept afterwards.</p>
+  <table class="legal__table">
+    <thead>
+      <tr><th scope="col">Service</th><th scope="col">What it receives</th><th scope="col">Why</th></tr>
+    </thead>
+    <tbody>
+      @foreach (var (service, receives, purpose) in Selficient.Web.Pages.LegalCopy.Upstreams)
+      {
+        <tr><td>@service</td><td>@receives</td><td>@purpose</td></tr>
+      }
+    </tbody>
+  </table>
+  <p>Where we point to a shop, following the link takes you to that shop, which handles your data under its own terms.</p>
+
+  <h2>What our server sees</h2>
+  <p>Like any website, the server records that a request happened, its address, the page asked for and the time, for a fortnight, to keep the site running and to stop abuse. It does not record your postcode, your answers, your photos or anything the model said. Photographs are re-encoded in memory and discarded the moment they have been read; they are never written to disk.</p>
+
+  <h2>Your rights</h2>
+  <p>Because we hold nothing that identifies you, there is nothing for us to show you, correct or delete; the data is in your hands already. If you think that is wrong in your case, write to <a href="mailto:@Selficient.Web.Pages.LegalCopy.ContactEmail">@Selficient.Web.Pages.LegalCopy.ContactEmail</a> and we will look.</p>
+
+  <p class="disclosure">@Selficient.Web.Pages.LegalCopy.MadeBy</p>
+</article>

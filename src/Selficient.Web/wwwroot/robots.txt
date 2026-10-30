@@ -1,4 +1,12 @@
 User-agent: *
 Allow: /
+Disallow: /api/
 Disallow: /error/
 Disallow: /health
+Disallow: /offline
+Disallow: /plan/explain
+Disallow: /plan/calendar.ics
+Disallow: /sw.js
+Disallow: /styleguide
+
+Sitemap: https://selficient.app/sitemap.xml

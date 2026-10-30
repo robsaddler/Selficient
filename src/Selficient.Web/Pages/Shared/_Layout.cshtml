@@ -15,6 +15,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>@PageTitle.Compose(ViewData["Title"])</title>
   <meta name="description" content="@(ViewData["Description"] ?? "Work out how many days your house could stand on its own, and close the gap with a plan that fits your home.")">
+  @await Html.PartialAsync("_SeoHead")
   <link rel="manifest" href="~/manifest.webmanifest">
   <link rel="icon" href="~/img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="~/img/apple-touch-icon.png">
@@ -53,6 +54,13 @@
   <footer class="site-footer">
     <p>Selficient helps households prepare for everyday emergencies. It is guidance, not professional advice, and it never replaces the instructions of the emergency services.</p>
     <p>Nothing you enter leaves your browser except the postcode we use to find your area.</p>
+    <nav class="site-footer__links" aria-label="About this site">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms and affiliate disclosure</a>
+      <a href="/terms#advice">Not professional advice</a>
+      <a href="mailto:@LegalCopy.ContactEmail">@LegalCopy.ContactEmail</a>
+    </nav>
+    <p class="site-footer__made">@LegalCopy.MadeBy</p>
   </footer>
   <dialog class="dialog" data-install-ios>
     <h2>Put Selficient on this iPhone or iPad</h2>

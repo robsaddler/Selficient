@@ -1,0 +1,35 @@
+@{
+    // Crawler and share metadata for every page, read from the page's ViewData. A page that sets
+    // NoIndex is kept out of search results and gets no canonical, because it is personal or
+    // transient. A page that sets Canonical names its one public address; the share image is the
+    // same for all of them.
+    var noIndex = ViewData["NoIndex"] is true;
+    var title = Selficient.Web.Pages.PageTitle.Compose(ViewData["Title"]);
+    var description = ViewData["Description"] as string ?? "Work out how many days your house could stand on its own, and close the gap with a plan that fits your home.";
+    var canonical = ViewData["Canonical"] as string;
+}
+@if (noIndex)
+{
+  <meta name="robots" content="noindex, nofollow">
+}
+else
+{
+  @if (canonical is not null)
+  {
+    <link rel="canonical" href="@canonical">
+    <meta property="og:url" content="@canonical">
+  }
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Selficient">
+  <meta property="og:title" content="@title">
+  <meta property="og:description" content="@description">
+  <meta property="og:image" content="https://selficient.app/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Selficient: how many days could your house stand on its own?">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="@title">
+  <meta name="twitter:description" content="@description">
+  <meta name="twitter:image" content="https://selficient.app/img/og.png">
+}

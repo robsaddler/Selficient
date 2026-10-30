@@ -1,0 +1,19 @@
+# Selficient
+
+> How many days could your house stand on its own? Selficient turns the UK government's Be Ready three-day advice (22 October 2026) into a plan sized to one household: ranked risks for the address, a four-tier costed checklist, products with dated prices, Ordnance Survey mapping, a solar and battery estimate, three photo readings, and a maintenance calendar. Everything a household enters stays in their own browser; the postcode is the only thing sent to find the area.
+
+## Pages
+
+- [Home](https://selficient.app/): the Days Ready figure, what the app does, questions people ask.
+- [Start your plan](https://selficient.app/plan/start): the questions about the home.
+- [Solar and battery estimate](https://selficient.app/plan/solar): what a roof would make, save and cost, with backup for a power cut.
+- [Three photos](https://selficient.app/plan/photos): the kit cupboard counted, the boiler plate and the fuse board read.
+- [Privacy](https://selficient.app/privacy): what leaves the browser and where it goes.
+- [Terms](https://selficient.app/terms): guidance not advice, the affiliate disclosure, licences.
+
+## Facts
+
+- Free. Some shop links earn a small commission at no cost to the household, disclosed beside them.
+- No accounts, no cookies, no analytics. Plans live in the browser and can be exported as a file.
+- Installable as an app; the saved plan opens without a connection.
+- Guidance, not professional advice. Made in Blackwood, South Wales.

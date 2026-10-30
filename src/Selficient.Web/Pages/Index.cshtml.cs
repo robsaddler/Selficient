@@ -3,14 +3,29 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Selficient.Web.Pages;
 
-/// <summary>The landing page: the Days Ready figure and the invitation to start a plan.</summary>
+/// <summary>The landing page: the Days Ready figure, what the app does, and the questions people ask.</summary>
 public sealed class IndexModel : PageModel
 {
     /// <summary>
     /// The figure shown before a plan exists. Half a day is what a typical house holds in the tap,
-    /// the fridge and the phone battery; the real figure comes from the plan in M1.
+    /// the fridge and the phone battery.
     /// </summary>
     public decimal DaysReady { get; private set; } = 0.5m;
+
+    /// <summary>The questions on the page, which the structured data repeats word for word.</summary>
+    public static IReadOnlyList<Faq> Questions { get; } =
+    [
+        new("Is this the government's three-day checklist?",
+            "It starts there. The Be Ready campaign of 22 October 2026 asks every household for three days of water, food that needs no cooking, light, a radio, a charged power bank, some cash and a few other things. Selficient turns that list into a plan sized to your house, your hill and your heating, and then goes further for those who want to."),
+        new("Do you store my address or my answers?",
+            "No. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. There are no accounts and no cookies."),
+        new("How much does it cost?",
+            "Nothing. Where we point to a shop, some links earn us a small commission at no cost to you, and we say so beside them. Photo readings use a small free monthly allowance, or your own key if you prefer."),
+        new("Is this professional advice?",
+            "No. It is careful guidance built from public sources and a named household's own planning, and it never replaces an electrician, an arborist, an MCS installer or the instructions of the emergency services."),
+        new("Does it work without signal?",
+            "Yes. Install it to your phone and your plan opens without a connection, which is rather the point of a plan for a power cut."),
+    ];
 
     /// <summary>Renders the page.</summary>
     public IActionResult OnGet()
@@ -18,4 +33,9 @@ public sealed class IndexModel : PageModel
         DaysReady = 0.5m;
         return Page();
     }
+
+    /// <summary>One question and its answer.</summary>
+    /// <param name="Question">The question as asked.</param>
+    /// <param name="Answer">The answer, in whole sentences.</param>
+    public sealed record Faq(string Question, string Answer);
 }

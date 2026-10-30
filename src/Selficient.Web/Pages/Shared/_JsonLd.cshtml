@@ -1,0 +1,47 @@
+@using System.Text.Json
+@inject Selficient.Web.Security.CspNonce Nonce
+@model IReadOnlyList<Selficient.Web.Pages.IndexModel.Faq>
+@{
+    // Structured data for the landing page only: who we are, what the app is, and the questions
+    // exactly as the page asks them. Serialised, never hand-written, so a quote in an answer
+    // cannot break the block. The nonce lets the CSP allow it; it is data, not code.
+    var jsonLd = JsonSerializer.Serialize(new object[]
+    {
+        new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebApplication",
+            ["name"] = "Selficient",
+            ["url"] = "https://selficient.app/",
+            ["description"] = "How many days could your house stand on its own? A household emergency-preparedness plan sized to your home, kept in your own browser.",
+            ["applicationCategory"] = "UtilitiesApplication",
+            ["operatingSystem"] = "Any",
+            ["browserRequirements"] = "Requires JavaScript for the offline and photo features; the plan itself works without it.",
+            ["offers"] = new Dictionary<string, object> { ["@type"] = "Offer", ["price"] = "0", ["priceCurrency"] = "GBP" },
+            ["inLanguage"] = "en-GB",
+            ["isAccessibleForFree"] = true,
+        },
+        new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "Organization",
+            ["name"] = "Selficient",
+            ["url"] = "https://selficient.app/",
+            ["logo"] = "https://selficient.app/img/icon-512.png",
+            ["email"] = Selficient.Web.Pages.LegalCopy.ContactEmail,
+            ["address"] = new Dictionary<string, object> { ["@type"] = "PostalAddress", ["addressLocality"] = "Blackwood", ["addressRegion"] = "Caerphilly", ["addressCountry"] = "GB" },
+        },
+        new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "FAQPage",
+            ["mainEntity"] = Model.Select(faq => new Dictionary<string, object>
+            {
+                ["@type"] = "Question",
+                ["name"] = faq.Question,
+                ["acceptedAnswer"] = new Dictionary<string, object> { ["@type"] = "Answer", ["text"] = faq.Answer },
+            }).ToArray(),
+        },
+    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default });
+}
+<!script type="application/ld+json" nonce="@Nonce.Value">@Html.Raw(jsonLd)</!script>

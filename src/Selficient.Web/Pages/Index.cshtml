@@ -2,18 +2,101 @@
 @model IndexModel
 @{
     ViewData["Title"] = "How many days could your house stand on its own?";
+    ViewData["Description"] = "The government asks every household to be ready for three days. Selficient turns that into a plan for your house: ranked risks, a costed checklist, where to buy, your roof's solar sums, and a map, all kept in your own browser.";
+    ViewData["Canonical"] = "https://selficient.app/";
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
 }
 
 <section class="hero" aria-labelledby="hero-heading">
   <div class="contour-band" aria-hidden="true" data-elevation="0"></div>
   <p class="eyebrow">Your household</p>
   <h1 id="hero-heading">Your house could stand on its own for</h1>
-  <days-ready value="@Model.DaysReady.ToString("0.#", System.Globalization.CultureInfo.CurrentCulture)" class="days-ready">
-    <span class="days-ready__figure">@Model.DaysReady.ToString("0.#", System.Globalization.CultureInfo.CurrentCulture)</span>
+  <days-ready value="@Model.DaysReady.ToString("0.#", culture)" class="days-ready">
+    <span class="days-ready__figure">@Model.DaysReady.ToString("0.#", culture)</span>
     <span class="days-ready__unit">days</span>
   </days-ready>
   <p class="hero__lede">Most houses start at about half a day. Three days is the government's ask. Seven days is where a storm becomes an inconvenience rather than a crisis.</p>
   <p class="hero__actions">
     <a class="button button--primary" href="/plan/start">Start your plan</a>
+    <a class="button button--quiet" href="#how">See how it works</a>
   </p>
 </section>
+
+<section class="pitch" aria-labelledby="pitch-heading">
+  <h2 id="pitch-heading">A plan for your house, not a pile for the cupboard</h2>
+  <div class="pitch__grid">
+    <article class="pitch__card">
+      <h3>Three days, sized to you</h3>
+      <p>The Be Ready checklist says three litres of water a person a day, food that needs no cooking, light, a radio and some cash. Selficient works out what that means for four people on a hill with a gas boiler, or one person in a second-floor flat.</p>
+    </article>
+    <article class="pitch__card">
+      <h3>The risks that are actually yours</h3>
+      <p>A storm cutting the power on overhead lines, a burst main, a road lost to snow, a tall tree, leaf litter under decking. Your postcode, your height above sea level and a few facts about the house decide which come first.</p>
+    </article>
+    <article class="pitch__card">
+      <h3>In order, with prices</h3>
+      <p>This week, this month, three months, a year. Each action says what it buys and roughly what it costs, with a product we have looked at and the date we saw the price.</p>
+    </article>
+  </div>
+</section>
+
+<section class="how" id="how" aria-labelledby="how-heading">
+  <h2 id="how-heading">How it works</h2>
+  <ol class="how__steps">
+    <li>
+      <h3>Your postcode and a few facts</h3>
+      <p>How many people, what heats the house, how many storeys, whether there is a garden, decking or a tall tree. It takes about a minute.</p>
+    </li>
+    <li>
+      <h3>Your risks, ranked</h3>
+      <p>Nine things that go wrong in British houses, scored for how likely and how bad they are at your address, with the reasoning written out.</p>
+    </li>
+    <li>
+      <h3>Your plan, tier by tier</h3>
+      <p>Twenty-odd actions in order, each with a sentence on why and a price range. Tick what you already have and watch the Days Ready figure move.</p>
+    </li>
+    <li>
+      <h3>Keep it going</h3>
+      <p>Water at the clock changes, batteries every quarter, the alarms once a month. Add the calendar once and the plan looks after itself.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="privacy-strip" aria-labelledby="privacy-heading">
+  <h2 id="privacy-heading">Everything stays with you</h2>
+  <p>Your postcode is sent once, to find your area and your height above sea level, and is not kept. Your plan, your ticks and the pin on the map live in your own browser. There are no accounts, no cookies and no analytics. Install it to your phone and the plan opens without a signal.</p>
+  <p><a href="/privacy">How your data is handled</a></p>
+</section>
+
+<section class="covers" aria-labelledby="covers-heading">
+  <h2 id="covers-heading">What it covers</h2>
+  <ul class="covers__grid">
+    <li><h3>The plan</h3><p>Risks ranked for your address and a four-tier checklist with costs, built the same way every time by rules you can read.</p></li>
+    <li><h3>Where to buy</h3><p>One to three products under each action, with the price and the date we saw it, and a sentence on why that one.</p></li>
+    <li><h3>Your house on the map</h3><p>Ordnance Survey mapping served from our own server, with a pin you put on your roof and keep in your browser.</p></li>
+    <li><h3>Solar and a battery</h3><p>What your roof would make, save and cost, with the backup that keeps the lights on in a cut, from the European Commission's sunshine data.</p></li>
+    <li><h3>Three photos</h3><p>Photograph the kit cupboard and it is counted and ticked. Photograph the boiler plate and the fuse board for what they mean for a power station.</p></li>
+    <li><h3>The calendar</h3><p>The rotations and checks that keep water fresh and batteries charged, as a file your phone's calendar understands.</p></li>
+  </ul>
+</section>
+
+<section class="faq" aria-labelledby="faq-heading">
+  <h2 id="faq-heading">Questions people ask</h2>
+  @foreach (var faq in IndexModel.Questions)
+  {
+    <details class="faq__item" name="faq">
+      <summary>@faq.Question</summary>
+      <p>@faq.Answer</p>
+    </details>
+  }
+</section>
+
+<section class="closing" aria-labelledby="closing-heading">
+  <h2 id="closing-heading">Start with the postcode</h2>
+  <p>A minute of questions, then a plan you can act on this week.</p>
+  <p class="hero__actions">
+    <a class="button button--primary" href="/plan/start">Start your plan</a>
+  </p>
+</section>
+
+@await Html.PartialAsync("_JsonLd", IndexModel.Questions)
