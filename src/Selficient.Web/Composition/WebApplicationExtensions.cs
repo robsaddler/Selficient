@@ -46,6 +46,7 @@ public static class WebApplicationExtensions
         app.MapRazorPages();
         app.MapHealthEndpoint();
         app.MapTilesEndpoints();
+        app.MapServiceWorkerEndpoint();
 
         return app;
     }
@@ -56,6 +57,7 @@ public static class WebApplicationExtensions
         FileExtensionContentTypeProvider provider = new();
         provider.Mappings[".pbf"] = TilesEndpoints.ProtobufContentType;
         provider.Mappings[".mjs"] = "text/javascript";
+        provider.Mappings[".webmanifest"] = "application/manifest+json";
         return provider;
     }
 
@@ -69,7 +71,7 @@ public static class WebApplicationExtensions
             // Fonts and glyph ranges are versioned by filename and never change in place.
             headers[HeaderNames.CacheControl] = ImmutableYear;
         }
-        else if (path.StartsWithSegments("/css") || path.StartsWithSegments("/js") || path.StartsWithSegments("/lib"))
+        else if (path.StartsWithSegments("/css") || path.StartsWithSegments("/js") || path.StartsWithSegments("/lib") || path.StartsWithSegments("/img") || path == "/manifest.webmanifest")
         {
             // Scripts and styles are cache-busted by the asp-append-version hash, so the browser
             // may keep them but must revalidate; this is what lets a deploy take effect at once.

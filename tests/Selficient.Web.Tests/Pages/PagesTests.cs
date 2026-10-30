@@ -19,7 +19,7 @@ public sealed class PagesTests : IDisposable
         html.ShouldContain("<days-ready value=\"0.5\"");
         html.ShouldContain("Your house could stand on its own for");
         html.ShouldContain("Start your plan");
-        html.ShouldContain("<html lang=\"en-GB\">");
+        html.ShouldContain("<html lang=\"en-GB\" data-sw-build=\"sw-");
         // The framework's import-map tag helper strips the type attribute if allowed to run.
         html.ShouldContain("<script type=\"importmap\" nonce=\"");
         html.ShouldContain("<script type=\"module\" src=\"/js/app.js?v=");

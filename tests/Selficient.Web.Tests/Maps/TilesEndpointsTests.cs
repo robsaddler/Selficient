@@ -152,7 +152,7 @@ public sealed partial class TilesEndpointsTests : IDisposable
     {
         using HttpClient client = _withBasemap.CreateClient();
         List<string> pages = [];
-        foreach (string path in new[] { "/", "/plan/start", "/plan", "/styleguide", "/does-not-exist" })
+        foreach (string path in new[] { "/", "/plan/start", "/plan", "/plan/solar", "/styleguide", "/offline", "/does-not-exist" })
         {
             using HttpResponseMessage page = await client.GetAsync(new Uri(path, UriKind.Relative));
             pages.Add(await page.Content.ReadAsStringAsync());

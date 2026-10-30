@@ -1,13 +1,23 @@
 @inject Selficient.Web.Security.CspNonce Nonce
+@inject Selficient.Web.Services.ShellVersion Shell
 <!DOCTYPE html>
-<html lang="en-GB">
+@* data-sw-build is this deploy's shell fingerprint; shell.js compares it with the service
+   worker's own version and reloads once on a mismatch, so a device never runs one deploy's
+   modules against another deploy's pages. *@
+<html lang="en-GB" data-sw-build="@Shell.Current().Version">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#1F5F4A">
+  <meta name="application-name" content="Selficient">
+  <meta name="apple-mobile-web-app-title" content="Selficient">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>@PageTitle.Compose(ViewData["Title"])</title>
   <meta name="description" content="@(ViewData["Description"] ?? "Work out how many days your house could stand on its own, and close the gap with a plan that fits your home.")">
+  <link rel="manifest" href="~/manifest.webmanifest">
+  <link rel="icon" href="~/img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="~/img/apple-touch-icon.png">
   <link rel="stylesheet" href="~/css/app.css" asp-append-version="true">
   <link rel="modulepreload" href="~/js/app.js">
   @* The "!" opts this element out of tag helpers: the framework's ImportMap helper otherwise
@@ -26,14 +36,17 @@
   <header class="site-header">
     <a class="wordmark" href="/" aria-label="Selficient home">Selficient</a>
     <nav class="site-nav" aria-label="Main">
-      <a href="/">Your plan</a>
+      <a href="/plan">Your plan</a>
       <a href="/styleguide">Styleguide</a>
+      @* Shown by install.js only where the browser can install or explain how, and never inside the installed app. *@
+      <button type="button" class="button button--quiet" data-install hidden>Install the app</button>
       <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false">
         <span class="sr-only">Switch between light and dark</span>
         <span aria-hidden="true">◐</span>
       </button>
     </nav>
   </header>
+  <p class="offline-banner" data-offline-banner role="status" hidden>You are offline. Your saved plan, its ticks and the map you have already seen still work; building a new plan or an estimate needs a connection.</p>
   <main id="main" class="site-main" tabindex="-1">
     @RenderBody()
   </main>
@@ -41,6 +54,18 @@
     <p>Selficient helps households prepare for everyday emergencies. It is guidance, not professional advice, and it never replaces the instructions of the emergency services.</p>
     <p>Nothing you enter leaves your browser except the postcode we use to find your area.</p>
   </footer>
+  <dialog class="dialog" data-install-ios>
+    <h2>Put Selficient on this iPhone or iPad</h2>
+    <p>Safari does not offer an install button, but it takes two taps.</p>
+    <ol>
+      <li>Tap <strong>Share</strong>, the square with the arrow, at the bottom of Safari.</li>
+      <li>Choose <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+    </ol>
+    <p class="field__hint">Selficient then opens from your home screen like any app, and your plan is there without signal.</p>
+    <p class="cluster">
+      <button type="button" class="button" data-close>Got it</button>
+    </p>
+  </dialog>
   <script type="module" src="~/js/app.js" asp-append-version="true"></script>
 </body>
 </html>

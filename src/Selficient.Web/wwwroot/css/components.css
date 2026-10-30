@@ -942,3 +942,22 @@ progress.tier-progress {
     grid-template-columns: 1fr;
   }
 }
+
+/* Offline banner: honest, quiet, and only when the browser says so */
+.offline-banner {
+  padding: var(--space-2) var(--gutter);
+  background: var(--c-lantern-tint);
+  border-block-end: var(--border);
+  font-size: var(--text-s);
+  text-wrap: pretty;
+}
+
+/* Anything that needs the server is shown as such when offline */
+:root[data-offline] .plan-form button[type="submit"] {
+  opacity: 0.5;
+}
+
+.site-nav .button {
+  min-block-size: 2.5rem;
+  padding-block: 0;
+}

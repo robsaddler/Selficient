@@ -1,0 +1,15 @@
+@page "/offline"
+@model Selficient.Web.Pages.OfflineModel
+@{
+    ViewData["Title"] = "You are offline";
+    ViewData["Description"] = "What Selficient can still do without a connection.";
+}
+
+<section class="notice" aria-labelledby="offline-heading">
+  <p class="eyebrow">No connection</p>
+  <h1 id="offline-heading">You are offline, which is rather the point</h1>
+  <p>Your saved plan still opens from this device, your ticks still count, and any part of the map you have already looked at still draws. Finding a new postcode, building a new plan or estimating a roof needs a connection, so those wait until you are back.</p>
+  <p class="cluster">
+    <a class="button button--primary" href="/plan">Open your plan</a>
+  </p>
+</section>

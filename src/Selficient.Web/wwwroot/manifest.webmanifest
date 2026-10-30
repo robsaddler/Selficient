@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Selficient",
+  "short_name": "Selficient",
+  "description": "How many days could your house stand on its own? A plan for your home, kept on your phone, that works without signal.",
+  "start_url": "/plan",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1F4F4",
+  "theme_color": "#1F5F4A",
+  "lang": "en-GB",
+  "categories": ["utilities", "lifestyle"],
+  "icons": [
+    { "src": "/img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

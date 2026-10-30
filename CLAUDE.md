@@ -26,6 +26,8 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - A `try` block that returns from inside leaves its closing brace uncovered; assign inside the `try` and return after it.
 - `tsc` refuses `declare module "/lib/…"` (rooted names count as relative); route vendored libraries through the import map by bare specifier and type them in `types/*.d.ts` with a `paths` entry.
 - Shell `perl -0pi` substitutions break on `|` and on `$1` followed by a space and a digit; use the Edit tool for anything but one-line `sed`.
+- Razor reserves `<text>`; an SVG `<text>` element must be emitted with `Html.Raw` from constant content (the month labels), never from user data.
+- `.webmanifest` is not in the framework's content-type map; it is mapped in the pipeline. The worker template under `wwwroot` is never listed in the shell because the shell scan covers only `css`, `js`, `lib`, `img` and `fonts`.
 
 ## Conventions
 

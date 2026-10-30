@@ -33,6 +33,7 @@ public static class WebServiceCollectionExtensions
         services.Configure<Microsoft.Extensions.WebEncoders.WebEncoderOptions>(static options =>
             options.TextEncoderSettings = new System.Text.Encodings.Web.TextEncoderSettings(System.Text.Unicode.UnicodeRanges.BasicLatin, System.Text.Unicode.UnicodeRanges.Latin1Supplement));
         services.AddScoped<CspNonce>();
+        services.AddSingleton<Services.ShellVersion>();
         services.AddSelficientRateLimiting(configuration);
 
         services.AddHsts(options =>
