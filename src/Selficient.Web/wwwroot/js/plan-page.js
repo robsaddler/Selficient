@@ -1,10 +1,9 @@
 // @ts-check
 /**
- * The plan page: ticks persist, Days Ready moves, other tabs stay in step, export and import work,
- * and the empty state re-posts a stored profile. Without JavaScript the page is still a complete
- * plan; this only makes it remember.
+ * The plan page: ticks persist, other tabs stay in step, export and import work, and the empty
+ * state re-posts a stored profile. The figure and the board are the server's, redrawn by board.js;
+ * this only makes the page remember. Without JavaScript the page is still a complete plan.
  */
-import { daysReady, plus, quantity } from "selficient/days-ready-model.js";
 import * as store from "selficient/plan-store.js";
 
 /**
@@ -102,37 +101,19 @@ async function applyTicks(doc) {
 }
 
 /**
+ * The progress bar on each tier. The figure itself is the board's, drawn by the server.
  * @param {Document} doc
  */
 function recompute(doc) {
-  const figure = doc.querySelector("days-ready");
-  if (!(figure instanceof HTMLElement)) {
-    return;
-  }
-  let provisions = {
-    water: quantity(figure.dataset.baseWater),
-    food: quantity(figure.dataset.baseFood),
-    light: quantity(figure.dataset.baseLight),
-  };
-  const people = quantity(figure.dataset.people) || 1;
-
   for (const tier of doc.querySelectorAll("[data-tier]")) {
     const boxes = [...tier.querySelectorAll("input[data-action-id]")].filter((b) => b instanceof HTMLInputElement);
-    let ticked = 0;
-    for (const box of boxes) {
-      if (box.checked) {
-        ticked += 1;
-        provisions = plus(provisions, { water: quantity(box.dataset.water), food: quantity(box.dataset.food), light: quantity(box.dataset.light) });
-      }
-    }
+    const ticked = boxes.filter((box) => box.checked).length;
     const progress = tier.querySelector("[data-tier-progress]");
     if (progress instanceof HTMLProgressElement) {
       progress.value = ticked;
       progress.textContent = `${ticked} of ${boxes.length}`;
     }
   }
-
-  figure.setAttribute("value", String(daysReady(provisions, people)));
 }
 
 /**
@@ -140,7 +121,7 @@ function recompute(doc) {
  */
 async function exportPlan(doc) {
   const data = await store.snapshot();
-  const blob = new Blob([JSON.stringify({ selficient: 1, ...data }, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify({ selficient: 2, ...data }, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = doc.createElement("a");
   link.href = url;

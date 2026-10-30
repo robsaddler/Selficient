@@ -79,7 +79,7 @@ The hero bleeds to the viewport edges on the night ground. The strip is Dark Sky
 ┌──────────────┬───────────────────────────────────────────────────────────────┐
 │ night panel  │ SCENARIOS  [◐ storm 3.5 d] [◑ water 1 d] [❄ snow 7 d] [▦ months 9 d] │
 │ NP12 · 232 M │                                                               │
-│ Your house   │ A winter storm takes the power out        ● Winter ○ Summer   │
+│ Your house   │ A storm takes the power out        ● Winter ○ Summer   │
 │ could stand  │ If we had  ● in the house  ○ power banks  ○ 1 kWh  ○ 3 kWh   │
 │ on its own   │            ○ home battery  ○ the car      ○ a generator       │
 │  3.5 days    │                                                               │

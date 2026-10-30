@@ -42,6 +42,10 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - `TimeProvider.TimestampFrequency` is the Stopwatch frequency: ten million a second on Windows, a thousand million on Linux. A test clock must override it (the TestKit `ManualClock` uses TimeSpan ticks) or an advance of a day is a hundred days on the ubuntu runner, which only CI sees.
 - Look at the site, do not only test it. A desktop-width screenshot of every page is part of every E2E run (`artifacts/screens`); open them before calling a milestone done. The M0 to M10 build shipped a phone column on a 1500 px screen because nobody did.
 - `dotnet run` on the web project locks `Selficient.Web.exe`; stop it before `dotnet build` or the build fails to copy the apphost.
+- Shouldly's `ShouldContain(string, string)` second argument is the comparison, not the message; write `customMessage:` by name or the assertion silently compares the wrong thing.
+- Fields a fragment endpoint re-posts must carry the page model's prefix (`Form.Postcode`, `Form.Dependencies[0].Name`); a bare `Postcode` binds to nothing and every redraw is a 400 with the first required-field sentence.
+- A data attribute used as a selector (`data-action-id`) must name one thing; a second list that reused it broke the first's `querySelectorAll`. Give each list its own attribute.
+- A compound predicate over an ordered list (`First(b => b.Source == house && b.Season == season)`) leaves a branch no input can reach when the matching item is always first; store the value instead of searching for it.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 
 ## Conventions

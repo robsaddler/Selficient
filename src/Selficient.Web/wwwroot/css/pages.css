@@ -464,4 +464,365 @@
 .wizard:not(:has(> .plan-form)) > p {
   max-inline-size: var(--measure);
 }
+
+/* The board: scenario cards, switches, and one sheet per source and season */
+.board {
+  margin-block-end: var(--space-7);
+
+  & h2 {
+    font-size: var(--text-2xl);
+    text-wrap: balance;
+  }
+
+  & .board__sentence {
+    margin-block-start: var(--space-3);
+    color: var(--c-ink-muted);
+    max-inline-size: var(--measure);
+  }
+}
+
+.board__scenarios {
+  margin-block-start: var(--space-5);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.scenario {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--c-roof);
+  color: var(--c-on-roof);
+  color-scheme: dark;
+  border: 2px solid var(--c-on-roof-line);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+
+  &[aria-pressed="true"] {
+    border-color: var(--c-lantern);
+    box-shadow: inset 0 0 0 1px var(--c-lantern);
+  }
+
+  &:hover {
+    border-color: var(--c-on-roof-muted);
+  }
+}
+
+.scenario__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-m);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.scenario__days {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-stretch: 85%;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--c-lantern);
+
+  & small {
+    font-family: var(--font-data);
+    font-size: var(--text-s);
+    color: var(--c-on-roof-muted);
+    margin-inline-start: var(--space-1);
+  }
+}
+
+.board__switches {
+  margin-block-start: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 60rem) {
+  .board__switches {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+.seg {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  & legend {
+    font-weight: 600;
+    padding: 0;
+    margin-block-end: var(--space-2);
+    inline-size: 100%;
+  }
+}
+
+.seg__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.seg__pill {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.5rem;
+  padding: var(--space-1) var(--space-3);
+  border: var(--border);
+  border-radius: 999px;
+  background: var(--c-paper);
+  font-size: var(--text-s);
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--c-pine);
+  }
+}
+
+.seg__input:checked + .seg__pill {
+  background: var(--c-lantern-tint);
+  border-color: var(--c-lantern);
+}
+
+.seg__input:focus-visible + .seg__pill {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.board__sheet {
+  margin-block-start: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  --cols: 5;
+}
+
+.board__head,
+.board__summary {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.6fr) repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.board__head {
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-ink-muted);
+  padding-block-end: var(--space-2);
+  border-block-end: var(--border);
+
+  & .board__col {
+    text-align: center;
+  }
+}
+
+.board__rung {
+  margin-block-start: var(--space-4);
+}
+
+.board__rung-name {
+  font-size: var(--text-m);
+  margin-block-end: var(--space-2);
+}
+
+.board__row {
+  & + & {
+    margin-block-start: var(--space-1);
+  }
+}
+
+.board__summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  border-radius: var(--radius-s);
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:hover {
+    background: var(--c-ground);
+  }
+}
+
+.board__need {
+  font-size: var(--text-s);
+  font-weight: 600;
+  padding-inline-start: var(--space-1);
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  block-size: 1.9rem;
+  border-radius: var(--radius-s);
+  border: 2px solid transparent;
+  font-size: 0.75rem;
+
+  &.cell--held {
+    background: var(--c-pine-tint);
+    border-color: var(--c-pine);
+  }
+
+  &.cell--reduced {
+    background: repeating-linear-gradient(135deg, var(--c-lantern) 0 3px, var(--c-lantern-tint) 3px 8px);
+    border-color: var(--c-lantern);
+  }
+
+  &.cell--rationed {
+    background: var(--c-lantern-tint);
+    border-color: var(--c-lantern);
+  }
+
+  &.cell--lost {
+    background: repeating-linear-gradient(135deg, var(--c-contour) 0 2px, transparent 2px 7px);
+    border-color: var(--c-contour);
+  }
+}
+
+.cell__days {
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--c-paper);
+  color: var(--c-ink);
+}
+
+.board__why {
+  margin-block: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 4px solid var(--c-lantern);
+  background: var(--c-lantern-tint);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  font-size: var(--text-s);
+}
+
+.board__headline {
+  margin-block-start: var(--space-5);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--border);
+  text-wrap: pretty;
+}
+
+.board__key {
+  margin-block-start: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+  align-items: center;
+
+  & i.cell {
+    display: inline-grid;
+    inline-size: 1.4rem;
+    block-size: 0.9rem;
+    vertical-align: middle;
+    margin-inline-end: var(--space-1);
+  }
+}
+
+.board__note {
+  margin-block-start: var(--space-3);
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+.action__turns {
+  grid-column: 2 / -1;
+  font-size: var(--text-s);
+  color: var(--c-pine);
+}
+
+@media (max-width: 40rem) {
+  /* On a phone the need sits above its cells, which stay in one row under the horizon labels. */
+  .board__head {
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    font-size: 0.6rem;
+    letter-spacing: 0.02em;
+
+    & .board__corner {
+      display: none;
+    }
+  }
+
+  .board__summary {
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: var(--space-1);
+  }
+
+  .board__need {
+    grid-column: 1 / -1;
+  }
+
+  .board__summary .cell {
+    block-size: 1.4rem;
+  }
+}
+
+/* What the household relies on */
+.rely {
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & h2 {
+    font-size: var(--text-l);
+  }
+
+  & p {
+    margin-block-start: var(--space-2);
+    font-size: var(--text-s);
+    color: var(--c-ink-muted);
+  }
+}
+
+.rely__list {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+
+  & li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+    padding-block: var(--space-1);
+    border-block-end: 1px solid var(--c-contour);
+    font-size: var(--text-s);
+  }
+
+  & .button {
+    min-block-size: 2rem;
+    padding-block: 0;
+  }
+}
+
+.rely__form {
+  margin-block-start: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.rely__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
 }

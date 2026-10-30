@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
 using Selficient.Application.Kit;
 using Selficient.Application.Planning;
+using Selficient.Application.Resilience;
+using Selficient.Domain.Plans;
 using Selficient.Domain.Primitives;
 using Selficient.Web.Security;
 
@@ -51,14 +53,26 @@ public sealed class IndexModel : PageModel
         nameof(PlanForm.HasPets), nameof(PlanForm.RunsBusinessFromHome), nameof(PlanForm.DwellingType), nameof(PlanForm.Storeys),
         nameof(PlanForm.Heating), nameof(PlanForm.Hob), nameof(PlanForm.HasCar), nameof(PlanForm.HasGarden),
         nameof(PlanForm.HasDecking), nameof(PlanForm.HasTallTreeNearHouse), nameof(PlanForm.FloodRisk),
+        nameof(PlanForm.HasChestFreezer), nameof(PlanForm.HasWoodStove), nameof(PlanForm.HasWaterButt), nameof(PlanForm.Growing),
+        nameof(PlanForm.Car), nameof(PlanForm.Infants), nameof(PlanForm.MedicineDaysInStock), nameof(PlanForm.Floor),
     ];
+
+    /// <summary>The most ticks a request may carry.</summary>
+    public const int MaxTicks = 200;
 
     /// <summary>The submitted form.</summary>
     [BindProperty]
     public PlanForm Form { get; set; } = new();
 
+    /// <summary>The actions the household has ticked, sent by the page's script so the board reflects them.</summary>
+    [BindProperty]
+    public List<string> Ticks { get; init; } = [];
+
     /// <summary>The plan, once built.</summary>
     public PlannedHousehold? Planned { get; private set; }
+
+    /// <summary>The boards for the plan, or null when the form is showing.</summary>
+    public BoardSet? Board { get; private set; }
 
     /// <summary>True after a failed POST, so the form is shown with its errors.</summary>
     public bool ShowForm { get; private set; }
@@ -92,9 +106,41 @@ public sealed class IndexModel : PageModel
             return Page();
         }
 
+        Result<BoardSet> board = Compose(Form, Ticks, result.Value);
+        if (board.IsFailure)
+        {
+            ShowForm = true;
+            ModelState.AddModelError(string.Empty, board.Error.Message);
+            return Page();
+        }
+
         Planned = result.Value;
+        Board = board.Value;
         EchoedProfile = Echo(Form);
         return Page();
+    }
+
+    /// <summary>The boards for a planned household, or the sentence that stops them: a bad dependency, or too many ticks.</summary>
+    internal static Result<BoardSet> Compose(PlanForm form, IReadOnlyList<string> ticks, PlannedHousehold planned)
+    {
+        if (ticks.Count > MaxTicks)
+        {
+            return Result.Failure<BoardSet>(new Fault("plan.ticks", "That is more ticks than the plan has actions."));
+        }
+
+        HashSet<string> held = new(StringComparer.Ordinal);
+        foreach (string tick in ticks)
+        {
+            if (!ActionId.IsValid(tick))
+            {
+                return Result.Failure<BoardSet>(new Fault("plan.ticks", "One of the ticks is not a plan action."));
+            }
+
+            held.Add(tick);
+        }
+
+        return form.ToResilienceProfile(planned.Plan.Profile)
+            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season)));
     }
 
     internal static IReadOnlyList<(string Field, string Value)> Echo(PlanForm form) =>
@@ -114,6 +160,14 @@ public sealed class IndexModel : PageModel
         (nameof(PlanForm.HasDecking), Flag(form.HasDecking)),
         (nameof(PlanForm.HasTallTreeNearHouse), Flag(form.HasTallTreeNearHouse)),
         (nameof(PlanForm.FloodRisk), form.FloodRisk.ToString()),
+        (nameof(PlanForm.HasChestFreezer), Flag(form.HasChestFreezer)),
+        (nameof(PlanForm.HasWoodStove), Flag(form.HasWoodStove)),
+        (nameof(PlanForm.HasWaterButt), Flag(form.HasWaterButt)),
+        (nameof(PlanForm.Growing), (form.Growing ?? Selficient.Domain.Resilience.Growing.None).ToString()),
+        (nameof(PlanForm.Car), (form.Car ?? Selficient.Domain.Resilience.CarKind.None).ToString()),
+        (nameof(PlanForm.Infants), (form.Infants ?? 0).ToString(CultureInfo.InvariantCulture)),
+        (nameof(PlanForm.MedicineDaysInStock), (form.MedicineDaysInStock ?? 7).ToString(CultureInfo.InvariantCulture)),
+        (nameof(PlanForm.Floor), (form.Floor ?? 0).ToString(CultureInfo.InvariantCulture)),
     ];
 
     private static string Flag(bool value) => value ? "true" : "false";

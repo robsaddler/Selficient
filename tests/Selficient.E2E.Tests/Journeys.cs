@@ -23,7 +23,8 @@ public sealed class Journeys
         await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
 
         await page.GetByRole(AriaRole.Heading, new() { Name = "Your house could stand on its own for" }).WaitForAsync();
-        (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe("0.5");
+        (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe("1", "the board's storm figure for a house with nothing ticked");
+        await Expect(page.Locator("[data-board]")).ToBeVisibleAsync();
         await ShouldNotScrollSidewaysAsync(page);
         (await page.Locator("[data-action-id=\"water-bottled-three-days\"]").CountAsync()).ShouldBe(1);
         await page.GetByText("NP12, Wales, 232 m above sea level").WaitForAsync();
@@ -36,13 +37,14 @@ public sealed class Journeys
         IPage page = await context.NewPageAsync();
         await BuildPlanAsync(page);
 
-        // Days Ready is the weakest of water, food and light, so all three must move.
+        // In a storm the shops want cash and the tins fill the gap: the board redraws and the figure follows it.
         await page.Locator("[data-action-id=\"water-bottled-three-days\"]").CheckAsync();
         await page.Locator("[data-action-id=\"food-no-cook-three-days\"]").CheckAsync();
-        await page.Locator("[data-action-id=\"headtorches\"]").CheckAsync();
-        await Expect(page.Locator("days-ready")).ToHaveAttributeAsync("value", new System.Text.RegularExpressions.Regex("^(?!0\\.5$).+"));
+        await page.Locator("[data-action-id=\"cash-in-small-notes\"]").CheckAsync();
+        await Expect(page.Locator("days-ready")).ToHaveAttributeAsync("value", new System.Text.RegularExpressions.Regex("^(?!1$).+"));
         decimal after = decimal.Parse((await page.Locator("days-ready").GetAttributeAsync("value"))!, CultureInfo.InvariantCulture);
-        after.ShouldBeGreaterThan(0.5m);
+        after.ShouldBeGreaterThan(1m);
+        await Expect(page.Locator("[data-turns-for=\"headtorches\"]")).ToBeVisibleAsync();
 
         await page.ReloadAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Your house could stand on its own for" }).WaitForAsync();
@@ -62,7 +64,7 @@ public sealed class Journeys
         string path = Path.Combine(Path.GetTempPath(), $"selficient-e2e-{Guid.NewGuid():N}.json");
         await download.SaveAsAsync(path);
         string json = await File.ReadAllTextAsync(path);
-        json.ShouldContain("\"selficient\": 1");
+        json.ShouldContain("\"selficient\": 2");
         json.ShouldContain("headtorches");
 
         await page.EvaluateAsync("() => indexedDB.deleteDatabase('selficient')");
@@ -116,6 +118,57 @@ public sealed class Journeys
         await page.GetByRole(AriaRole.Heading, new() { Name = "Solar and a battery could save you about" }).WaitForAsync();
         (await page.Locator(".figure__amount").InnerTextAsync()).ShouldStartWith("£");
         await ShouldNotScrollSidewaysAsync(page);
+    }
+
+    [Fact]
+    public async Task The_board_switches_source_and_season_in_place_and_scenario_by_redrawing()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+
+        ILocator house = page.Locator("[data-source=\"house\"][data-season=\"Winter\"]");
+        ILocator battery = page.Locator("[data-source=\"rooftop-solar-and-battery\"][data-season=\"Winter\"]");
+        await Expect(house).ToBeVisibleAsync();
+        await Expect(battery).ToBeHiddenAsync();
+
+        await page.Locator("label[for=\"source-rooftop-solar-and-battery\"]").ClickAsync();
+        await Expect(battery).ToBeVisibleAsync();
+        await Expect(house).ToBeHiddenAsync();
+        await Expect(battery.GetByText("Warmth")).ToBeVisibleAsync();
+
+        await page.Locator("label[for=\"season-summer\"]").ClickAsync();
+        await Expect(page.Locator("[data-source=\"rooftop-solar-and-battery\"][data-season=\"Summer\"]")).ToBeVisibleAsync();
+
+        await page.Locator("[data-scenario-card][value=\"snow\"]").ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Snow closes the road: what holds, what goes, and when" })).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-hero-scenario]")).ToContainTextAsync("In snow closes the road.");
+
+        // A row opens to its reason.
+        await page.Locator(".board__sheet:not([hidden]) .board__row").First.Locator("summary").ClickAsync();
+        await Expect(page.Locator(".board__sheet:not([hidden]) .board__why").First).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Something_the_household_relies_on_gets_a_row_and_survives_a_reload()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+
+        await page.Locator("#rely-name").FillAsync("Oxygen concentrator");
+        await page.Locator("#rely-watts").FillAsync("300");
+        await page.Locator("#rely-hours").FillAsync("24");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Add it to the board" }).ClickAsync();
+
+        await Expect(page.Locator("[data-rely-list]")).ToContainTextAsync("Oxygen concentrator: 300 W for 24 hours a day");
+        await Expect(page.Locator("[data-board]")).ToContainTextAsync("Oxygen concentrator");
+        await Expect(page.Locator("days-ready")).ToHaveAttributeAsync("value", "0.5");
+
+        await page.ReloadAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-rely-list]")).ToContainTextAsync("Oxygen concentrator");
+        await Expect(page.Locator("days-ready")).ToHaveAttributeAsync("value", "0.5");
     }
 
     [Fact]

@@ -1,0 +1,116 @@
+@using Selficient.Application.Resilience
+@using Selficient.Domain.Resilience
+@model Selficient.Web.Pages.Plan.BoardView
+@{
+    var set = Model.Set;
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+    var rungs = new[] { Rung.Normal, Rung.House, Rung.Function, Rung.Survive };
+    string RungName(Rung rung) => rung switch
+    {
+        Rung.Survive => "Survive",
+        Rung.Function => "Keep going",
+        Rung.House => "Keep the house running",
+        _ => "Carry on as normal",
+    };
+}
+
+<section class="board" aria-labelledby="board-heading" data-board data-days-ready="@set.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)" data-scenario="@set.Scenario.Id" data-scenario-name="@set.Scenario.Name">
+  <p class="eyebrow">The board</p>
+  <h2 id="board-heading">@set.Scenario.Name: what holds, what goes, and when</h2>
+  <p class="board__sentence">@set.Scenario.Sentence</p>
+
+  <form method="post" asp-page="/Plan/Index" class="board__scenarios" data-board-scenarios aria-label="Choose what happens">
+    @* The profile rides along so a choice without script re-renders the plan for it. *@
+    <input type="hidden" name="Form.Scenario" value="@set.Scenario.Id" data-board-scenario>
+    @foreach (var card in set.Cards)
+    {
+      <button type="submit" name="Form.Scenario" value="@card.Id" class="scenario" aria-pressed="@(card.Selected ? "true" : "false")" data-scenario-card>
+        <span class="scenario__name">@card.Name</span>
+        <span class="scenario__days"><span class="data">@card.DaysReady.ToString("0.#", culture)</span> <small>@(card.DaysReady == 1m ? "day" : "days")</small></span>
+      </button>
+    }
+  </form>
+
+  <div class="board__switches">
+    <fieldset class="seg" data-board-sources>
+      <legend>If we had</legend>
+      @foreach (var source in set.Sources)
+      {
+        var id = $"source-{source.Id}";
+        <input type="radio" name="board-source" id="@id" value="@source.Id" class="seg__input" checked="@(source.Id == BoardSet.HouseSource)">
+        <label for="@id" class="seg__pill" title="@source.Sentence">@source.Name</label>
+      }
+    </fieldset>
+    <fieldset class="seg" data-board-seasons>
+      <legend>Season</legend>
+      <input type="radio" name="board-season" id="season-winter" value="Winter" class="seg__input" checked="@(set.Season == Season.Winter)">
+      <label for="season-winter" class="seg__pill">Winter</label>
+      <input type="radio" name="board-season" id="season-summer" value="Summer" class="seg__input" checked="@(set.Season == Season.Summer)">
+      <label for="season-summer" class="seg__pill">Summer</label>
+    </fieldset>
+  </div>
+
+  @foreach (var sheet in set.Boards)
+  {
+    var board = sheet.Board;
+    <div class="board__sheet" data-source="@sheet.SourceId" data-season="@sheet.Season" hidden="@(!(sheet.SourceId == BoardSet.HouseSource && sheet.Season == set.Season))">
+      <div class="board__head" aria-hidden="true">
+        <span class="board__corner"></span>
+        @foreach (var horizon in set.Scenario.Horizons)
+        {
+          <span class="board__col">@BoardComposer.HorizonWords(horizon)</span>
+        }
+      </div>
+      @foreach (var rung in rungs)
+      {
+        var rows = board.Rows.Where(row => row.Rung == rung && row.Needed).ToList();
+        if (rows.Count == 0)
+        {
+          continue;
+        }
+        <div class="board__rung" aria-label="@RungName(rung)">
+          <h3 class="board__rung-name">@RungName(rung)</h3>
+          @foreach (var row in rows)
+          {
+            <details class="board__row">
+              <summary class="board__summary">
+                <span class="board__need">@row.Name</span>
+                @foreach (var cell in row.Cells)
+                {
+                  <span class="cell cell--@cell.State.ToString().ToLowerInvariant()" role="img" aria-label="@Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell)" data-when="@BoardComposer.HorizonWords(cell.Horizon)">
+                    @if (cell.State != CellState.Held && cell.HeldDays > 0)
+                    {
+                      <span class="cell__days data">@cell.HeldDays</span>
+                    }
+                  </span>
+                }
+              </summary>
+              <p class="board__why">@Selficient.Web.Pages.Plan.BoardCopy.Row(row)</p>
+            </details>
+          }
+        </div>
+      }
+      <p class="board__headline">In @set.Scenario.Name.ToLowerInvariant(), with @(set.Sources.First(s => s.Id == sheet.SourceId).Name.ToLowerInvariant()), this house stands on its own for <strong class="data">@Selficient.Web.Pages.Plan.BoardCopy.DaysReady(board.DaysReady)</strong> in @sheet.Season.ToString().ToLowerInvariant().</p>
+    </div>
+  }
+
+  <p class="board__key">
+    <span><i class="cell cell--held" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Held)</span>
+    <span><i class="cell cell--reduced" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Reduced)</span>
+    <span><i class="cell cell--rationed" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Rationed)</span>
+    <span><i class="cell cell--lost" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Lost)</span>
+    <span>A number on a cell is how many days it held before it changed. Tap a row for the reason.</span>
+  </p>
+  @if (!Model.HasOwnRoof)
+  {
+    <p class="board__note">A home battery needs a roof of your own, so it is not among the sources for a flat.</p>
+  }
+
+  @* What each untaken action would turn, for the plan's actions to show; the script moves these under the actions. *@
+  <ul hidden data-board-turns>
+    @foreach (var turn in set.Turns)
+    {
+      <li data-turns-action="@turn.Action.Value">Turns @string.Join(", ", turn.Turns.Take(3))@(turn.Turns.Count > 3 ? $" and {turn.Turns.Count - 3} more" : string.Empty).</li>
+    }
+  </ul>
+</section>

@@ -76,7 +76,9 @@ public sealed partial class PlanPagesTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Headers.CacheControl!.NoStore.ShouldBeTrue();
         html.ShouldContain("NP12, Wales, 232 m above sea level");
-        html.ShouldContain("<days-ready value=\"0.5\"");
+        html.ShouldContain("<days-ready value=\"1\"", customMessage: "the board's storm figure: the fridge and the shops feed one day");
+        html.ShouldContain("A storm takes the power out: what holds, what goes, and when");
+        html.ShouldContain("data-scenario-card");
         html.ShouldContain("data-people=\"4\"");
         html.ShouldContain("data-action-id=\"water-bottled-three-days\"");
         html.ShouldContain("data-action-id=\"arborist-survey\"");

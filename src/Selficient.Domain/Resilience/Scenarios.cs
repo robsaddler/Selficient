@@ -13,10 +13,10 @@ public static class Scenarios
 {
     private const int End = UtilityPhase.ToEnd;
 
-    /// <summary>A winter storm takes the power out. Masts last hours, exchanges run on battery, cash machines and forecourts stop, shops take cash only.</summary>
+    /// <summary>A storm takes the power out, in any season. Masts last hours, exchanges run on battery, cash machines and forecourts stop, shops take cash only.</summary>
     public static Scenario Storm { get; } = new(
         "storm",
-        "A winter storm takes the power out",
+        "A storm takes the power out",
         "Overhead lines come down in the wind and the power is off for the length of the cut. Mobile masts have an hour or so of battery, the exchange a few hours more, cash machines and card terminals stop with the power, and the forecourt pumps do too.",
         Season.Winter,
         [Horizon.OneDay, Horizon.ThreeDays, Horizon.OneWeek, Horizon.TwoWeeks, Horizon.OneMonth],

@@ -6,13 +6,14 @@
  */
 
 const DB_NAME = "selficient";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const CHANNEL = "selficient-plan";
 const LOCK = "selficient-plan-write";
 
 /** @typedef {Record<string, string>} Profile */
 /** @typedef {{ lat: number, lng: number }} House */
-/** @typedef {{ profile: Profile | null, ticks: string[], house?: House | null }} Snapshot */
+/** @typedef {{ name: string, kind: "PoweredDevice" | "Medicine" | "Supply", watts: number, hoursPerDay: number, daysOfStock: number, mustStayCold: boolean }} Dependency */
+/** @typedef {{ profile: Profile | null, ticks: string[], house?: House | null, dependencies?: Dependency[] }} Snapshot */
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
@@ -29,6 +30,10 @@ function open() {
       // Version 2 (M5): where the household put their pin on the map.
       if (!db.objectStoreNames.contains("house")) {
         db.createObjectStore("house");
+      }
+      // Version 3 (M13): the things only this household relies on.
+      if (!db.objectStoreNames.contains("dependencies")) {
+        db.createObjectStore("dependencies");
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -51,7 +56,7 @@ function done(request) {
 
 /**
  * @template T
- * @param {"profile" | "ticks" | "house"} store
+ * @param {"profile" | "ticks" | "house" | "dependencies"} store
  * @param {IDBTransactionMode} mode
  * @param {(store: IDBObjectStore) => IDBRequest<T> | Promise<T>} work
  * @returns {Promise<T>}
@@ -149,13 +154,29 @@ export async function clearAll() {
     await withStore("profile", "readwrite", (s) => s.clear());
     await withStore("ticks", "readwrite", (s) => s.clear());
     await withStore("house", "readwrite", (s) => s.clear());
+    await withStore("dependencies", "readwrite", (s) => s.clear());
+  });
+  announce();
+}
+
+/** @returns {Promise<Dependency[]>} */
+export async function getDependencies() {
+  const value = await withStore("dependencies", "readonly", (s) => s.get("list"));
+  return Array.isArray(value) ? value.filter(isDependency) : [];
+}
+
+/** @param {Dependency[]} dependencies */
+export async function saveDependencies(dependencies) {
+  const kept = dependencies.filter(isDependency).slice(0, 12);
+  await serialised(async () => {
+    await withStore("dependencies", "readwrite", (s) => s.put(kept, "list"));
   });
   announce();
 }
 
 /** @returns {Promise<Snapshot>} */
 export async function snapshot() {
-  return { profile: await getProfile(), ticks: await getTicks(), house: await getHouse() };
+  return { profile: await getProfile(), ticks: await getTicks(), house: await getHouse(), dependencies: await getDependencies() };
 }
 
 /**
@@ -181,6 +202,7 @@ export async function restore(data) {
     if (house) {
       await withStore("house", "readwrite", (s) => s.put({ lat: house.lat, lng: house.lng }, "pin"));
     }
+    await withStore("dependencies", "readwrite", (s) => s.put((data.dependencies ?? []).slice(0, 12), "list"));
   });
   announce();
 }
@@ -233,9 +255,31 @@ export function isSnapshot(value) {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const { profile, ticks, house } = /** @type {{ profile?: unknown, ticks?: unknown, house?: unknown }} */ (value);
+  const { profile, ticks, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
   const profileOk = profile === null || isProfile(profile);
   const ticksOk = Array.isArray(ticks) && ticks.length <= 200 && ticks.every((t) => typeof t === "string" && ID.test(t));
   const houseOk = house === undefined || house === null || isHouse(house);
-  return profileOk && ticksOk && houseOk;
+  const dependenciesOk = dependencies === undefined || (Array.isArray(dependencies) && dependencies.length <= 12 && dependencies.every(isDependency));
+  return profileOk && ticksOk && houseOk && dependenciesOk;
+}
+
+const KINDS = ["PoweredDevice", "Medicine", "Supply"];
+
+/**
+ * Something the household relies on, within the bounds the server also checks, so an imported
+ * file cannot smuggle in a thousand-watt name or a negative stock.
+ * @param {unknown} value
+ * @returns {value is Dependency}
+ */
+export function isDependency(value) {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const d = /** @type {Record<string, unknown>} */ (value);
+  return typeof d.name === "string" && d.name.trim().length > 0 && d.name.length <= 40
+    && typeof d.kind === "string" && KINDS.includes(d.kind)
+    && typeof d.watts === "number" && d.watts >= 0 && d.watts <= 3000
+    && typeof d.hoursPerDay === "number" && d.hoursPerDay >= 0 && d.hoursPerDay <= 24
+    && typeof d.daysOfStock === "number" && Number.isInteger(d.daysOfStock) && d.daysOfStock >= 0 && d.daysOfStock <= 365
+    && typeof d.mustStayCold === "boolean";
 }

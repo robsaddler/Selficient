@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Selficient.Application.Planning;
 using Selficient.Domain.Households;
+using Selficient.Domain.Primitives;
+using Selficient.Domain.Resilience;
 
 namespace Selficient.Web.Pages.Plan;
 
@@ -95,10 +97,113 @@ public sealed class PlanForm
     [Display(Name = "What does the national flood map say about your area?")]
     public FloodRisk FloodRisk { get; set; } = FloodRisk.Unknown;
 
+    /// <summary>A chest freezer as well as the fridge-freezer.</summary>
+    [Display(Name = "Is there a chest freezer as well?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool HasChestFreezer { get; set; }
+
+    /// <summary>A wood or multi-fuel stove in a house heated some other way.</summary>
+    [Display(Name = "Is there a wood or multi-fuel stove, even if it is not the main heating?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool HasWoodStove { get; set; }
+
+    /// <summary>A water butt.</summary>
+    [Display(Name = "Is there a water butt?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool HasWaterButt { get; set; }
+
+    /// <summary>Whether the household grows food.</summary>
+    [EnumDataType(typeof(Growing), ErrorMessage = "Choose from the list.")]
+    [Display(Name = "Do you grow any food?")]
+    public Growing? Growing { get; set; }
+
+    /// <summary>What kind of car, when there is one.</summary>
+    [EnumDataType(typeof(CarKind), ErrorMessage = "Choose the kind of car from the list.")]
+    [Display(Name = "If there is a car, what kind?")]
+    public CarKind? Car { get; set; }
+
+    /// <summary>Children under two.</summary>
+    [Range(0, 20, ErrorMessage = "The number of infants must be between zero and the number of children.")]
+    [Display(Name = "How many of the children are under two?")]
+    public int? Infants { get; set; }
+
+    /// <summary>Days of regular medicines in the house.</summary>
+    [Range(0, 365, ErrorMessage = "Days of medicines must be between 0 and 365.")]
+    [Display(Name = "How many days of regular medicines are in the house?")]
+    public int? MedicineDaysInStock { get; set; } = 7;
+
+    /// <summary>The floor, for a flat.</summary>
+    [Range(0, 40, ErrorMessage = "The floor must be between 0 for the ground floor and 40.")]
+    [Display(Name = "If it is a flat, which floor is it on? Ground is 0.")]
+    public int? Floor { get; set; }
+
+    /// <summary>The things only this household relies on.</summary>
+    public List<DependencyForm> Dependencies { get; init; } = [];
+
+    /// <summary>Which scenario the board shows; empty for the most likely one.</summary>
+    [StringLength(20, ErrorMessage = "That is not one of the scenarios.")]
+    public string? Scenario { get; set; }
+
+    /// <summary>Which season the board shows; empty for the scenario's own.</summary>
+    [EnumDataType(typeof(Season), ErrorMessage = "Choose winter or summer.")]
+    public Season? Season { get; set; }
+
     /// <summary>The request for the Application layer.</summary>
     public PlanHouseholdRequest ToRequest() => new(
         Postcode,
         new GeneratePlanCommand(People, Children, HasVulnerablePerson, HasPets, RunsBusinessFromHome, DwellingType, Storeys, Heating, Hob, HasCar, HasGarden, HasDecking, HasTallTreeNearHouse, null, FloodRisk));
+
+    /// <summary>
+    /// The household as the resilience engine sees it. The newer questions are optional so a profile
+    /// saved before they existed still posts: a car with no kind given is petrol, no growing, no
+    /// infants, a week of medicines, the ground floor.
+    /// </summary>
+    public Result<ResilienceProfile> ToResilienceProfile(HouseholdProfile profile)
+    {
+        List<Dependency> dependencies = [];
+        foreach (DependencyForm row in Dependencies)
+        {
+            if (row.IsBlank)
+            {
+                continue;
+            }
+
+            Result<Dependency> dependency = row.ToDependency();
+            if (dependency.IsFailure)
+            {
+                return Result.Failure<ResilienceProfile>(dependency.Error);
+            }
+
+            dependencies.Add(dependency.Value);
+        }
+
+        CarKind car = !HasCar ? CarKind.None : Car is null or CarKind.None ? CarKind.Petrol : Car.Value;
+        return ResilienceProfile.Create(profile, HasChestFreezer, HasWoodStove, HasWaterButt, Growing ?? Selficient.Domain.Resilience.Growing.None, car, Infants ?? 0, MedicineDaysInStock ?? 7, DwellingType == DwellingType.Flat ? Floor ?? 0 : 0, dependencies);
+    }
+
+    /// <summary>The kinds of car.</summary>
+    public static IReadOnlyList<SelectListItem> CarKinds { get; } =
+    [
+        new("Petrol or diesel", nameof(CarKind.Petrol)),
+        new("Electric", nameof(CarKind.Electric)),
+        new("Electric, and it can power things (vehicle-to-load or vehicle-to-home)", nameof(CarKind.ElectricWithOutput)),
+    ];
+
+    /// <summary>Whether and how the household grows food.</summary>
+    public static IReadOnlyList<SelectListItem> GrowingKinds { get; } =
+    [
+        new("No", nameof(Selficient.Domain.Resilience.Growing.None)),
+        new("Raised beds or a vegetable patch", nameof(Selficient.Domain.Resilience.Growing.RaisedBeds)),
+        new("An allotment", nameof(Selficient.Domain.Resilience.Growing.Allotment)),
+    ];
+
+    /// <summary>The kinds of thing a household relies on.</summary>
+    public static IReadOnlyList<SelectListItem> DependencyKinds { get; } =
+    [
+        new("A device that needs power", nameof(DependencyKind.PoweredDevice)),
+        new("A medicine", nameof(DependencyKind.Medicine)),
+        new("A supply, such as formula or stoma bags", nameof(DependencyKind.Supply)),
+    ];
 
     /// <summary>Options for the selects, in the interface's voice.</summary>
     public static IReadOnlyList<SelectListItem> DwellingTypes { get; } =

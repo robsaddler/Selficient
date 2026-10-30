@@ -34,6 +34,9 @@ public sealed class PlanTests
     public void Action_ids_refuse_null()
     {
         Should.Throw<ArgumentNullException>(() => ActionId.From(null!));
+        ActionId.IsValid(null).ShouldBeFalse();
+        ActionId.IsValid("water-cans").ShouldBeTrue();
+        ActionId.IsValid("Water Cans").ShouldBeFalse();
     }
 
     [Fact]

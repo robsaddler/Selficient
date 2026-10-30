@@ -38,6 +38,9 @@ public readonly partial record struct ActionId
             : throw new ArgumentException("An action id is lower-case words joined by hyphens.", nameof(value));
     }
 
+    /// <summary>Whether a string is shaped like an action id, for input that arrives from a browser.</summary>
+    public static bool IsValid(string? value) => value is not null && KebabCase().IsMatch(value);
+
     [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
     private static partial Regex KebabCase();
 }

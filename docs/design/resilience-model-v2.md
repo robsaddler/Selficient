@@ -38,7 +38,7 @@ The things that come into a house from outside and can stop. A closed list, beca
 A scenario is a name, a sentence, a likelihood for this household (from the risk assessors we have), and a **timeline of utility states**: for each utility, when it fails and when it returns, allowed to be intermittent and to degrade rather than stop.
 
 ```
-Scenario "A winter storm takes the power out"
+Scenario "A storm takes the power out"
   Electricity:    off from hour 0, back at the horizon (the user picks: 1 day .. 2 weeks)
   MobileNetwork:  degraded from hour 1 (mast batteries), off from hour 6, back with electricity
   FixedInternet:  off with electricity (the router), exchange back with electricity
