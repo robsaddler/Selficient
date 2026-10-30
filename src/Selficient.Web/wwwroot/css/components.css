@@ -1496,13 +1496,17 @@ progress.tier-progress {
   }
 }
 
-/* Use my location: a quiet button under the postcode box and the sentence it leaves */
-.locate {
-  margin-block-start: var(--space-2);
+/* Use my location: the button first, then "or", then the postcode box, and the sentence it leaves beneath */
+.locate-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
+}
+
+.locate-row__or {
+  font-weight: 600;
+  color: var(--c-ink-muted);
 }
 
 .locate__status {

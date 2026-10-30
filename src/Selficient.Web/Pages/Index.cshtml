@@ -22,11 +22,12 @@
     <p class="hero__lede">That is a typical house when a storm takes the power out: the tap keeps running, the fridge and the cupboard last a day, then the shops want cash. Three days is the government's ask. Seven is where a storm becomes an inconvenience rather than a crisis. A minute of questions tells you where yours stands and what closes the gap.</p>
     @await Html.PartialAsync("_Strip", Model.Bars)
     <form class="hero__start" method="get" action="/plan/start">
-      <label for="hero-postcode">Start with your postcode, or let your phone find it</label>
-      <div class="hero__start-row">
-        <input id="hero-postcode" name="postcode" class="input" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="CF10 1EP">
+      <label for="hero-postcode">Start with where you are, or with your postcode</label>
+      <div class="hero__start-row locate-row">
+        <button type="button" class="button button--locate" data-locate data-locate-for="#hero-postcode" data-locate-status="#hero-locate-status" data-locate-submit><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button>
+        <span class="locate-row__or" aria-hidden="true">or</span>
+        <input id="hero-postcode" name="postcode" class="input" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="Enter postcode">
         <button type="submit" class="button button--primary">Start your plan</button>
-        <button type="button" class="button button--locate" data-locate data-locate-for="#hero-postcode" data-locate-status="#hero-locate-status" data-locate-submit hidden><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button>
       </div>
       <p id="hero-locate-status" class="locate__status" role="status" hidden></p>
     </form>

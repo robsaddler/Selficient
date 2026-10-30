@@ -37,6 +37,12 @@
     font-family: var(--font-data);
     font-size: var(--text-l);
     text-transform: uppercase;
+
+    &::placeholder {
+      text-transform: none;
+      font-family: var(--font-body);
+      font-size: var(--text-m);
+    }
   }
 }
 

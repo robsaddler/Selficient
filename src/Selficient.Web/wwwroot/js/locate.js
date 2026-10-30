@@ -10,16 +10,20 @@
  * @param {Document} doc
  */
 export function initLocate(doc) {
-  if (!("geolocation" in navigator)) {
-    return;
-  }
   for (const button of doc.querySelectorAll("[data-locate]")) {
     if (!(button instanceof HTMLButtonElement)) {
       continue;
     }
-    button.hidden = false;
     button.addEventListener("click", () => {
-      void locate(doc, button);
+      if ("geolocation" in navigator) {
+        void locate(doc, button);
+      } else {
+        const status = doc.querySelector(button.dataset.locateStatus ?? "");
+        if (status instanceof HTMLElement) {
+          status.textContent = "This browser cannot share its location. Type the postcode instead.";
+          status.hidden = false;
+        }
+      }
     });
   }
 }

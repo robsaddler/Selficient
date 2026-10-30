@@ -62,9 +62,13 @@ else if (Model.RoofNotice is { } notice)
       <legend>Where the roof is</legend>
       <div class="field">
         <label asp-for="Form.Postcode"></label>
-        <input asp-for="Form.Postcode" class="input input--short" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false">
+        <div class="locate-row">
+          <button type="button" class="button button--locate" data-locate data-locate-for="#Form_Postcode" data-locate-status="#solar-locate-status"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button>
+          <span class="locate-row__or" aria-hidden="true">or</span>
+          <input asp-for="Form.Postcode" class="input input--short" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="Enter postcode">
+        </div>
         <span asp-validation-for="Form.Postcode" class="field__error"></span>
-        <p class="locate"><button type="button" class="button button--quiet" data-locate data-locate-for="#Form_Postcode" data-locate-status="#solar-locate-status" hidden><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button> <span id="solar-locate-status" class="locate__status" role="status" hidden></span></p>
+        <p id="solar-locate-status" class="locate__status" role="status" hidden></p>
       </div>
       @if (Model.RoofLookupOffered)
       {

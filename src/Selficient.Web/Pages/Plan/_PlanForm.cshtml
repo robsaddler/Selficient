@@ -30,9 +30,13 @@
     <legend>Where you are</legend>
     <div class="field">
       <label asp-for="Postcode"></label>
-      <input asp-for="Postcode" class="input input--short" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false">
+      <div class="locate-row">
+        <button type="button" class="button button--locate" data-locate data-locate-for="#Form_Postcode" data-locate-status="#wizard-locate-status"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button>
+        <span class="locate-row__or" aria-hidden="true">or</span>
+        <input asp-for="Postcode" class="input input--short" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="Enter postcode">
+      </div>
       <span asp-validation-for="Postcode" class="field__error"></span>
-      <p class="locate"><button type="button" class="button button--quiet" data-locate data-locate-for="#Form_Postcode" data-locate-status="#wizard-locate-status" hidden><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-locate"/></svg>Use my location</button> <span id="wizard-locate-status" class="locate__status" role="status" hidden></span></p>
+      <p id="wizard-locate-status" class="locate__status" role="status" hidden></p>
     </div>
   </fieldset>
 
