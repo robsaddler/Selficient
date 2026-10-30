@@ -135,3 +135,7 @@ Rob put the demo page beside the build and found the build thinner: outlines whe
 ### Third pass: daylight is daylight
 
 Rob, on the light theme: "Doesn't change most of the homepage." He was right. The night hero, the plan's night panel and the closing band stayed night in both themes, which this document asked for, and on a light page it read as a theme that had not finished flipping. Changed: every surface now follows the theme. In daylight the hero and the panel are paper with the contour rings and a deep-amber figure, the kitchen table is drawn in slate, and the closing band is a bordered paper card; in the dark they are the night this document drew, glow and all. The roofline header and footer stay slate in both, as a frame. The thesis survives where it was meant to live, which is the dark theme, and the light theme is a whole light theme.
+
+### Fourth pass: the roofline is a dark-theme thing
+
+Rob asked whether the header and footer staying slate in daylight was a bug or a choice. It was a choice, the last one left from this document, and once the hero was paper it had lost its argument: a dark bar top and bottom of a light page. Both now follow the theme, paper with a slate rule in daylight and the roofline in the dark. The light theme has no dark surface left on it.

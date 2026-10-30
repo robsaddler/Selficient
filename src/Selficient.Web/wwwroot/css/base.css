@@ -72,12 +72,11 @@ code {
   background: var(--c-lantern-tint);
 }
 
-/* The roofline: slate across the top in both themes, with the mark and the wordmark on it */
+/* The header: paper with a slate rule in daylight, the roofline in the dark, with the mark and the wordmark on it */
 .site-header {
-  background: var(--c-roof);
-  color: var(--c-on-roof);
-  color-scheme: dark;
-  border-block-end: 1px solid var(--c-on-roof-line);
+  background: light-dark(var(--c-paper), var(--c-roof));
+  color: light-dark(var(--c-ink), var(--c-on-roof));
+  border-block-end: 2px solid light-dark(var(--c-contour), var(--c-on-roof-line));
 }
 
 .site-header__inner {
@@ -101,7 +100,7 @@ code {
   font-size: 1.35rem;
   letter-spacing: -0.01em;
   text-decoration: none;
-  color: var(--c-on-roof);
+  color: light-dark(var(--c-ink), var(--c-on-roof));
 }
 
 .mark {
@@ -118,10 +117,10 @@ code {
   & a {
     text-decoration: none;
     font-weight: 500;
-    color: var(--c-on-roof);
+    color: light-dark(var(--c-ink), var(--c-on-roof));
 
     &:hover {
-      color: var(--c-on-roof-link);
+      color: light-dark(var(--c-pine), var(--c-on-roof-link));
     }
   }
 }
@@ -133,11 +132,11 @@ code {
   padding-inline: var(--gutter);
 }
 
-/* The footer is the roofline again, so the page is held between two slates */
+/* The footer matches the header, so in the dark the page is held between two slates */
 .site-footer {
-  background: var(--c-roof);
-  color: var(--c-on-roof-muted);
-  color-scheme: dark;
+  background: light-dark(var(--c-paper), var(--c-roof));
+  color: light-dark(var(--c-ink-muted), var(--c-on-roof-muted));
+  border-block-start: 2px solid light-dark(var(--c-contour), transparent);
   font-size: var(--text-s);
 }
 
@@ -154,11 +153,11 @@ code {
   }
 
   & a {
-    color: var(--c-on-roof-link);
+    color: light-dark(var(--c-pine), var(--c-on-roof-link));
   }
 
   & .button--quiet {
-    color: var(--c-on-roof-link);
+    color: light-dark(var(--c-pine), var(--c-on-roof-link));
   }
 }
 
@@ -170,7 +169,7 @@ code {
 
 .site-footer__made {
   padding-block-start: var(--space-4);
-  border-block-start: 1px solid var(--c-on-roof-line);
+  border-block-start: 1px solid light-dark(var(--c-contour), var(--c-on-roof-line));
 }
 
 .skip-link {
