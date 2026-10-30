@@ -18,7 +18,7 @@
 
 | # | Task | Why | Done when |
 |---|---|---|---|
-| A | Check `https://github.com/robsaddler/Selficient` holds `main` with every milestone commit through M10 | The push went through from the M4 commit onwards (the earlier permission block lifted), so this is a check rather than a task | The latest commit on GitHub matches `git log -1` locally and the M10 Actions run is green on the build job |
+| A | Check `https://github.com/robsaddler/Selficient` holds `main` with every milestone commit through M15 | Every milestone from M4 on was pushed as it finished; this is a check rather than a task. The build job is green on each run; the deploy job sits pending until the runner in item 8 exists, and each new push cancels the previous pending deploy | The latest commit on GitHub matches `git log -1` locally and the M15 Actions run is green on the build job |
 | B | Delete or archive the earlier `Dev-Studios-Ltd/Selficient` repository | It was created before you named the personal one and holds the plan and M0 only | Repository gone or archived |
 | C | Optionally allow `git push` in the Claude Code settings for this folder | So later sessions can push without stopping | A `Bash(git push:*)` allow rule in `.claude/settings.local.json` |
 

@@ -1,3 +1,8 @@
+| M11 | Design pass | The desktop the design direction drew: roofline header and mark, two-column hero, plan as panel beside sheet, screenshot journey at both widths and themes | Every page looks designed at 1440 px and 390 px in both themes; `artifacts/screens` on every E2E run |
+| M12 | Engine v2 | Utilities, scenarios, needs on rungs, providers with sources, dependencies, the day-by-day simulation; Days Ready as the first Survive failure | Rob's house stands a day in a storm with nothing done; FsCheck invariants hold; the board under 1 ms |
+| M13 | The board | Scenario cards, sources and seasons on the plan, the fragment redraw, what you rely on, the newer wizard questions | A tick moves the figure and the cells without a reload; a dependency gets a row and survives a reload |
+| M14 | The look | Night hero and glow, the strip, the SVG marks and still lifes, one orchestrated moment | The landing figure and strip are the engine's; every need and source has a mark; Lighthouse holds at 99 |
+| M15 | Sweep and handover | Adversarial and load pass over M13 and M14, the board's own rate bucket, one sheet a request, the harness fixed | All five load targets met; audits clean; handover current |
 # Selficient v1 — build plan
 
 *Draft 1, 29 October 2026. Governs the build. Companion documents: [spec](../product/spec-v1.md), [design direction](../product/design-direction.md), [naming](../product/naming-and-domains.md), [resilience plan](household-resilience-plan.md) (the content seed).*
