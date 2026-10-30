@@ -368,8 +368,11 @@
     font-size: var(--text-l);
   }
 
+  /* The location row, and the consent panel under it, take the whole width; a short box alone does not. */
   & .field--check,
   & .field:has(select),
+  & .field:has(.locate-row),
+  & .consent,
   & .field:has(.input:not(.input--short)) {
     grid-column: 1 / -1;
   }
