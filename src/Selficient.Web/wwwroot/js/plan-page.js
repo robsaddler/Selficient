@@ -48,6 +48,10 @@ export async function initPlanPage(doc) {
     void exportPlan(doc);
   });
 
+  doc.querySelector("[data-clear-plan]")?.addEventListener("click", () => {
+    void store.clearAll().then(() => window.location.assign("/"));
+  });
+
   // A tick made before this point was not heard; the attribute says the page now remembers.
   plan.setAttribute("data-plan-ready", "");
 }

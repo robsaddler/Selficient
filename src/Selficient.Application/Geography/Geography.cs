@@ -35,6 +35,13 @@ public interface IGeocoder
     Task<Result<Locality>> LocateAsync(Postcode postcode, CancellationToken cancellationToken);
 }
 
+/// <summary>Finds the postcode nearest a point, for a household that would rather share its location than type.</summary>
+public interface IReverseGeocoder
+{
+    /// <summary>The nearest postcode, or why there is none.</summary>
+    Task<Result<Postcode>> NearestAsync(Coordinates point, CancellationToken cancellationToken);
+}
+
 /// <summary>Finds how high a point is.</summary>
 public interface IElevationProvider
 {

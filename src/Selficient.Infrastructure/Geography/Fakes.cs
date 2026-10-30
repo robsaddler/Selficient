@@ -69,3 +69,27 @@ public sealed class FakeElevationProvider : IElevationProvider
         return Task.FromResult(Elevation.Create(metres));
     }
 }
+
+/// <summary>
+/// The nearest postcode without a network: anywhere plausible is Rob's house, so the wizard that
+/// follows knows the place; Shetland's sea answers with no postcode, and one point off the Hebrides
+/// answers as an outage, so both sentences can be seen.
+/// </summary>
+public sealed class FakeReverseGeocoder : IReverseGeocoder
+{
+    /// <inheritdoc />
+    public Task<Result<Postcode>> NearestAsync(Coordinates point, CancellationToken cancellationToken)
+    {
+        if (point is { Latitude: 60.0, Longitude: -1.0 })
+        {
+            return Task.FromResult(Result.Failure<Postcode>(DomainErrors.NoPostcodeHere()));
+        }
+
+        if (point is { Latitude: 58.0, Longitude: -8.0 })
+        {
+            return Task.FromResult(Result.Failure<Postcode>(DomainErrors.LookupUnavailable()));
+        }
+
+        return Task.FromResult(Postcode.Create("NP12 1GW"));
+    }
+}

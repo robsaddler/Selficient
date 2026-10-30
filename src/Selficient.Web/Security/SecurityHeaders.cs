@@ -42,7 +42,7 @@ public static class SecurityHeaders
 
             headers[HeaderNames.XContentTypeOptions] = "nosniff";
             headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-            headers["Permissions-Policy"] = "camera=(self), geolocation=(), microphone=(), payment=(), usb=()";
+            headers["Permissions-Policy"] = "camera=(self), geolocation=(self), microphone=(), payment=(), usb=()";
             headers["Cross-Origin-Opener-Policy"] = "same-origin";
             headers["Cross-Origin-Resource-Policy"] = "same-origin";
             headers["X-Frame-Options"] = "DENY";

@@ -42,6 +42,7 @@ public sealed partial class SolarPageTests : IDisposable
         html.ShouldContain("class=\"compass__rose\"");
         html.ShouldContain("id=\"aspect-SouthWest\"");
         html.ShouldContain("Let an aerial survey measure the roof");
+        html.ShouldContain("data-locate-for=\"#Form_Postcode\"", customMessage: "the estimator offers the location beside its postcode box");
         html.ShouldContain("name=\"consent\"");
         html.ShouldContain("Estimate it</button>");
         html.ShouldNotContain("AIza");

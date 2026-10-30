@@ -27,6 +27,10 @@ public sealed partial class KitPicksTests : IDisposable
         html.ShouldContain("Roberts SolarDAB 99 with crank, solar and USB-C");
         html.ShouldContain("seen 29 Oct 2026");
         html.ShouldContain("some links earn Selficient a small commission at no cost to you");
+        html.ShouldContain("Cheapest first. Each does what the action asks; the dearer ones last longer or do more.");
+        html.ShouldContain("<span class=\"pick__value\">Lowest price that does the job</span>");
+        html.ShouldContain("href=\"https://www.amazon.co.uk/s?k=Petzl", customMessage: "a link opens the shop's search for the item, not its homepage; Razor encodes the plus signs that follow");
+        html.ShouldNotContain("href=\"https://www.amazon.co.uk/\"");
         MatchCollection links = OutboundLinks().Matches(html);
         links.Count.ShouldBeGreaterThan(20);
         foreach (Match link in links)

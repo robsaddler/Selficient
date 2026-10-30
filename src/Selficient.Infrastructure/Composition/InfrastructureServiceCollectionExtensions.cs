@@ -104,6 +104,7 @@ public static class InfrastructureServiceCollectionExtensions
         if (useFakes)
         {
             services.AddSingleton<IGeocoder, FakeGeocoder>();
+            services.AddSingleton<IReverseGeocoder, FakeReverseGeocoder>();
             services.AddSingleton<IElevationProvider, FakeElevationProvider>();
             services.AddSingleton<ISolarYieldProvider, FakeSolarYieldProvider>();
             services.AddSingleton<IRoofInsightsProvider, FakeRoofInsights>();
@@ -140,10 +141,13 @@ public static class InfrastructureServiceCollectionExtensions
         }
 
         AddUpstreamClient<PostcodesIoGeocoder>(services, static o => o.PostcodesBaseUrl);
+        AddUpstreamClient<PostcodesIoReverseGeocoder>(services, static o => o.PostcodesBaseUrl);
         AddUpstreamClient<OpenMeteoElevationProvider>(services, static o => o.ElevationBaseUrl);
         AddUpstreamClient<PvgisYieldProvider>(services, static o => o.PvgisBaseUrl);
 
         services.AddSingleton<IGeocoder>(static provider => new CachedGeocoder(provider.GetRequiredService<PostcodesIoGeocoder>(), provider.GetRequiredService<HybridCache>()));
+        // Not cached: a location is a point, not a key anyone types twice, and keeping it anywhere is the thing we promised not to do.
+        services.AddSingleton<IReverseGeocoder>(static provider => provider.GetRequiredService<PostcodesIoReverseGeocoder>());
         services.AddSingleton<IElevationProvider>(static provider => new CachedElevationProvider(provider.GetRequiredService<OpenMeteoElevationProvider>(), provider.GetRequiredService<HybridCache>()));
         services.AddSingleton<ISolarYieldProvider>(static provider => new CachedSolarYieldProvider(provider.GetRequiredService<PvgisYieldProvider>(), provider.GetRequiredService<HybridCache>()));
 

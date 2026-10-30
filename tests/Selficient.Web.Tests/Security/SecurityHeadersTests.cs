@@ -33,7 +33,7 @@ public sealed partial class SecurityHeadersTests : IDisposable
         Header(response, "Content-Security-Policy").ShouldMatch("script-src 'self' 'nonce-[A-Za-z0-9_-]+'");
         Header(response, "X-Content-Type-Options").ShouldBe("nosniff");
         Header(response, "Referrer-Policy").ShouldBe("strict-origin-when-cross-origin");
-        Header(response, "Permissions-Policy").ShouldContain("geolocation=()");
+        Header(response, "Permissions-Policy").ShouldContain("geolocation=(self)", customMessage: "the page may ask for the location for the postcode box, and no frame may");
         Header(response, "Cross-Origin-Opener-Policy").ShouldBe("same-origin");
         Header(response, "Cross-Origin-Resource-Policy").ShouldBe("same-origin");
         Header(response, "X-Frame-Options").ShouldBe("DENY");

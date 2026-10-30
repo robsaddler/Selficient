@@ -76,5 +76,6 @@ public sealed record ElevationEnvelope([property: JsonPropertyName("elevation")]
 /// <summary>Source-generated serializer context so deserialisation is trim-safe and reflection-free.</summary>
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(PostcodeEnvelope))]
+[JsonSerializable(typeof(NearestEnvelope))]
 [JsonSerializable(typeof(ElevationEnvelope))]
 public sealed partial class UpstreamJson : JsonSerializerContext;

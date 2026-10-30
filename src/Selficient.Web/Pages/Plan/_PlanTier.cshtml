@@ -43,11 +43,16 @@
           {
             <details class="picks">
               <summary>Where to look</summary>
+              <p class="picks__how">Cheapest first. Each does what the action asks; the dearer ones last longer or do more. A link opens the shop's own search for the item, so it does not go stale, and the price is what we saw on the date given.</p>
               <ul class="picks__list">
-                @foreach (var pick in picks)
+                @foreach (var (pick, position) in picks.Select((item, at) => (item, at)))
                 {
                   <li class="pick">
                     <a href="@pick.Link" rel="sponsored noopener noreferrer" target="_blank">@pick.Name</a>
+                    @if (position == 0 && picks.Count > 1)
+                    {
+                      <span class="pick__value">Lowest price that does the job</span>
+                    }
                     <span class="pick__meta">@pick.Retailer, <span class="data">@MoneyFormat.Amount(pick.Price)</span>, seen @pick.Seen.ToString("d MMM yyyy", gb)</span>
                     @if (pick.Note.Length > 0)
                     {

@@ -1491,4 +1491,63 @@ progress.tier-progress {
     fill: oklch(97% 0.04 85);
   }
 }
+
+/* Use my location: a quiet button under the postcode box and the sentence it leaves */
+.locate {
+  margin-block-start: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.locate__status {
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+/* Clearing the plan: folded away, with its sentence, and a button that looks like what it does */
+.clear {
+  margin-block-start: var(--space-5);
+  max-inline-size: var(--measure);
+
+  & summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  & p {
+    margin-block-start: var(--space-3);
+  }
+}
+
+.button--danger {
+  background: var(--c-ember);
+  border-color: var(--c-ember);
+  color: oklch(98% 0 0);
+
+  &:hover {
+    background: color-mix(in oklab, var(--c-ember) 85%, var(--c-slate));
+    border-color: color-mix(in oklab, var(--c-ember) 85%, var(--c-slate));
+  }
+}
+
+/* Picks: how the list works, and the cheapest that does the job */
+.picks__how {
+  margin-block: var(--space-2) var(--space-3);
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+}
+
+.pick__value {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--c-pine-tint);
+  color: var(--c-pine);
+  font-size: var(--text-s);
+  font-weight: 600;
+}
 }

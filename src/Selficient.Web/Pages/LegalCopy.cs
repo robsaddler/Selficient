@@ -19,6 +19,7 @@ public static class LegalCopy
     public static IReadOnlyList<(string Service, string Receives, string Purpose)> Upstreams { get; } =
     [
         ("postcodes.io", "your postcode", "to find your area, your nation and the coordinates of your postcode's centre"),
+        ("postcodes.io", "your location, rounded to about ten metres, only when you press \"Use my location\"", "to find the postcode you are standing in and put it in the box for you; it is not kept"),
         ("Open-Meteo", "the coordinates of your postcode's centre", "to find your height above sea level"),
         ("PVGIS, from the European Commission", "the coordinates of your postcode's centre, your roof's direction and pitch", "to find what a kilowatt of panels would make on your roof, only when you use the solar estimator"),
         ("Google Solar API", "the coordinates of your postcode's centre", "to describe the slopes of the nearest roof, only when you tick the consent box on the solar estimator and only if this site has a key for it"),

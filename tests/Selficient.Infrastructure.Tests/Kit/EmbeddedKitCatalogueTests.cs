@@ -29,6 +29,21 @@ public sealed class EmbeddedKitCatalogueTests
     }
 
     [Fact]
+    public void No_pick_links_to_a_bare_homepage()
+    {
+        EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(new AffiliateOptions { AmazonTag = "selficient-21" });
+
+        foreach (KitPick pick in catalogue.All)
+        {
+            (pick.Link.AbsolutePath.Length > 1 || pick.Link.Query.Length > 0).ShouldBeTrue($"{pick.Name} links to {pick.Link}, which is a homepage and not the item");
+        }
+
+        KitPick amazon = catalogue.All.First(pick => pick.Link.Host == "www.amazon.co.uk");
+        amazon.Link.Query.ShouldStartWith("?k=");
+        amazon.Link.Query.ShouldEndWith("&tag=selficient-21");
+    }
+
+    [Fact]
     public void Every_pick_names_a_real_action()
     {
         HashSet<string> known = EveryActionId();

@@ -41,6 +41,10 @@ public static class DomainErrors
     public static Fault PostcodeNotFound() =>
         new("postcode.not-found", "We couldn't find that postcode. Check it and try again.");
 
+    /// <summary>A location with no postcode near it: at sea, abroad, or too far from any address.</summary>
+    public static Fault NoPostcodeHere() =>
+        new("postcode.none-here", "We couldn't find a postcode where you are. Type it in instead.");
+
     /// <summary>The lookup service did not answer in time.</summary>
     public static Fault LookupUnavailable() =>
         new("lookup.unavailable", "We couldn't reach the postcode service just now. Wait a moment and try again.");

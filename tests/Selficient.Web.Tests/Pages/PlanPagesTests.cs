@@ -44,6 +44,8 @@ public sealed partial class PlanPagesTests : IDisposable
 
         string html = await client.GetStringAsync(new Uri("/plan/start", UriKind.Relative));
 
+        html.ShouldContain("data-locate-for=\"#Postcode\"", customMessage: "the wizard offers the location beside its postcode box");
+
         html.ShouldContain("How many people live in your home?");
         html.ShouldContain("Is there a tree tall enough to reach the house if it fell?");
         html.ShouldContain("name=\"Form.FloodRisk\"");
@@ -78,6 +80,9 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("NP12, Wales, 232 m above sea level");
         html.ShouldContain("<days-ready value=\"1\"", customMessage: "the board's storm figure: the fridge and the shops feed one day");
         html.ShouldContain("A storm takes the power out: what holds, what goes, and when");
+        html.ShouldContain("<summary>Clear my plan from this browser</summary>");
+        html.ShouldContain("This removes your answers, your ticks, the pin on the map and what you rely on from this browser. Export a file first if you want them back. Your theme choice stays.");
+        html.ShouldContain("data-clear-plan>Clear it</button>");
         html.ShouldContain("data-scenario-card");
         html.ShouldContain("data-people=\"4\"");
         html.ShouldContain("data-action-id=\"water-bottled-three-days\"");

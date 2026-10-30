@@ -178,6 +178,40 @@ public sealed class Journeys
     }
 
     [Fact]
+    public async Task Use_my_location_fills_the_postcode_box()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        await context.GrantPermissionsAsync(["geolocation"]);
+        await context.SetGeolocationAsync(new Geolocation { Latitude = 51.6655f, Longitude = -3.2031f });
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+
+        ILocator button = page.GetByRole(AriaRole.Button, new() { Name = "Use my location" });
+        await Expect(button).ToBeVisibleAsync();
+        await button.ClickAsync();
+
+        await Expect(page.Locator("#hero-postcode")).ToHaveValueAsync("NP12 1GW");
+        await Expect(page.Locator("#hero-locate-status")).ToHaveTextAsync("Your postcode is NP12 1GW. Check it and carry on.");
+    }
+
+    [Fact]
+    public async Task Clearing_the_plan_empties_this_browser()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        await page.Locator("[data-action-id=\"headtorches\"]").CheckAsync();
+
+        await page.Locator(".clear summary").ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Clear it" }).ClickAsync();
+        await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/");
+
+        await page.GotoAsync("/plan");
+        await Expect(page.Locator("[data-resubmit]")).ToBeAttachedAsync();
+        await Expect(page.Locator("[data-plan]")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task The_install_button_is_hidden_where_the_browser_cannot_install()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();
