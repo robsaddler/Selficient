@@ -1,0 +1,28 @@
+@page "/plan/explain"
+@model Selficient.Web.Pages.Plan.ExplainModel
+@{
+    ViewData["Title"] = "Your plan in plain words";
+    ViewData["Description"] = "Why the risks come first, what the first week buys, and what the later actions add, in plain words.";
+}
+
+<section class="wizard" aria-labelledby="explain-heading">
+  <p class="eyebrow">Your plan, explained</p>
+  <h1 id="explain-heading">Why your plan looks the way it does</h1>
+  @if (Model.Narrative is { } narrative)
+  {
+    <div class="narrative">
+      @foreach (var paragraph in narrative.Paragraphs)
+      {
+        <p>@paragraph</p>
+      }
+    </div>
+    <p class="disclosure">Written by a language model from your plan's own text. It explains the plan; it never changes a figure, an action or a cost. If anything here contradicts the plan itself, the plan is right.</p>
+  }
+  else
+  {
+    <p class="callout callout--warning" role="alert">@Model.Notice</p>
+  }
+  <p class="cluster">
+    <a class="button" href="/plan">Back to your plan</a>
+  </p>
+</section>

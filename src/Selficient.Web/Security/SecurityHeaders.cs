@@ -9,23 +9,27 @@ namespace Selficient.Web.Security;
 public static class SecurityHeaders
 {
     /// <summary>
-    /// The policy with the nonce substituted. No inline anything, no third-party origins; the
-    /// Google panel in the solar estimator will add its origins on that page alone.
+    /// The policy with the nonce substituted. No inline anything, no third-party origins, except the
+    /// one connect source the photos page adds when a household uses their own key.
     /// </summary>
-    internal static string ContentSecurityPolicy(string nonce) =>
-        "default-src 'self'; " +
-        $"script-src 'self' 'nonce-{nonce}'; " +
-        "style-src 'self'; " +
-        "img-src 'self' data: blob:; " +
-        "font-src 'self'; " +
-        "connect-src 'self'; " +
-        "manifest-src 'self'; " +
-        "worker-src 'self'; " +
-        "frame-ancestors 'none'; " +
-        "base-uri 'self'; " +
-        "form-action 'self'; " +
-        "object-src 'none'; " +
-        "upgrade-insecure-requests";
+    internal static string ContentSecurityPolicy(string nonce, IReadOnlyList<string> extraConnect)
+    {
+        ArgumentNullException.ThrowIfNull(extraConnect);
+        string connect = extraConnect.Count == 0 ? "'self'" : "'self' " + string.Join(' ', extraConnect);
+        return "default-src 'self'; " +
+            $"script-src 'self' 'nonce-{nonce}'; " +
+            "style-src 'self'; " +
+            "img-src 'self' data: blob:; " +
+            "font-src 'self'; " +
+            $"connect-src {connect}; " +
+            "manifest-src 'self'; " +
+            "worker-src 'self'; " +
+            "frame-ancestors 'none'; " +
+            "base-uri 'self'; " +
+            "form-action 'self'; " +
+            "object-src 'none'; " +
+            "upgrade-insecure-requests";
+    }
 
     /// <summary>Adds the security headers to every response.</summary>
     public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder app)
@@ -34,10 +38,8 @@ public static class SecurityHeaders
 
         return app.Use(static (context, next) =>
         {
-            CspNonce nonce = context.RequestServices.GetRequiredService<CspNonce>();
             IHeaderDictionary headers = context.Response.Headers;
 
-            headers[HeaderNames.ContentSecurityPolicy] = ContentSecurityPolicy(nonce.Value);
             headers[HeaderNames.XContentTypeOptions] = "nosniff";
             headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
             headers["Permissions-Policy"] = "camera=(self), geolocation=(), microphone=(), payment=(), usb=()";
@@ -45,6 +47,16 @@ public static class SecurityHeaders
             headers["Cross-Origin-Resource-Policy"] = "same-origin";
             headers["X-Frame-Options"] = "DENY";
             headers.Remove(HeaderNames.XPoweredBy);
+
+            // The CSP is written as the response starts, so a page can add its one connect source first.
+            context.Response.OnStarting(static state =>
+            {
+                HttpContext http = (HttpContext)state;
+                CspNonce nonce = http.RequestServices.GetRequiredService<CspNonce>();
+                CspPolicy policy = http.RequestServices.GetRequiredService<CspPolicy>();
+                http.Response.Headers[HeaderNames.ContentSecurityPolicy] = ContentSecurityPolicy(nonce.Value, policy.ConnectSources);
+                return Task.CompletedTask;
+            }, context);
 
             return next(context);
         });

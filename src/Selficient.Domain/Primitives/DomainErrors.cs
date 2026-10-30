@@ -49,6 +49,26 @@ public static class DomainErrors
     public static Fault SolarInputOutOfRange(string what, int lowest, int highest) =>
         new("solar.out-of-range", $"The {what} needs to be between {lowest} and {highest}.");
 
+    /// <summary>An upload that is not an image we can read.</summary>
+    public static Fault ImageInvalid() =>
+        new("image.invalid", "That file is not a photo we can read. Use a JPEG, PNG or WebP straight from the camera.");
+
+    /// <summary>An upload over the byte or pixel cap.</summary>
+    public static Fault ImageTooLarge() =>
+        new("image.too-large", "That photo is too large. Anything up to 10 MB and 24 megapixels is fine.");
+
+    /// <summary>No analyst is configured, or the one that is could not answer.</summary>
+    public static Fault AiUnavailable() =>
+        new("ai.unavailable", "Photo help is not available just now. Everything else on the page still works.");
+
+    /// <summary>The household has used its free analyses for the month.</summary>
+    public static Fault AiAllowanceUsed(int perMonth) =>
+        new("ai.allowance", $"You have used this month's {perMonth} free photo analyses. They come back on the first of the month, or use your own key under the advanced settings.");
+
+    /// <summary>The whole site has used its daily cap.</summary>
+    public static Fault AiBusy() =>
+        new("ai.busy", "Photo help is busy today. Try again tomorrow, or use your own key under the advanced settings.");
+
     /// <summary>The yield service answered, but not with a usable year.</summary>
     public static Fault YieldUnavailable() =>
         new("solar.yield-unavailable", "We couldn't get the sunshine figures for your roof just now. Wait a moment and try again.");

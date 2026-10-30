@@ -19,6 +19,10 @@ public sealed class RateLimitOptions
     [Range(1, 10_000)]
     public int ApiPerMinute { get; init; } = 60;
 
+    /// <summary>Photo analyses and narratives per IP per minute. Each one costs real money.</summary>
+    [Range(1, 1_000)]
+    public int AiPerMinute { get; init; } = 6;
+
     /// <summary>Map tiles per IP per minute. A view is a dozen tiles and a pan a dozen more.</summary>
     [Range(1, 100_000)]
     public int TilesPerMinute { get; init; } = 600;
@@ -32,6 +36,9 @@ public static class RateLimits
 
     /// <summary>Policy for JSON endpoints.</summary>
     public const string ApiPolicy = "api";
+
+    /// <summary>Policy for anything that calls the model.</summary>
+    public const string AiPolicy = "ai";
 
     /// <summary>Policy for basemap tiles, which arrive in bursts.</summary>
     public const string TilesPolicy = "tiles";
@@ -53,6 +60,7 @@ public static class RateLimits
             limiter.AddPolicy(PlanPolicy, PlanPartition);
             limiter.AddPolicy(ApiPolicy, ApiPartition);
             limiter.AddPolicy(TilesPolicy, TilesPartition);
+            limiter.AddPolicy(AiPolicy, AiPartition);
         });
 
         return services;
@@ -63,6 +71,12 @@ public static class RateLimits
 
     /// <summary>The partition for the API policy.</summary>
     internal static RateLimitPartition<string> ApiPartition(HttpContext context) => Window(context, static o => o.ApiPerMinute);
+
+    /// <summary>The partition for the AI policy.</summary>
+    internal static RateLimitPartition<string> AiPartition(HttpContext context) =>
+        HttpMethods.IsGet(context.Request.Method)
+            ? RateLimitPartition.GetNoLimiter("ai-read")
+            : Window(context, static o => o.AiPerMinute);
 
     /// <summary>The partition for the tiles policy.</summary>
     internal static RateLimitPartition<string> TilesPartition(HttpContext context) => Window(context, static o => o.TilesPerMinute);

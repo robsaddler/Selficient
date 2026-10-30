@@ -961,3 +961,104 @@ progress.tier-progress {
   min-block-size: 2.5rem;
   padding-block: 0;
 }
+
+/* Photo moments: three sheets, each a form, each answered in place */
+.photo-moments {
+  margin-block-start: var(--space-6);
+  display: grid;
+  gap: var(--space-5);
+  max-inline-size: var(--measure);
+}
+
+.photo-moment {
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.photo-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
+
+.photo-pick {
+  display: inline-block;
+  cursor: pointer;
+
+  &:has(input:focus-visible) .button {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.photo-pick__name {
+  flex: 1 1 12rem;
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+}
+
+.photo-result {
+  padding: var(--space-5);
+  border: 2px solid var(--c-lantern);
+  border-radius: var(--radius-m);
+  background: var(--c-lantern-tint);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.kit-items {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.kit-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.kit-item__match {
+  font-size: var(--text-s);
+  color: var(--c-pine);
+  font-weight: 600;
+}
+
+.kit-ticks {
+  display: grid;
+  gap: var(--space-2);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--c-contour);
+}
+
+.byok {
+  margin-block-start: var(--space-7);
+  max-inline-size: var(--measure);
+
+  & .field {
+    margin-block-start: var(--space-3);
+  }
+}
+
+.narrative {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: var(--measure);
+
+  & p {
+    text-wrap: pretty;
+  }
+}
+
+.plan__photos,
+.plan__explain {
+  margin-block-start: var(--space-4);
+}

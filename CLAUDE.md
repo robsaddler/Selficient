@@ -27,6 +27,8 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - `tsc` refuses `declare module "/lib/…"` (rooted names count as relative); route vendored libraries through the import map by bare specifier and type them in `types/*.d.ts` with a `paths` entry.
 - Shell `perl -0pi` substitutions break on `|` and on `$1` followed by a space and a digit; use the Edit tool for anything but one-line `sed`.
 - Razor reserves `<text>`; an SVG `<text>` element must be emitted with `Html.Raw` from constant content (the month labels), never from user data.
+- The Anthropic C# SDK (13.x) sends the key as `Authorization: Bearer`, not `x-api-key`, and its message types are `UserMessageParam` / `ImageBlockParam { Source = new Base64ImageSource }`; a stub must match the bearer header. Reflection on the SDK assembly from PowerShell 5.1 fails (net8 assembly); grep the DLL bytes or write a throwaway console probe in the scratchpad.
+- SkiaSharp decodes a PNG with garbage pixel data as "incomplete" rather than failing; a palette PNG with no PLTE chunk is the input that opens as a codec and fails to decode.
 - `.webmanifest` is not in the framework's content-type map; it is mapped in the pipeline. The worker template under `wwwroot` is never listed in the shell because the shell scan covers only `css`, `js`, `lib`, `img` and `fonts`.
 
 ## Conventions

@@ -21,6 +21,9 @@
     <!-- The self-hosted basemap (M5): Dapper over a read-only SQLite MBTiles archive. -->
     <PackageVersion Include="Dapper" Version="2.1.89" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <!-- Photos and AI (M8): SkiaSharp (MIT) re-encodes every upload; the official Anthropic SDK calls Claude. -->
+    <PackageVersion Include="Anthropic" Version="13.3.0" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.154.0" />
   </ItemGroup>
 
   <ItemGroup Label="Later milestones (declared so versions are pinned when first referenced)">

@@ -11,6 +11,7 @@ import { initPlanPage } from "selficient/plan-page.js";
 import { initHouseMap } from "selficient/house-map.js";
 import { initShell } from "selficient/shell.js";
 import { initInstall } from "selficient/install.js";
+import { initPhotos } from "selficient/photos.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -22,3 +23,4 @@ initTheme(document);
 initDialogs(document);
 void initPlanPage(document);
 void initHouseMap(document);
+initPhotos(document);

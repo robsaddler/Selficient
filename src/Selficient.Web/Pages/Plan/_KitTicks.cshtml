@@ -1,0 +1,19 @@
+@model IReadOnlyList<Selficient.Domain.Plans.ActionId>
+@* The ticks a cupboard photo earned. Its own partial so the form tag helper's branches do not
+   attach to the condition around it on the page. The form never posts: photos.js applies the
+   ticks in the browser's store, and without JavaScript the hint says what to do. *@
+<form class="kit-ticks" data-kit-ticks>
+  <p>Tick these on your plan:</p>
+  @foreach (var action in Model)
+  {
+    <label class="field field--check">
+      <input type="checkbox" name="tick" value="@action.Value" checked>
+      <span>@action.Value.Replace('-', ' ')</span>
+    </label>
+  }
+  <p class="cluster">
+    <button type="submit" class="button button--primary">Tick them on my plan</button>
+    <a class="button button--quiet" href="/plan">Open the plan</a>
+  </p>
+  <p class="field__hint" data-kit-ticks-status aria-live="polite">Without JavaScript, open your plan and tick these by hand.</p>
+</form>

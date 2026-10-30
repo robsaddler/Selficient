@@ -1,0 +1,89 @@
+@page "/plan/photos"
+@using Selficient.Application.Ai
+@model Selficient.Web.Pages.Plan.PhotosModel
+@{
+    ViewData["Title"] = "Photograph your kit, boiler and fuse board";
+    ViewData["Description"] = "Three photos that fill in your plan: the kit cupboard, the boiler's plate and the consumer unit.";
+}
+
+<section class="wizard" aria-labelledby="photos-heading">
+  <p class="eyebrow">Three photos</p>
+  <h1 id="photos-heading">Let a photo do the counting</h1>
+  <p>Photograph your kit cupboard and we count what is there and tick it off your plan. Photograph the boiler's plate and we say whether it could run from a power station. Photograph the consumer unit and we say whether there is room for a backup board. Each photo is re-encoded on our server, read once, and thrown away; nothing is kept.</p>
+  @if (!Model.Offered)
+  {
+    <p class="callout" role="status">Photo help is not switched on for this site yet. You can still use your own Anthropic key below, in which case your browser talks to Anthropic directly and the photo never reaches us.</p>
+  }
+  else
+  {
+    <p class="field__hint">Every household gets five free photo readings a month on our key. Beyond that, use your own key below.</p>
+  }
+</section>
+
+@if (Model.Notice is { } notice)
+{
+  <p class="callout callout--warning" role="alert" data-photo-notice>@notice</p>
+}
+
+<div class="photo-moments" data-photo-moments>
+  @await Html.PartialAsync("_PhotoMoment", new Selficient.Web.Pages.Plan.PhotoMomentView(AnalysisKind.Kit, "Kit", "Your kit cupboard", "Open the cupboard, shelf or box where the supplies live and photograph it in good light. Bottles, tins, torches, batteries and the radio all count.", "Count what is there", Model.Answered == AnalysisKind.Kit))
+  @if (Model.Kit is { } kit)
+  {
+    <section class="photo-result" aria-labelledby="kit-result-heading" data-kit-result>
+      <h3 id="kit-result-heading">What the cupboard holds</h3>
+      <p>@kit.Summary</p>
+      <ul class="kit-items">
+        @foreach (var item in kit.Items)
+        {
+          <li class="kit-item">
+            <span class="data">@item.Count</span> <span>@item.Name</span>
+            @if (item.Action is { } action)
+            {
+              <span class="kit-item__match" data-action-id="@action.Value">covers an action on your plan</span>
+            }
+          </li>
+        }
+      </ul>
+      @if (kit.Satisfied.Count > 0)
+      {
+        @await Html.PartialAsync("_KitTicks", kit.Satisfied)
+      }
+    </section>
+  }
+
+  @await Html.PartialAsync("_PhotoMoment", new Selficient.Web.Pages.Plan.PhotoMomentView(AnalysisKind.Boiler, "Boiler", "The boiler's data plate", "The plate is usually inside the drop-down flap or on the side of the casing: make, model and an electrical rating in watts.", "Read the plate", Model.Answered == AnalysisKind.Boiler))
+  @if (Model.Boiler is { } boiler)
+  {
+    <section class="photo-result" aria-labelledby="boiler-result-heading">
+      <h3 id="boiler-result-heading">What the plate says</h3>
+      <p><span class="data">@boiler.Make @boiler.Model</span>@(boiler.Watts is { } watts ? $", {watts} W" : "")</p>
+      <p>@boiler.Advice</p>
+    </section>
+  }
+
+  @await Html.PartialAsync("_PhotoMoment", new Selficient.Web.Pages.Plan.PhotoMomentView(AnalysisKind.ConsumerUnit, "ConsumerUnit", "The consumer unit", "Photograph the fuse board with its outer cover open so the breakers show. Do not remove anything else; that is an electrician's job.", "Count the spare ways", Model.Answered == AnalysisKind.ConsumerUnit))
+  @if (Model.ConsumerUnit is { } unit)
+  {
+    <section class="photo-result" aria-labelledby="unit-result-heading">
+      <h3 id="unit-result-heading">What the board shows</h3>
+      <p>@(unit.SpareWays is { } spare ? $"{spare} spare ways, " : "")@unit.Kind.</p>
+      <p>@unit.Advice</p>
+    </section>
+  }
+</div>
+
+<section class="byok" aria-labelledby="byok-heading">
+  <details class="consent">
+    <summary id="byok-heading">Advanced: use your own Anthropic key</summary>
+    <p>With your own key, your browser sends the photo straight to Anthropic and the result comes straight back; it never touches our server, and there is no monthly limit. The key is kept only in this browser. Make it a key with a spending limit, and forget it here when you are done.</p>
+    <div class="field">
+      <label for="byok-key">Anthropic API key</label>
+      <input id="byok-key" class="input" type="password" autocomplete="off" spellcheck="false" data-byok-key placeholder="sk-ant-…">
+    </div>
+    <p class="cluster">
+      <button type="button" class="button" data-byok-save>Keep the key in this browser</button>
+      <button type="button" class="button button--quiet" data-byok-forget>Forget the key</button>
+    </p>
+    <p class="field__hint" data-byok-status aria-live="polite">No key kept. Photos go through our server and count against the monthly allowance.</p>
+  </details>
+</section>

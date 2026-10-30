@@ -1,0 +1,11 @@
+@model Selficient.Web.Pages.Plan.IndexModel
+@* The explain form re-posts the profile the plan was built from. Its own partial so the form tag
+   helper's branches do not attach to the condition around it on the sheet. *@
+<form method="post" asp-page="/Plan/Explain" class="plan__explain" data-explain-form>
+  @foreach (var (field, value) in Model.EchoedProfile)
+  {
+    <input type="hidden" name="Form.@field" value="@value">
+  }
+  <input type="hidden" name="household" value="" data-household-key>
+  <button type="submit" class="button button--quiet">Explain my plan in plain words</button>
+</form>

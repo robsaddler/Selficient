@@ -12,6 +12,10 @@ using Selficient.Infrastructure.Kit;
 using Selficient.Infrastructure.Maps;
 using Selficient.Application.Solar;
 using Selficient.Infrastructure.Solar;
+using Selficient.Application.Ai;
+using Selficient.Infrastructure.Ai;
+using Selficient.Infrastructure.Images;
+using Anthropic;
 using Microsoft.Extensions.Logging;
 
 namespace Selficient.Infrastructure.Composition;
@@ -83,13 +87,56 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Photos and AI (M8). The sanitiser and the meter are always real; the analyst is the
+        // fake, the null object, or Claude, decided by the fakes flag and the key.
+        services.AddOptions<AiOptions>()
+            .Bind(configuration.GetSection(AiOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<AnthropicOptions>()
+            .Bind(configuration.GetSection(AnthropicOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(static o => o.BaseUrl.IsAbsoluteUri && (o.BaseUrl.Scheme == Uri.UriSchemeHttps || (o.BaseUrl.Scheme == Uri.UriSchemeHttp && o.BaseUrl.IsLoopback)), "Anthropic:BaseUrl must be an absolute https URL.")
+            .ValidateOnStart();
+        services.AddSingleton<IImageSanitiser, SkiaImageSanitiser>();
+        services.AddSingleton<IAnalysisMeter, InMemoryAnalysisMeter>();
+
         if (useFakes)
         {
             services.AddSingleton<IGeocoder, FakeGeocoder>();
             services.AddSingleton<IElevationProvider, FakeElevationProvider>();
             services.AddSingleton<ISolarYieldProvider, FakeSolarYieldProvider>();
             services.AddSingleton<IRoofInsightsProvider, FakeRoofInsights>();
+            services.AddSingleton<FakeAssistant>();
+            services.AddSingleton<IPhotoAnalyst>(static provider => provider.GetRequiredService<FakeAssistant>());
+            services.AddSingleton<IPlanNarrator>(static provider => provider.GetRequiredService<FakeAssistant>());
             return services;
+        }
+
+        string? anthropicKey = configuration[$"{AnthropicOptions.SectionName}:{nameof(AnthropicOptions.ApiKey)}"];
+        if (string.IsNullOrEmpty(anthropicKey))
+        {
+            services.AddSingleton<NoAssistant>();
+            services.AddSingleton<IPhotoAnalyst>(static provider => provider.GetRequiredService<NoAssistant>());
+            services.AddSingleton<IPlanNarrator>(static provider => provider.GetRequiredService<NoAssistant>());
+        }
+        else
+        {
+            // The SDK owns its retries and timeout; the key goes in as the SDK sends it, a header.
+            services.AddSingleton(static provider =>
+            {
+                AnthropicOptions options = provider.GetRequiredService<IOptions<AnthropicOptions>>().Value;
+                AnthropicClient client = new()
+                {
+                    ApiKey = options.ApiKey,
+                    BaseUrl = options.BaseUrl.ToString().TrimEnd('/'),
+                    Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds),
+                    MaxRetries = 1,
+                };
+                return new AnthropicAssistant(client, options.Model);
+            });
+            services.AddSingleton<IPhotoAnalyst>(static provider => provider.GetRequiredService<AnthropicAssistant>());
+            services.AddSingleton<IPlanNarrator>(static provider => provider.GetRequiredService<AnthropicAssistant>());
         }
 
         AddUpstreamClient<PostcodesIoGeocoder>(services, static o => o.PostcodesBaseUrl);

@@ -18,6 +18,8 @@ public sealed partial class SecurityHeadersTests : IDisposable
     [InlineData("/sw.js")]
     [InlineData("/manifest.webmanifest")]
     [InlineData("/offline")]
+    [InlineData("/plan/photos")]
+    [InlineData("/api/ai/prompts")]
     [InlineData("/does-not-exist")]
     [InlineData("/css/app.css")]
     public async Task Every_response_carries_the_full_header_set(string path)
@@ -77,7 +79,7 @@ public sealed partial class SecurityHeadersTests : IDisposable
     [Fact]
     public void The_policy_text_is_pinned()
     {
-        SecurityHeaders.ContentSecurityPolicy("abc").ShouldBe(
+        SecurityHeaders.ContentSecurityPolicy("abc", []).ShouldBe(
             "default-src 'self'; script-src 'self' 'nonce-abc'; style-src 'self'; img-src 'self' data: blob:; " +
             "font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; " +
             "base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests");

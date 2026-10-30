@@ -47,6 +47,7 @@ public static class WebApplicationExtensions
         app.MapHealthEndpoint();
         app.MapTilesEndpoints();
         app.MapServiceWorkerEndpoint();
+        app.MapAiPromptsEndpoint();
 
         return app;
     }

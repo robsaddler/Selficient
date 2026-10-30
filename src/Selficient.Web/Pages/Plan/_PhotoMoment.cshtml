@@ -1,0 +1,15 @@
+@model Selficient.Web.Pages.Plan.PhotoMomentView
+
+<section class="photo-moment" aria-labelledby="@Model.Id-heading" data-photo-moment="@Model.Kind">
+  <h2 id="@Model.Id-heading">@Model.Title</h2>
+  <p>@Model.Hint</p>
+  <form method="post" enctype="multipart/form-data" asp-page-handler="@Model.Handler" class="photo-form" data-photo-form="@Model.Kind">
+    <input type="hidden" name="household" value="" data-household-key>
+    <label class="photo-pick">
+      <span class="button">Choose or take a photo</span>
+      <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" capture="environment" class="sr-only" required data-photo-input>
+    </label>
+    <span class="photo-pick__name" data-photo-name aria-live="polite">@(Model.JustAnswered ? "Answered below." : "No photo chosen.")</span>
+    <button type="submit" class="button button--primary">@Model.Verb</button>
+  </form>
+</section>

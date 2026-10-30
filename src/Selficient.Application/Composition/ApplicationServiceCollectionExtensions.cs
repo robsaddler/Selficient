@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Selficient.Application.Ai;
 using Selficient.Application.Planning;
 using Selficient.Application.Solar;
 using Selficient.Domain.Plans;
@@ -23,6 +24,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<GeneratePlanHandler>();
         services.AddSingleton<PlanHouseholdHandler>();
         services.AddSingleton<EstimateSolarHandler>();
+        services.AddSingleton<AnalysePhotoHandler>();
+        services.AddSingleton<ExplainPlanHandler>();
 
         return services;
     }
