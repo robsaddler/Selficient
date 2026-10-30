@@ -88,4 +88,32 @@ public static class DomainErrors
     /// <summary>Two rules produced the same action.</summary>
     public static Fault DuplicateAction(string actionId) =>
         new("plan.duplicate-action", string.Create(CultureInfo.InvariantCulture, $"The plan already contains the action '{actionId}'."));
+
+    /// <summary>A dependency name is missing or too long.</summary>
+    public static Fault DependencyNameOutOfRange() =>
+        new("dependency.name", "Give the thing you rely on a short name, up to forty characters.");
+
+    /// <summary>A device's power or hours are outside what a house can run.</summary>
+    public static Fault DependencyPowerOutOfRange() =>
+        new("dependency.power", "A device draws between 1 and 3,000 watts and runs between 1 and 24 hours a day.");
+
+    /// <summary>Days of stock are outside a year.</summary>
+    public static Fault DependencyStockOutOfRange() =>
+        new("dependency.stock", "Days of stock at home must be between 0 and 365.");
+
+    /// <summary>More infants than children.</summary>
+    public static Fault InfantsOutOfRange() =>
+        new("household.infants", "The number of infants must be between zero and the number of children.");
+
+    /// <summary>A floor outside what a UK block has.</summary>
+    public static Fault FloorOutOfRange() =>
+        new("dwelling.floor", "The floor must be between 0 for the ground floor and 40.");
+
+    /// <summary>Too many household-added dependencies.</summary>
+    public static Fault TooManyDependencies() =>
+        new("dependency.too-many", "Up to twelve things you rely on can be added. Combine the small ones.");
+
+    /// <summary>A car kind given for a household that said it has no car.</summary>
+    public static Fault CarContradiction() =>
+        new("dwelling.car", "The plan said there is no car, so the car cannot have a kind. Change the answer about the car first.");
 }

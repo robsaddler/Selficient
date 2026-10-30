@@ -47,5 +47,5 @@ public class PlanBenchmark
 public static class Program
 {
     /// <summary>Runs every benchmark in the assembly.</summary>
-    public static void Main(string[] args) => BenchmarkRunner.Run<PlanBenchmark>(args: args);
+    public static void Main(string[] args) => BenchmarkSwitcher.FromAssembly(typeof(PlanBenchmark).Assembly).Run(args);
 }

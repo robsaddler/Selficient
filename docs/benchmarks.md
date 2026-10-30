@@ -28,6 +28,18 @@ The application hosted in-process on Kestrel against the fakes with the rate lim
 
 Dev workstation, Release build, response compression on. An earlier run the same morning, before compression and the thread-pool floor, showed the same p95s with a p99 of 245 ms on the tile probe from a cold HybridCache; the floor removed it. All four scenarios together are 450 requests a second with a p99 under 15 ms, so a storm-warning evening is two orders of magnitude inside the server's reach and the rate limits, not the machine, are the ceiling.
 
+## The board (engine v2)
+
+`dotnet run -c Release --project tests/Selficient.Benchmarks -- --filter "*BoardBenchmark*"`. Rob's house with this week's shelf and a battery.
+
+| Date | Benchmark | Mean | Allocated | Machine |
+|---|---|---|---|---|
+| 30 Oct 2026 | Storm to a month (30 days, 19 needs, about 40 providers) | 84 µs | 77 KB | dev workstation, .NET 10, ShortRunJob |
+| 30 Oct 2026 | Six months of shortages (180 days) | 514 µs | 415 KB | same |
+| 30 Oct 2026 | Every scenario against five sources (35 boards) | 4.2 ms | 3.9 MB | same |
+
+**Targets.** A board under 1 ms and under 500 KB; the whole Board page (every scenario, every source) under 10 ms. The first cut was 391 µs and 1.5 MB for the storm and 19 ms and 67 MB for the page, from LINQ in the day loop (a `FirstOrDefault` per provider per need per day and a `Where().OrderByDescending()` per load per day); laying the per-need provider lists and the store list out once per run brought it to the figures above with no change to any cell. The page will render this many boards per request only when a household switches sources, and the result is small enough to cache per profile.
+
 ## Lighthouse (phone, simulated slow 4G)
 
 Lighthouse 12 against the Development build over HTTPS, mobile form factor, from a clean profile (first visit, nothing cached).
