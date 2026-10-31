@@ -1,12 +1,9 @@
 <Project>
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
-
   <!-- Versions checked against nuget.org on 29 Oct 2026. Bump deliberately; Dependabot proposes. -->
-
   <ItemGroup Label="Runtime">
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
@@ -17,6 +14,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="QRCoder" Version="1.8.1" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <!-- The self-hosted basemap (M5): Dapper over a read-only SQLite MBTiles archive. -->
     <PackageVersion Include="Dapper" Version="2.1.89" />
@@ -39,11 +37,9 @@
     <PackageVersion Include="Anthropic" Version="13.3.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.154.0" />
   </ItemGroup>
-
   <ItemGroup Label="Later milestones (declared so versions are pinned when first referenced)">
     <PackageVersion Include="SkiaSharp" Version="4.154.0" />
   </ItemGroup>
-
   <ItemGroup Label="Testing">
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
@@ -60,5 +56,4 @@
     <PackageVersion Include="Deque.AxeCore.Playwright" Version="4.14.0" />
     <PackageVersion Include="NBomber.Http" Version="6.2.1" />
   </ItemGroup>
-
 </Project>

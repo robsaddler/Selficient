@@ -164,9 +164,6 @@
       inset-block-start: var(--space-5);
     }
 
-    & .faq__item + .faq__item {
-      margin-block-start: 0;
-    }
   }
 
   /* Two across once the answers have the room, so a long list is scanned rather than scrolled. */
@@ -1587,6 +1584,23 @@
   & .button {
     font-family: var(--font-data);
     font-size: var(--text-s);
+  }
+}
+
+/* The enrolment code. Always on white with a quiet border, whatever the theme: a reader expects
+   dark modules on a light ground, and a code inverted in the dark does not scan. */
+.enrol__qr {
+  margin-block: var(--space-4);
+  inline-size: min(100%, 15rem);
+  padding: var(--space-3);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: #fff;
+
+  & svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
   }
 }
 }

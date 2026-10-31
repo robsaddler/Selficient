@@ -83,6 +83,18 @@ public sealed class Screenshots
                 await page.ScreenshotAsync(new() { Path = Target($"reviewer-signin-{size}-{theme}.png"), FullPage = true });
 
                 // The real two steps: the password, then a code from the account's own seed.
+                // A newcomer first, so the enrolment screen with its QR code is captured too.
+                await _browser.Application.CreateOperatorAsync(username: "newcomer", enrolled: false);
+                await page.Locator("#Username").FillAsync("newcomer");
+                await page.Locator("#Password").FillAsync(OperatorSignInHelper.Password);
+                await page.GetByRole(AriaRole.Button, new() { Name = "Sign in" }).ClickAsync();
+                await page.Locator(".enrol__qr svg").WaitForAsync();
+                await SettleAsync(page);
+                await page.ScreenshotAsync(new() { Path = Target($"reviewer-enrol-{size}-{theme}.png"), FullPage = true });
+
+                await page.GotoAsync("/admin/sign-out");
+                await page.GotoAsync("/admin/catalogue");
+                await SettleAsync(page);
                 await _browser.Application.CreateOperatorAsync();
                 await page.Locator("#Username").FillAsync(OperatorSignInHelper.Username);
                 await page.Locator("#Password").FillAsync(OperatorSignInHelper.Password);

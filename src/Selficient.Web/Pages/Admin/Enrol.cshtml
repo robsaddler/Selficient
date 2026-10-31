@@ -30,7 +30,17 @@
       <ol class="enrol__steps">
         <li>
           <h2>Add the account to your app</h2>
-          <p>Type this setup key in by hand, choosing a time-based code.</p>
+          <p>Open your authenticator, choose to add an account, and point it at this.</p>
+          @* Drawn inline rather than fetched: the address under this code carries the seed, so it
+             never becomes a URL that could be logged, cached or shared. Always on white, because a
+             reader expects dark modules on a light ground whichever theme the page is in. *@
+          <div class="enrol__qr">
+            <svg viewBox="0 0 @Model.Qr.Modules @Model.Qr.Modules" role="img" aria-label="A QR code holding this account's setup key" shape-rendering="crispEdges" focusable="false">
+              <rect width="@Model.Qr.Modules" height="@Model.Qr.Modules" fill="#ffffff"/>
+              <path d="@Model.Qr.Path" fill="#13202a"/>
+            </svg>
+          </div>
+          <p>If your phone cannot scan it, type this setup key in by hand instead, choosing a time-based code.</p>
           <p class="enrol__secret" aria-label="Setup key">@Model.SecretText</p>
           <p class="enrol__account">The account is <strong>@Model.AccountName</strong> and the issuer is <strong>Selficient</strong>.</p>
         </li>

@@ -235,6 +235,10 @@ public sealed class OperatorAuthTests : IDisposable
         string enrol = await client.GetStringAsync(new Uri("/admin/enrol", UriKind.Relative));
         string secret = System.Text.RegularExpressions.Regex.Match(enrol, "name=\"Secret\" value=\"(?<secret>[^\"]+)\"").Groups["secret"].Value;
         secret.ShouldNotBeNullOrWhiteSpace();
+        // The code is drawn into the page, never fetched: the address under it carries the seed.
+        enrol.ShouldContain("enrol__qr");
+        enrol.ShouldContain("A QR code holding this account", customMessage: "the code carries a label a screen reader can say");
+        enrol.ShouldContain("<path d=\"M", customMessage: "the modules are drawn as a path in the page, not fetched as an image");
         string enrolToken = await OperatorSignInHelper.TokenAsync(client, "/admin/enrol");
 
         using HttpResponseMessage wrong = await client.PostAsync(

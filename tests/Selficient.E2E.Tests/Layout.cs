@@ -42,6 +42,41 @@ public sealed class Layout
     }
 
     [Fact]
+    public async Task The_questions_start_level_with_each_other_however_many_columns_they_take()
+    {
+        // A per-item margin that was only cleared for items following another left the first
+        // question in one column a margin lower than the first in the next. The list is a grid and
+        // its gap owns the spacing, so every item in the first row starts at the same height.
+        foreach (int width in new[] { 1440, 2000 })
+        {
+            await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile: false, theme: "light");
+            IPage page = await context.NewPageAsync();
+            await page.GotoAsync("/");
+
+            // The top of the first item in each column, whatever the column count turns out to be.
+            double[] topOfEachColumn = await page.EvalOnSelectorAllAsync<double[]>(
+                ".faq__item",
+                """
+                items => {
+                  const byColumn = new Map();
+                  for (const item of items) {
+                    const box = item.getBoundingClientRect();
+                    const left = Math.round(box.left);
+                    const top = Math.round(box.top);
+                    if (!byColumn.has(left) || top < byColumn.get(left)) {
+                      byColumn.set(left, top);
+                    }
+                  }
+                  return [...byColumn.values()];
+                }
+                """);
+
+            topOfEachColumn.Length.ShouldBeGreaterThan(0);
+            topOfEachColumn.Distinct().Count().ShouldBe(1, customMessage: $"at {width}px the columns of questions start at {string.Join(", ", topOfEachColumn)}");
+        }
+    }
+
+    [Fact]
     public async Task The_phone_hero_is_one_column()
     {
         await using IBrowserContext context = await _browser.SizedAsync(390, 844, mobile: true, theme: "light");

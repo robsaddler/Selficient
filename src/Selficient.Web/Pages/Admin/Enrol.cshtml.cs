@@ -61,6 +61,9 @@ public sealed class EnrolModel : PageModel
     /// <summary>Whether this operator still has to replace a starting password.</summary>
     public bool OwesAPassword { get; private set; }
 
+    /// <summary>The enrolment address as a QR code, drawn inline so it is never fetched from anywhere.</summary>
+    public Selficient.Web.Formatting.QrCode Qr { get; private set; }
+
     /// <summary>Makes a seed and shows it.</summary>
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -147,6 +150,7 @@ public sealed class EnrolModel : PageModel
         AccountName = account.Username;
         OwesAPassword = account.MustChangePassword;
         SecretText = Readable(Secret!);
+        Qr = Selficient.Web.Formatting.QrCode.For(Totp.Enrolment(Base32Bytes(Secret!), "Selficient", account.Username));
     }
 
     private async Task<OperatorAccount?> AccountAsync(CancellationToken cancellationToken)

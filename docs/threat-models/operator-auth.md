@@ -63,3 +63,4 @@ Each is a test. The test name is in the right-hand column.
 | 23 | A hand on the reviewer | Records the operator's username beside what was done | `A_hand_names_the_operator_who_took_it` |
 | 24 | The reviewer with no operator configured and no bootstrap | The pages do not exist, as before | `With_no_operator_the_reviewer_is_not_there` |
 | 25 | An attempt from a browser | Keeps the address and the agent; one with no request behind it keeps neither rather than inventing them | `An_operators_trail_says_where_the_attempt_came_from` |
+| 26 | The enrolment code | Drawn into the response as an SVG path, never fetched from an endpoint, because the address under it carries the seed | `The_path_draws_exactly_the_dark_modules_of_the_code`, `Enrolment_arms_the_second_factor_and_shows_the_recovery_codes_once` |

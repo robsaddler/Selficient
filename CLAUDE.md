@@ -88,3 +88,5 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - `AddHostedService<T>()` does not register `T` for resolution; a test that wants to run the service again constructs it.
 - `JsonSerializer.Serialize`/`Deserialize` fail the trimming and AOT analyzers as errors here. Use a `JsonSerializerContext` with `[JsonSerializable]` rather than a suppression.
 - `step` is a reserved word to CA1716 and cannot be an interface parameter name; the operator store takes `lastStep`.
+- A QR code holding a secret is drawn inline as an SVG path in the response, never served from an endpoint: the `otpauth://` address carries the authenticator's seed and a URL for it can be logged, cached or shared. `QrCode.For` builds the path; each run of dark modules on a row is one bar, not a rectangle per module.
+- A QR code is always dark on white whatever the theme. One inverted in the dark does not scan.

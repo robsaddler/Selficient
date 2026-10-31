@@ -24,7 +24,7 @@
 
 Accounts live in `dbo.operators`. Each has a password, an authenticator and ten recovery codes; the reviewer at `/admin/catalogue` is not reachable without all three.
 
-**The first account on a new server.** Set `Operator__BootstrapUsername` and `Operator__BootstrapPassword` (at least fourteen characters) on the vhost and start the site. The account is made once, with a warning in the log, and can do nothing but change its password and enrol an authenticator. Sign in, do both, then remove the two settings and recycle. They do nothing while an operator exists, so leaving them is untidy rather than dangerous, but remove them.
+**The first account on a new server.** Set `Operator__BootstrapUsername` and `Operator__BootstrapPassword` (at least fourteen characters) on the vhost and start the site. The account is made once, with a warning in the log, and can do nothing but change its password and enrol an authenticator. Sign in, scan the QR code the enrolment screen shows into your authenticator, write the ten recovery codes down, change the password, then remove the two settings and recycle. They do nothing while an operator exists, so leaving them is untidy rather than dangerous, but remove them.
 
 **A second operator.** There is no page for it yet. Insert the row with a hash made by the application, or add the account by running the site once with the bootstrap settings against an empty table. **Open for Rob:** an operators page on the reviewer is the obvious next piece of M20 and was left out deliberately rather than forgotten.
 

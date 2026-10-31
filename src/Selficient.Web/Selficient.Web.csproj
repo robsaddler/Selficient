@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="QRCoder" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />

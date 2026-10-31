@@ -1198,7 +1198,9 @@ progress.tier-progress {
 }
 
 .faq__item {
-  margin-block-start: var(--space-3);
+  /* No margin of its own: the list is a grid and its gap owns the spacing. A margin here was
+     cleared only for items that follow another, so the first item in a second column kept it and
+     the first item in the first column did not, and the two columns started at different heights. */
   border: var(--border);
   border-radius: var(--radius-m);
   background: var(--c-paper);
