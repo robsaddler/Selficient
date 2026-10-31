@@ -147,8 +147,8 @@ public sealed class SqlOperatorStore : IOperatorStore
         ArgumentNullException.ThrowIfNull(attempt);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         await connection.ExecuteAsync(
-            "INSERT INTO dbo.operator_signin_attempts (at, username, outcome, detail) VALUES (@at, @username, @outcome, @detail)",
-            new { at = attempt.At.UtcDateTime, username = Clip(attempt.Username, 64), outcome = Clip(attempt.Outcome, 32), detail = Clip(attempt.Detail, 400) });
+            "INSERT INTO dbo.operator_signin_attempts (at, username, outcome, detail, address, agent) VALUES (@at, @username, @outcome, @detail, @address, @agent)",
+            new { at = attempt.At.UtcDateTime, username = Clip(attempt.Username, 64), outcome = Clip(attempt.Outcome, 32), detail = Clip(attempt.Detail, 400), address = attempt.Address is null ? null : Clip(attempt.Address, 64), agent = attempt.Agent is null ? null : Clip(attempt.Agent, 400) });
     }
 
     /// <inheritdoc />
@@ -156,8 +156,8 @@ public sealed class SqlOperatorStore : IOperatorStore
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         IEnumerable<AttemptRow> rows = await connection.QueryAsync<AttemptRow>(
-            "SELECT TOP (@take) at, username, outcome, detail FROM dbo.operator_signin_attempts ORDER BY id DESC", new { take });
-        return [.. rows.Select(static r => new SignInAttempt(Utc(r.at), r.username, r.outcome, r.detail))];
+            "SELECT TOP (@take) at, username, outcome, detail, address, agent FROM dbo.operator_signin_attempts ORDER BY id DESC", new { take });
+        return [.. rows.Select(static r => new SignInAttempt(Utc(r.at), r.username, r.outcome, r.detail, r.address, r.agent))];
     }
 
     private static OperatorAccount Map(Row row) => new(
@@ -208,6 +208,6 @@ public sealed class SqlOperatorStore : IOperatorStore
         DateTime? last_signin_at,
         DateTime created_at);
 
-    private sealed record AttemptRow(DateTime at, string username, string outcome, string detail);
+    private sealed record AttemptRow(DateTime at, string username, string outcome, string detail, string? address, string? agent);
 #pragma warning restore CA1812, IDE1006, CA1707
 }

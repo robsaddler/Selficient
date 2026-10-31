@@ -74,6 +74,17 @@ public static class OperatorAuth
     /// <summary>The operator's name on a principal, or nothing. Every hand is recorded against it.</summary>
     public static string NameOf(ClaimsPrincipal? principal) => principal?.Identity?.Name ?? string.Empty;
 
+    /// <summary>
+    /// Where this request came from, for the operator's trail. An operator is staff: the promise
+    /// that nothing identifying is kept is made to the households who read the site, and a trail
+    /// that cannot say where a sign-in came from cannot be investigated after an incident.
+    /// </summary>
+    public static SignInOrigin OriginOf(HttpContext? context) => context is null
+        ? SignInOrigin.Unknown
+        : new SignInOrigin(
+            context.Connection.RemoteIpAddress?.ToString(),
+            context.Request.Headers.UserAgent.ToString() is { Length: > 0 } agent ? agent : null);
+
     /// <summary>Whether a principal has only finished the password step.</summary>
     public static bool IsPending(ClaimsPrincipal? principal) => principal?.HasClaim(PendingClaim, "true") == true;
 

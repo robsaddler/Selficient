@@ -169,6 +169,13 @@ public sealed partial class AdminCatalogueTests : IDisposable
         Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "verify", null, "Opened 38.", " ")).ShouldContain("nobody recorded");
         Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.RunLine(null!));
         Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.HandLine(null!));
+        Selficient.Web.Pages.Admin.CatalogueModel.AttemptLine(new(at, "rob", "code", "Signed in.", "203.0.113.7", "a browser"))
+            .ShouldEndWith(" rob, code, from 203.0.113.7: Signed in.", customMessage: "an operator is staff, so the trail says where from");
+        Selficient.Web.Pages.Admin.CatalogueModel.AttemptLine(new(at, "rob", "code", "Signed in."))
+            .ShouldEndWith(" rob, code, from no address recorded: Signed in.");
+        Selficient.Web.Pages.Admin.CatalogueModel.AttemptLine(new(at, "rob", "code", "Signed in.", " "))
+            .ShouldContain("no address recorded");
+        Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.AttemptLine(null!));
     }
 
     [Fact]

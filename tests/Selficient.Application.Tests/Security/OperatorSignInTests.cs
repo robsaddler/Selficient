@@ -14,6 +14,9 @@ public sealed class OperatorSignInTests
     private const string Password = "the lantern on the kitchen table";
     private static readonly DateTimeOffset Evening = new(2026, 10, 31, 20, 0, 0, TimeSpan.Zero);
 
+    // An operator is staff, so the trail keeps where the attempt came from.
+    private static readonly SignInOrigin Origin = new("203.0.113.7", "a browser");
+
     private readonly FakeStore _store = new();
     private readonly ManualClock _clock = new(Evening);
     private readonly OperatorSignIn _signIn;
@@ -25,7 +28,7 @@ public sealed class OperatorSignInTests
     {
         await EnrolledAsync();
 
-        OperatorSignInResult result = await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        OperatorSignInResult result = await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.NeedsSecondFactor, "the password is a step, not the door");
         result.Account.ShouldNotBeNull().Username.ShouldBe("rob");
@@ -37,9 +40,9 @@ public sealed class OperatorSignInTests
     {
         await EnrolledAsync();
 
-        OperatorSignInResult wrong = await _signIn.PasswordAsync("rob", "not the password at all", CancellationToken.None);
-        OperatorSignInResult unknown = await _signIn.PasswordAsync("nobody", Password, CancellationToken.None);
-        OperatorSignInResult blank = await _signIn.PasswordAsync("  ", Password, CancellationToken.None);
+        OperatorSignInResult wrong = await _signIn.PasswordAsync("rob", "not the password at all", Origin, CancellationToken.None);
+        OperatorSignInResult unknown = await _signIn.PasswordAsync("nobody", Password, Origin, CancellationToken.None);
+        OperatorSignInResult blank = await _signIn.PasswordAsync("  ", Password, Origin, CancellationToken.None);
 
         wrong.Outcome.ShouldBe(SignInOutcome.Refused);
         unknown.Outcome.ShouldBe(SignInOutcome.Refused);
@@ -57,10 +60,10 @@ public sealed class OperatorSignInTests
 
         for (int attempt = 0; attempt < LockoutPolicy.Threshold; attempt++)
         {
-            await _signIn.PasswordAsync("rob", "wrong", CancellationToken.None);
+            await _signIn.PasswordAsync("rob", "wrong", Origin, CancellationToken.None);
         }
 
-        OperatorSignInResult locked = await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        OperatorSignInResult locked = await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
         locked.Outcome.ShouldBe(SignInOutcome.LockedOut);
         _store.Account.FailedAttempts.ShouldBe(LockoutPolicy.Threshold);
@@ -74,11 +77,11 @@ public sealed class OperatorSignInTests
         await EnrolledAsync();
         for (int attempt = 0; attempt < LockoutPolicy.Threshold; attempt++)
         {
-            await _signIn.PasswordAsync("rob", "wrong", CancellationToken.None);
+            await _signIn.PasswordAsync("rob", "wrong", Origin, CancellationToken.None);
         }
 
         _clock.Advance(TimeSpan.FromMinutes(2));
-        OperatorSignInResult opened = await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        OperatorSignInResult opened = await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
         await FinishAsync();
 
         opened.Outcome.ShouldBe(SignInOutcome.NeedsSecondFactor);
@@ -92,8 +95,8 @@ public sealed class OperatorSignInTests
         await EnrolledAsync();
         await _store.SetEnabledAsync(_store.Account.Id, false, Guid.NewGuid(), CancellationToken.None);
 
-        OperatorSignInResult result = await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
-        OperatorSignInResult second = await _signIn.SecondFactorAsync(_store.Account.Id, CodeNow(), CancellationToken.None);
+        OperatorSignInResult result = await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
+        OperatorSignInResult second = await _signIn.SecondFactorAsync(_store.Account.Id, CodeNow(), Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.Disabled);
         second.Outcome.ShouldBe(SignInOutcome.Refused, "nor can a half-signed-in session be finished");
@@ -104,11 +107,11 @@ public sealed class OperatorSignInTests
     public async Task The_second_factor_completes_the_sign_in_and_the_code_is_spent()
     {
         await EnrolledAsync();
-        await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
         string code = CodeNow();
 
-        OperatorSignInResult first = await _signIn.SecondFactorAsync(_store.Account.Id, code, CancellationToken.None);
-        OperatorSignInResult again = await _signIn.SecondFactorAsync(_store.Account.Id, code, CancellationToken.None);
+        OperatorSignInResult first = await _signIn.SecondFactorAsync(_store.Account.Id, code, Origin, CancellationToken.None);
+        OperatorSignInResult again = await _signIn.SecondFactorAsync(_store.Account.Id, code, Origin, CancellationToken.None);
 
         first.Outcome.ShouldBe(SignInOutcome.SignedIn);
         again.Outcome.ShouldBe(SignInOutcome.Refused, "the same code is not taken twice");
@@ -120,11 +123,11 @@ public sealed class OperatorSignInTests
     public async Task A_recovery_code_signs_in_once_and_is_then_gone()
     {
         IReadOnlyList<string> codes = await EnrolledAsync();
-        await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
-        OperatorSignInResult first = await _signIn.SecondFactorAsync(_store.Account.Id, codes[0], CancellationToken.None);
-        OperatorSignInResult again = await _signIn.SecondFactorAsync(_store.Account.Id, codes[0], CancellationToken.None);
-        OperatorSignInResult another = await _signIn.SecondFactorAsync(_store.Account.Id, codes[1], CancellationToken.None);
+        OperatorSignInResult first = await _signIn.SecondFactorAsync(_store.Account.Id, codes[0], Origin, CancellationToken.None);
+        OperatorSignInResult again = await _signIn.SecondFactorAsync(_store.Account.Id, codes[0], Origin, CancellationToken.None);
+        OperatorSignInResult another = await _signIn.SecondFactorAsync(_store.Account.Id, codes[1], Origin, CancellationToken.None);
 
         first.Outcome.ShouldBe(SignInOutcome.SignedIn);
         again.Outcome.ShouldBe(SignInOutcome.Refused);
@@ -138,9 +141,9 @@ public sealed class OperatorSignInTests
     {
         await CreatedAsync();
 
-        OperatorSignInResult result = await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
-        OperatorSignInResult second = await _signIn.SecondFactorAsync(_store.Account.Id, "000000", CancellationToken.None);
-        OperatorSignInResult missing = await _signIn.SecondFactorAsync(404, "000000", CancellationToken.None);
+        OperatorSignInResult result = await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
+        OperatorSignInResult second = await _signIn.SecondFactorAsync(_store.Account.Id, "000000", Origin, CancellationToken.None);
+        OperatorSignInResult missing = await _signIn.SecondFactorAsync(404, "000000", Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.NeedsEnrolment);
         second.Outcome.ShouldBe(SignInOutcome.Refused);
@@ -152,9 +155,9 @@ public sealed class OperatorSignInTests
     public async Task An_account_that_owes_a_password_is_signed_in_but_sent_to_change_it()
     {
         await EnrolledAsync(mustChangePassword: true);
-        await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
-        OperatorSignInResult result = await _signIn.SecondFactorAsync(_store.Account.Id, CodeNow(), CancellationToken.None);
+        OperatorSignInResult result = await _signIn.SecondFactorAsync(_store.Account.Id, CodeNow(), Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.NeedsNewPassword);
     }
@@ -163,9 +166,9 @@ public sealed class OperatorSignInTests
     public async Task A_wrong_second_factor_is_refused_and_recorded()
     {
         await EnrolledAsync();
-        await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
-        OperatorSignInResult result = await _signIn.SecondFactorAsync(_store.Account.Id, "123456", CancellationToken.None);
+        OperatorSignInResult result = await _signIn.SecondFactorAsync(_store.Account.Id, "123456", Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.Refused);
         result.Account.ShouldNotBeNull("the caller still knows who was refused, so the page can stay on the code step");
@@ -181,7 +184,7 @@ public sealed class OperatorSignInTests
             Encoding.UTF8.GetBytes(Password), salt, 1000, System.Security.Cryptography.HashAlgorithmName.SHA512, PasswordHasher.KeyBytes);
         _store.Account = _store.Account with { PasswordHash = $"v1$1000${Convert.ToBase64String(salt)}${Convert.ToBase64String(key)}" };
 
-        await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
         _store.Account.PasswordHash.Split('$')[1].ShouldBe(PasswordHasher.Iterations.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
@@ -191,7 +194,7 @@ public sealed class OperatorSignInTests
     {
         await EnrolledAsync();
 
-        OperatorSignInResult result = await _signIn.PasswordAsync(null, Password, CancellationToken.None);
+        OperatorSignInResult result = await _signIn.PasswordAsync(null, Password, Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.Refused);
         _store.Attempts.Last().Username.ShouldBe("(no name)");
@@ -202,9 +205,9 @@ public sealed class OperatorSignInTests
     {
         await EnrolledAsync();
         _store.Account = _store.Account with { RecoveryCodesProtected = null };
-        await _signIn.PasswordAsync("rob", Password, CancellationToken.None);
+        await _signIn.PasswordAsync("rob", Password, Origin, CancellationToken.None);
 
-        OperatorSignInResult result = await _signIn.SecondFactorAsync(_store.Account.Id, "ABCDE-FGHIJ-KLMNO-PQRST", CancellationToken.None);
+        OperatorSignInResult result = await _signIn.SecondFactorAsync(_store.Account.Id, "ABCDE-FGHIJ-KLMNO-PQRST", Origin, CancellationToken.None);
 
         result.Outcome.ShouldBe(SignInOutcome.Refused, "there is nothing to spend");
         _signIn.RemainingCodes(_store.Account).ShouldBeEmpty();
@@ -218,7 +221,7 @@ public sealed class OperatorSignInTests
         _store.Account = _store.Account with { RecoveryCodesProtected = Encoding.UTF8.GetBytes("null") };
 
         _signIn.RemainingCodes(_store.Account).ShouldBeEmpty();
-        (await _signIn.SecondFactorAsync(_store.Account.Id, "ABCDE-FGHIJ-KLMNO-PQRST", CancellationToken.None)).Outcome.ShouldBe(SignInOutcome.Refused);
+        (await _signIn.SecondFactorAsync(_store.Account.Id, "ABCDE-FGHIJ-KLMNO-PQRST", Origin, CancellationToken.None)).Outcome.ShouldBe(SignInOutcome.Refused);
     }
 
     [Fact]
@@ -235,7 +238,7 @@ public sealed class OperatorSignInTests
 
     private string CodeNow() => Totp.CodeAt(_signIn.ReadSecret(_store.Account.TotpSecretProtected)!, _clock.GetUtcNow());
 
-    private Task FinishAsync() => _signIn.SecondFactorAsync(_store.Account.Id, CodeNow(), CancellationToken.None);
+    private Task FinishAsync() => _signIn.SecondFactorAsync(_store.Account.Id, CodeNow(), Origin, CancellationToken.None);
 
     private async Task CreatedAsync(bool mustChangePassword = false)
     {

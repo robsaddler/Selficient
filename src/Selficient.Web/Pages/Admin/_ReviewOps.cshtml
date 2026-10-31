@@ -26,6 +26,22 @@
       </ul>
     }
   </section>
+  <section aria-labelledby="ops-signins">
+    <h2 id="ops-signins">The last sign-ins</h2>
+    @if (Model.Attempts.Count == 0)
+    {
+      <p class="review__none">Nobody has tried to sign in yet.</p>
+    }
+    else
+    {
+      <ul class="review__list" data-signins>
+        @foreach (var attempt in Model.Attempts)
+        {
+          <li data-outcome="@attempt.Outcome">@Selficient.Web.Pages.Admin.CatalogueModel.AttemptLine(attempt)</li>
+        }
+      </ul>
+    }
+  </section>
   <section aria-labelledby="ops-hands">
     <h2 id="ops-hands">The last hands</h2>
     @if (Model.Hands.Count == 0)

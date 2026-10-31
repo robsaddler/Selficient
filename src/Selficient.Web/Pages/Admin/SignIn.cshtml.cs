@@ -66,7 +66,7 @@ public sealed class SignInModel : PageModel
             return NotFound();
         }
 
-        OperatorSignInResult result = await _signIn.PasswordAsync(Username, Password, cancellationToken);
+        OperatorSignInResult result = await _signIn.PasswordAsync(Username, Password, OperatorAuth.OriginOf(HttpContext), cancellationToken);
         Password = null;
         switch (result.Outcome)
         {

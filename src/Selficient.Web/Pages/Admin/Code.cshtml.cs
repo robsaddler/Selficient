@@ -44,7 +44,7 @@ public sealed class CodeModel : PageModel
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         long id = OperatorAuth.IdOf(User)!.Value;
-        OperatorSignInResult result = await _signIn.SecondFactorAsync(id, Code, cancellationToken);
+        OperatorSignInResult result = await _signIn.SecondFactorAsync(id, Code, OperatorAuth.OriginOf(HttpContext), cancellationToken);
         Code = null;
         if (result.Outcome is SignInOutcome.Refused)
         {

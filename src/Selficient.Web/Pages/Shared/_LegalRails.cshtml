@@ -1,0 +1,28 @@
+@model Selficient.Web.Pages.LegalRails
+@* The two rails either side of a legal page's prose: the contents on one side, the plain-English
+   version on the other. The prose keeps its reading measure, which is what makes it readable; the
+   rails are what stop that measure sitting alone against the left of a wide screen. *@
+<nav class="legal__contents" aria-label="On this page">
+  <p class="legal__contents-heading">On this page</p>
+  <ol>
+    @foreach (var (id, title) in Model.Sections)
+    {
+      <li><a href="#@id">@title</a></li>
+    }
+  </ol>
+  <p class="legal__reviewed">Reviewed @Model.Reviewed</p>
+</nav>
+
+<aside class="legal__aside" aria-labelledby="at-a-glance">
+  <h2 id="at-a-glance" class="legal__aside-heading">@Model.AsideHeading</h2>
+  <ul class="promises">
+    @foreach (var (heading, sentence) in Model.AtAGlance)
+    {
+      <li class="promise">
+        <h3>@heading</h3>
+        <p>@sentence</p>
+      </li>
+    }
+  </ul>
+  <p class="legal__aside-note">@Model.AsideNote</p>
+</aside>

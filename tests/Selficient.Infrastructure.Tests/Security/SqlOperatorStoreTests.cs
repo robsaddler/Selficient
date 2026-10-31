@@ -131,17 +131,24 @@ public sealed class SqlOperatorStoreTests : IAsyncLifetime
     [Fact]
     public async Task Every_attempt_is_kept_newest_first_and_clipped_to_its_column()
     {
-        await _store.RecordAttemptAsync(new SignInAttempt(Evening, "rob", "refused", "The password was wrong."), CancellationToken.None);
-        await _store.RecordAttemptAsync(new SignInAttempt(Evening.AddMinutes(1), new string('n', 100), "code", new string('d', 500)), CancellationToken.None);
+        await _store.RecordAttemptAsync(new SignInAttempt(Evening, "rob", "refused", "The password was wrong.", "203.0.113.7", "a browser"), CancellationToken.None);
+        await _store.RecordAttemptAsync(new SignInAttempt(Evening.AddMinutes(1), new string('n', 100), "code", new string('d', 500), new string('a', 100), new string('g', 500)), CancellationToken.None);
+        await _store.RecordAttemptAsync(new SignInAttempt(Evening.AddMinutes(2), "console", "code", "No request behind it."), CancellationToken.None);
 
         IReadOnlyList<SignInAttempt> attempts = await _store.AttemptsAsync(10, CancellationToken.None);
 
-        attempts.Count.ShouldBe(2);
-        attempts[0].Outcome.ShouldBe("code", "newest first");
-        attempts[0].Username.Length.ShouldBe(64, "a long name is clipped to the column rather than failing the insert");
-        attempts[0].Detail.Length.ShouldBe(400);
-        attempts[1].At.ShouldBe(Evening);
-        attempts[1].Detail.ShouldBe("The password was wrong.");
+        attempts.Count.ShouldBe(3);
+        attempts[0].Address.ShouldBeNull("a call with no request behind it records no address rather than inventing one");
+        attempts[0].Agent.ShouldBeNull();
+        attempts[1].Address!.Length.ShouldBe(64, "an address is clipped to the column");
+        attempts[1].Agent!.Length.ShouldBe(400);
+        attempts[2].Address.ShouldBe("203.0.113.7", "an operator is staff, so the trail says where the attempt came from");
+        attempts[2].Agent.ShouldBe("a browser");
+        attempts[1].Outcome.ShouldBe("code", "newest first");
+        attempts[1].Username.Length.ShouldBe(64, "a long name is clipped to the column rather than failing the insert");
+        attempts[1].Detail.Length.ShouldBe(400);
+        attempts[2].At.ShouldBe(Evening);
+        attempts[2].Detail.ShouldBe("The password was wrong.");
         (await _store.AttemptsAsync(1, CancellationToken.None)).Count.ShouldBe(1);
     }
 

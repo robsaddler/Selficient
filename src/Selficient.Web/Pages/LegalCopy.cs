@@ -15,6 +15,29 @@ public static class LegalCopy
     /// <summary>When the legal pages were last reviewed.</summary>
     public static DateOnly Reviewed { get; } = new(2026, 10, 30);
 
+    /// <summary>
+    /// The privacy page in four sentences, for the rail beside the prose. A legal page is a hard
+    /// read by design; this is the version a person actually takes away, and on this site it is
+    /// also the pitch, so it earns the space rather than filling it.
+    /// </summary>
+    public static IReadOnlyList<(string Heading, string Sentence)> PrivacyAtAGlance { get; } =
+    [
+        ("No account, ever", "There is nothing to sign up for and nothing to sign in to, so there is no account of yours for anyone to take."),
+        ("No cookies, no analytics", "The site sets no cookies and runs no analytics. Nobody is counting you, here or anywhere else."),
+        ("Your plan stays on your device", "Your answers, your ticks and the pin on your map live in your own browser's storage. Clearing your browser clears them."),
+        ("Your postcode goes once", "It goes to a public lookup to find your area and your height above sea level, and it is not kept afterwards."),
+        ("Photographs never touch our disk", "A photo is re-encoded in memory, read, and discarded in the same request."),
+    ];
+
+    /// <summary>The terms page in four sentences, for the rail beside the prose.</summary>
+    public static IReadOnlyList<(string Heading, string Sentence)> TermsAtAGlance { get; } =
+    [
+        ("Guidance, not advice", "Careful guidance from public sources. It never replaces an electrician, a gas engineer or the emergency services."),
+        ("Some links earn a commission", "At no cost to you, and said so beside the link. Products are chosen because they fit the action."),
+        ("The engine decides, the model explains", "Days Ready and your plan come from rules you can read. A language model only counts and explains."),
+        ("Free, as it is", "No charge and no promise that it is complete, correct or always up. The law of England and Wales governs these terms."),
+    ];
+
     /// <summary>The upstream services the privacy page names, and what each receives.</summary>
     public static IReadOnlyList<(string Service, string Receives, string Purpose)> Upstreams { get; } =
     [

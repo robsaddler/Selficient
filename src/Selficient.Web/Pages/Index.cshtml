@@ -100,7 +100,18 @@
 </section>
 
 <section class="faq" aria-labelledby="faq-heading">
-  <h2 id="faq-heading">Questions people ask</h2>
+  @* The heading's column used to hold a heading and nothing else, which on a wide screen is a
+     third of the row left empty. It carries the reason for the section and a way to ask the
+     question that is not on the list. *@
+  <div class="faq__intro">
+    <h2 id="faq-heading">Questions people ask</h2>
+    <p class="faq__lede">The ones that come up most, answered straight. Nothing here is a sales pitch and nothing asks you to sign up.</p>
+    <div class="faq__ask">
+      <h3>Not on the list?</h3>
+      <p>Write and ask. A person reads it, and the answer often ends up on this page.</p>
+      <a class="button button--quiet" href="mailto:@Selficient.Web.Pages.LegalCopy.ContactEmail">@Selficient.Web.Pages.LegalCopy.ContactEmail</a>
+    </div>
+  </div>
   <div class="faq__list">
     @foreach (var faq in IndexModel.Questions)
     {

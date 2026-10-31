@@ -26,20 +26,23 @@ public sealed class CatalogueModel : PageModel
     private readonly TimeProvider _clock;
     private readonly IOperationsLog _log;
     private readonly HealthCheckService _health;
+    private readonly Selficient.Application.Security.IOperatorStore _operators;
 
     /// <summary>Creates the page over the store, the catalogue's hands and the session.</summary>
-    public CatalogueModel(ICatalogueStore store, CatalogueOperations operations, TimeProvider clock, IOperationsLog log, HealthCheckService health)
+    public CatalogueModel(ICatalogueStore store, CatalogueOperations operations, TimeProvider clock, IOperationsLog log, HealthCheckService health, Selficient.Application.Security.IOperatorStore operators)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(operations);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(health);
+        ArgumentNullException.ThrowIfNull(operators);
         _store = store;
         _operations = operations;
         _clock = clock;
         _log = log;
         _health = health;
+        _operators = operators;
     }
 
     /// <summary>The operator reading the page, which every hand is recorded against.</summary>
@@ -133,6 +136,7 @@ public sealed class CatalogueModel : PageModel
         Rows = rows;
         LastVerified = await _store.LastVerifiedAsync(cancellationToken);
         Hands = await _log.RecentHandsAsync(12, cancellationToken);
+        Attempts = await _operators.AttemptsAsync(12, cancellationToken);
         Runs = await _log.RecentRunsAsync(12, cancellationToken);
         HealthReport report = await _health.CheckHealthAsync(cancellationToken);
         Health = report.Entries.Select(static entry => new HealthLine(entry.Key, entry.Value.Status.ToString(), entry.Value.Description ?? string.Empty)).ToList();
@@ -140,6 +144,9 @@ public sealed class CatalogueModel : PageModel
 
     /// <summary>The latest hands, newest first.</summary>
     public IReadOnlyList<OperatorAction> Hands { get; private set; } = [];
+
+    /// <summary>The latest sign-in attempts, newest first, right and wrong.</summary>
+    public IReadOnlyList<Selficient.Application.Security.SignInAttempt> Attempts { get; private set; } = [];
 
     /// <summary>The latest job runs, newest first.</summary>
     public IReadOnlyList<JobRun> Runs { get; private set; } = [];
@@ -156,6 +163,18 @@ public sealed class CatalogueModel : PageModel
         ArgumentNullException.ThrowIfNull(run);
         string ended = run.FinishedAt is { } at ? Stamp(at) : "still running";
         return $"{Stamp(run.StartedAt)} {run.Job}: {run.Outcome.ToString().ToLowerInvariant()}, {ended}. {run.Detail}".TrimEnd();
+    }
+
+    /// <summary>
+    /// A sign-in attempt as one line: when, who was named, how it went, and where from. The
+    /// address is here because an operator is staff and a run of refusals from one place is the
+    /// thing you need to see; it is never a reader's.
+    /// </summary>
+    public static string AttemptLine(Selficient.Application.Security.SignInAttempt attempt)
+    {
+        ArgumentNullException.ThrowIfNull(attempt);
+        string from = string.IsNullOrWhiteSpace(attempt.Address) ? "no address recorded" : attempt.Address;
+        return $"{Stamp(attempt.At)} {attempt.Username}, {attempt.Outcome}, from {from}: {attempt.Detail}";
     }
 
     /// <summary>A hand as one line: when, which, on what, and what came of it.</summary>

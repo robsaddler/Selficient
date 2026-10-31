@@ -55,6 +55,25 @@ public sealed class OperatorAuthUnitTests
     }
 
     [Fact]
+    public void An_operators_trail_says_where_the_attempt_came_from()
+    {
+        DefaultHttpContext request = new();
+        request.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("203.0.113.7");
+        request.Request.Headers.UserAgent = "a browser";
+        DefaultHttpContext bare = new();
+
+        SignInOrigin seen = OperatorAuth.OriginOf(request);
+        SignInOrigin thin = OperatorAuth.OriginOf(bare);
+        SignInOrigin none = OperatorAuth.OriginOf(null);
+
+        seen.Address.ShouldBe("203.0.113.7", "an operator is staff: the promise that nothing identifying is kept is made to readers");
+        seen.Agent.ShouldBe("a browser");
+        thin.Address.ShouldBeNull("a request with no address recorded says so rather than inventing one");
+        thin.Agent.ShouldBeNull("an empty agent header is no agent");
+        none.ShouldBe(SignInOrigin.Unknown, "a console or a background task has no request behind it");
+    }
+
+    [Fact]
     public void The_protector_hands_back_nothing_for_anything_it_did_not_write()
     {
         DataProtectionSecretProtector protector = new(DataProtectionProvider.Create("Selficient.Tests"));

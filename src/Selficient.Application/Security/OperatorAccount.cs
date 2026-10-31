@@ -73,9 +73,24 @@ public enum SignInOutcome
 /// <param name="Account">The account, when the password was right; otherwise nothing.</param>
 public readonly record struct OperatorSignInResult(SignInOutcome Outcome, OperatorAccount? Account);
 
+/// <summary>
+/// Where a sign-in came from. An operator is staff, not a reader: the promise that nothing
+/// identifying is kept is made to the households who use the site, and a security surface whose
+/// trail cannot say where an attempt came from cannot be investigated after one.
+/// </summary>
+/// <param name="Address">The caller's address, or nothing when there is no request behind the call.</param>
+/// <param name="Agent">The browser that made it.</param>
+public readonly record struct SignInOrigin(string? Address, string? Agent)
+{
+    /// <summary>No request behind the call: a console, a test, a background task.</summary>
+    public static SignInOrigin Unknown => new(null, null);
+}
+
 /// <summary>A hand taken on the reviewer or a sign-in attempt, as the audit trail keeps it.</summary>
 /// <param name="At">When.</param>
 /// <param name="Username">The name typed, or the operator's own.</param>
 /// <param name="Outcome">One word for what happened.</param>
 /// <param name="Detail">A whole sentence for a person reading the trail.</param>
-public sealed record SignInAttempt(DateTimeOffset At, string Username, string Outcome, string Detail);
+/// <param name="Address">Where the attempt came from. An operator is staff, and a trail that cannot say where cannot be investigated.</param>
+/// <param name="Agent">The browser that made it, clipped.</param>
+public sealed record SignInAttempt(DateTimeOffset At, string Username, string Outcome, string Detail, string? Address = null, string? Agent = null);

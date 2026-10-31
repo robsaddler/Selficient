@@ -155,17 +155,25 @@
   .faq {
     max-inline-size: none;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
     gap: var(--space-7);
     align-items: start;
 
-    & h2 {
+    & .faq__intro {
       position: sticky;
       inset-block-start: var(--space-5);
     }
 
     & .faq__item + .faq__item {
       margin-block-start: 0;
+    }
+  }
+
+  /* Two across once the answers have the room, so a long list is scanned rather than scrolled. */
+  @media (min-width: 90rem) {
+    .faq__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
     }
   }
 
@@ -1410,5 +1418,175 @@
   color: var(--c-ink-muted);
   font-size: var(--text-s);
   margin: 0;
+}
+
+/* The legal pages. A column of prose at its reading measure is right for the prose and wrong for
+   the page: on a wide screen it sat alone against the left edge. The measure stays, because it is
+   what makes a long legal text readable, and the room either side is given to the two things a
+   reader actually wants from a page like this: where the sections are, and what it says in plain
+   words. Both rails stick while the prose scrolls past them. */
+.legal-page {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.legal__head {
+  & h1 {
+    font-size: var(--text-2xl);
+    text-wrap: balance;
+  }
+}
+
+.legal__lede {
+  margin-block-start: var(--space-3);
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+  font-size: var(--text-l);
+  text-wrap: pretty;
+}
+
+/* On a phone the contents fold away above the prose and the plain version follows it, so the
+   reading order is contents, text, summary rather than three columns of nothing. */
+.legal__contents {
+  font-size: var(--text-s);
+
+  & ol {
+    margin: var(--space-3) 0 0;
+    padding-inline-start: 1.2em;
+    display: grid;
+    gap: var(--space-2);
+  }
+}
+
+.legal__contents-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--c-ink);
+  margin: 0;
+}
+
+.legal__reviewed {
+  margin-block-start: var(--space-4);
+  color: var(--c-ink-muted);
+  font-family: var(--font-data);
+  font-size: var(--text-s);
+}
+
+.legal__aside-heading {
+  font-size: var(--text-l);
+  margin: 0;
+}
+
+.legal__aside-note {
+  margin-block-start: var(--space-4);
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+  text-wrap: pretty;
+}
+
+.promises {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.promise {
+  padding: var(--space-4);
+  border: var(--border);
+  border-inline-start: 4px solid var(--c-pine);
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
+  background: var(--c-paper);
+
+  & h3 {
+    font-size: var(--text-m);
+    margin: 0;
+  }
+
+  & p {
+    margin-block-start: var(--space-2);
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+    text-wrap: pretty;
+  }
+}
+
+/* A long table of upstreams is the one thing here wider than the measure. */
+.legal__scroll {
+  overflow-x: auto;
+  margin-block-start: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .legal-page {
+    grid-template-columns: minmax(11rem, 15rem) minmax(0, var(--measure)) minmax(13rem, 21rem);
+    column-gap: var(--space-7);
+    justify-content: center;
+  }
+
+  .legal__head {
+    grid-column: 1 / -1;
+  }
+
+  .legal__contents,
+  .legal__aside {
+    position: sticky;
+    inset-block-start: calc(var(--header-height) + var(--space-4));
+  }
+
+  .legal__contents {
+    grid-column: 1;
+    grid-row: 2;
+    border-inline-end: var(--border);
+    padding-inline-end: var(--space-5);
+  }
+
+  .legal {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .legal__aside {
+    grid-column: 3;
+    grid-row: 2;
+  }
+}
+
+/* The questions section's own column: the heading, why the section is here, and a way to ask one
+   that is not on the list. It used to be a heading alone, which left a third of a wide row empty. */
+.faq__lede {
+  margin-block-start: var(--space-3);
+  color: var(--c-ink-muted);
+  text-wrap: pretty;
+}
+
+.faq__ask {
+  margin-block-start: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+
+  & h3 {
+    font-size: var(--text-l);
+    margin: 0;
+  }
+
+  & p {
+    margin: 0;
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+    text-wrap: pretty;
+  }
+
+  & .button {
+    font-family: var(--font-data);
+    font-size: var(--text-s);
+  }
 }
 }

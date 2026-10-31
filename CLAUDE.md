@@ -10,7 +10,7 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - **100% line and branch coverage per production assembly.** `./build/run-tests.ps1` is the gate locally and in CI. Exclusions only as documented in `docs/coverage-exclusions.md`.
 - **Every feature starts with a threat model** in `docs/threat-models/<feature>.md` and failing adversarial tests. Nothing merges without them and a security review pass.
 - **Dependency rule:** Web → Application → Domain; Infrastructure → Application; Infrastructure is referenced only from the composition root. Architecture tests enforce it.
-- **No personal data on the server in v1.** Postcodes are logged as outward district only. Photos are processed in memory and discarded.
+- **No personal data about readers on the server in v1.** This is about the households who use the site, and it exists to make a casual visitor comfortable engaging with it: no accounts, no cookies, no analytics, postcodes logged as outward district only, photos processed in memory and discarded. **It is not a rule about the back office.** Operators are staff: their accounts, their sign-ins with the address and the agent they came from, and every change they make are recorded in full, because a security surface without that cannot be investigated. Do not apply the reader's rule to the people running the platform.
 - **Secrets are environment variables.** Never in the repo, never in workflows.
 - **The rules engine is deterministic and owns Days Ready and the plan.** AI explains, counts and answers; it never computes.
 

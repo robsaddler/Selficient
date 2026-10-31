@@ -45,3 +45,11 @@ UPDATE dbo.operators SET totp_secret = NULL, totp_confirmed_at = NULL, recovery_
 **Who did what.** `dbo.operator_actions` holds every hand with the operator's name; `dbo.operator_signin_attempts` holds every attempt with its outcome. Both are on the reviewer, newest first. Neither holds an address or a user agent.
 
 **After restoring a database to another machine.** The authenticator seeds and the recovery codes are encrypted with the Data Protection key ring, which is itself in `dbo.data_protection_keys` and wrapped by the machine on Windows. A database restored without that machine's DPAPI cannot read them: every operator will need their second factor cleared as above.
+
+**Who tried to sign in, and from where.** `dbo.operator_signin_attempts` keeps the username, the outcome, the address and the browser for every attempt, right or wrong, and the reviewer shows the last twelve. A run of refusals against one name from one address is the thing to look for. This is staff data, not readers': the "nothing identifying is kept" promise on the privacy page is made to the households who use the site.
+
+```sql
+SELECT TOP (100) at, username, outcome, address, detail
+FROM dbo.operator_signin_attempts
+ORDER BY id DESC;
+```

@@ -35,7 +35,7 @@ public sealed class OperatorSignIn
     }
 
     /// <summary>The first step: the username and the password.</summary>
-    public async Task<OperatorSignInResult> PasswordAsync(string? username, string? password, CancellationToken cancellationToken)
+    public async Task<OperatorSignInResult> PasswordAsync(string? username, string? password, SignInOrigin origin, CancellationToken cancellationToken)
     {
         DateTimeOffset now = _clock.GetUtcNow();
         string name = (username ?? string.Empty).Trim();
@@ -45,21 +45,21 @@ public sealed class OperatorSignIn
             // The same work as a real verification, so an unknown name and a wrong password are
             // indistinguishable from the outside.
             PasswordHasher.SpendTheSameTime(password);
-            await RecordAsync(name, "refused", "No operator of that name, or the password was wrong.", now, cancellationToken).ConfigureAwait(false);
+            await RecordAsync(name, "refused", "No operator of that name, or the password was wrong.", now, origin, cancellationToken).ConfigureAwait(false);
             return new OperatorSignInResult(SignInOutcome.Refused, null);
         }
 
         if (!account.IsEnabled)
         {
             PasswordHasher.SpendTheSameTime(password);
-            await RecordAsync(name, "disabled", "The account is turned off.", now, cancellationToken).ConfigureAwait(false);
+            await RecordAsync(name, "disabled", "The account is turned off.", now, origin, cancellationToken).ConfigureAwait(false);
             return new OperatorSignInResult(SignInOutcome.Disabled, null);
         }
 
         if (account.LockedUntil is { } until && until > now)
         {
             PasswordHasher.SpendTheSameTime(password);
-            await RecordAsync(name, "locked", "The account is locked after too many wrong passwords.", now, cancellationToken).ConfigureAwait(false);
+            await RecordAsync(name, "locked", "The account is locked after too many wrong passwords.", now, origin, cancellationToken).ConfigureAwait(false);
             return new OperatorSignInResult(SignInOutcome.LockedOut, null);
         }
 
@@ -68,7 +68,7 @@ public sealed class OperatorSignIn
         {
             int failures = account.FailedAttempts + 1;
             await _store.RecordFailureAsync(account.Id, failures, LockoutPolicy.LockedUntil(failures, now), cancellationToken).ConfigureAwait(false);
-            await RecordAsync(name, "refused", "The password was wrong.", now, cancellationToken).ConfigureAwait(false);
+            await RecordAsync(name, "refused", "The password was wrong.", now, origin, cancellationToken).ConfigureAwait(false);
             return new OperatorSignInResult(SignInOutcome.Refused, null);
         }
 
@@ -79,7 +79,7 @@ public sealed class OperatorSignIn
             await _store.SetPasswordAsync(account.Id, PasswordHasher.Hash(password!), account.SecurityStamp, now, cancellationToken).ConfigureAwait(false);
         }
 
-        await RecordAsync(name, "password", "The password was right; the second factor is next.", now, cancellationToken).ConfigureAwait(false);
+        await RecordAsync(name, "password", "The password was right; the second factor is next.", now, origin, cancellationToken).ConfigureAwait(false);
         return new OperatorSignInResult(account.HasSecondFactor ? SignInOutcome.NeedsSecondFactor : SignInOutcome.NeedsEnrolment, account);
     }
 
@@ -87,7 +87,7 @@ public sealed class OperatorSignIn
     /// The second step: a code from the authenticator, or one of the recovery codes. A code is
     /// spent when it works, so neither kind is ever accepted twice.
     /// </summary>
-    public async Task<OperatorSignInResult> SecondFactorAsync(long operatorId, string? code, CancellationToken cancellationToken)
+    public async Task<OperatorSignInResult> SecondFactorAsync(long operatorId, string? code, SignInOrigin origin, CancellationToken cancellationToken)
     {
         DateTimeOffset now = _clock.GetUtcNow();
         OperatorAccount? account = await _store.FindAsync(operatorId, cancellationToken).ConfigureAwait(false);
@@ -100,16 +100,16 @@ public sealed class OperatorSignIn
         if (Totp.Matches(secret, code, now, account.LastTotpStep, out long step))
         {
             await _store.SetLastTotpStepAsync(account.Id, step, cancellationToken).ConfigureAwait(false);
-            return await CompleteAsync(account, "code", "Signed in with the authenticator's code.", now, cancellationToken).ConfigureAwait(false);
+            return await CompleteAsync(account, "code", "Signed in with the authenticator's code.", now, origin, cancellationToken).ConfigureAwait(false);
         }
 
         if (SpendRecoveryCode(account, code, out byte[]? remaining))
         {
             await _store.SetRecoveryCodesAsync(account.Id, remaining!, cancellationToken).ConfigureAwait(false);
-            return await CompleteAsync(account, "recovery", "Signed in with a recovery code, which is now spent.", now, cancellationToken).ConfigureAwait(false);
+            return await CompleteAsync(account, "recovery", "Signed in with a recovery code, which is now spent.", now, origin, cancellationToken).ConfigureAwait(false);
         }
 
-        await RecordAsync(account.Username, "refused", "The second factor was wrong.", now, cancellationToken).ConfigureAwait(false);
+        await RecordAsync(account.Username, "refused", "The second factor was wrong.", now, origin, cancellationToken).ConfigureAwait(false);
         return new OperatorSignInResult(SignInOutcome.Refused, account);
     }
 
@@ -157,15 +157,15 @@ public sealed class OperatorSignIn
         return true;
     }
 
-    private async Task<OperatorSignInResult> CompleteAsync(OperatorAccount account, string outcome, string detail, DateTimeOffset now, CancellationToken cancellationToken)
+    private async Task<OperatorSignInResult> CompleteAsync(OperatorAccount account, string outcome, string detail, DateTimeOffset now, SignInOrigin origin, CancellationToken cancellationToken)
     {
         await _store.RecordSuccessAsync(account.Id, now, cancellationToken).ConfigureAwait(false);
-        await RecordAsync(account.Username, outcome, detail, now, cancellationToken).ConfigureAwait(false);
+        await RecordAsync(account.Username, outcome, detail, now, origin, cancellationToken).ConfigureAwait(false);
         return new OperatorSignInResult(account.MustChangePassword ? SignInOutcome.NeedsNewPassword : SignInOutcome.SignedIn, account);
     }
 
-    private Task RecordAsync(string username, string outcome, string detail, DateTimeOffset now, CancellationToken cancellationToken) =>
-        _store.RecordAttemptAsync(new SignInAttempt(now, username.Length == 0 ? "(no name)" : username, outcome, detail), cancellationToken);
+    private Task RecordAsync(string username, string outcome, string detail, DateTimeOffset now, SignInOrigin origin, CancellationToken cancellationToken) =>
+        _store.RecordAttemptAsync(new SignInAttempt(now, username.Length == 0 ? "(no name)" : username, outcome, detail, origin.Address, origin.Agent), cancellationToken);
 
     private static string[] Read(byte[] plain) =>
         JsonSerializer.Deserialize(Encoding.UTF8.GetString(plain), OperatorJson.Default.StringArray) ?? [];

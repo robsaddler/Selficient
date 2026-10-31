@@ -30,7 +30,7 @@ One shared secret in an environment variable, compared in constant time, exchang
 | 8 | The sign-in cookie is HttpOnly, Secure, SameSite=Strict, scoped to `/admin`, with a sliding window inside an absolute lifetime | A cookie that cannot be read by script, cannot be sent from another site, and cannot outlive the day it was issued in |
 | 9 | Every attempt is recorded with its outcome, and every hand on the reviewer now names the operator who took it | The audit question "who" is answerable at last |
 | 10 | The first account is created at start-up from `Operator__BootstrapUsername` and `Operator__BootstrapPassword` when the table is empty, and that account must change its password and enrol a second factor before it can do anything | A new VPS needs a way in that is not a password in the repository, and a bootstrap credential that stays valid is a backdoor |
-| 11 | No address, user agent or other identifier is stored against an attempt, only the username and the outcome | The standing rule is no personal data on the server. **Rob to review:** an operator surface is the one place where an address in the audit trail is genuinely useful for forensics, and it would be the operator's own address, not a reader's |
+| 11 | Every attempt keeps the address and the user agent it came from, and every hand keeps the address | The "no personal data" rule is a promise to the households who read the site, not a constraint on the back office. Operators are staff, and a trail that cannot say where a run of refusals came from cannot be investigated. Corrected the same night it shipped, after Rob pointed out the rule was being read as covering everyone |
 
 ## Cases
 
@@ -62,3 +62,4 @@ Each is a test. The test name is in the right-hand column.
 | 22 | Every attempt, right or wrong | Leaves a row with its outcome, and the password never appears in it or in any log | `Every_attempt_is_recorded_and_no_password_is_ever_written` |
 | 23 | A hand on the reviewer | Records the operator's username beside what was done | `A_hand_names_the_operator_who_took_it` |
 | 24 | The reviewer with no operator configured and no bootstrap | The pages do not exist, as before | `With_no_operator_the_reviewer_is_not_there` |
+| 25 | An attempt from a browser | Keeps the address and the agent; one with no request behind it keeps neither rather than inventing them | `An_operators_trail_says_where_the_attempt_came_from` |

@@ -7,32 +7,40 @@
     var gb = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
 }
 
-<article class="legal" aria-labelledby="terms-heading">
-  <p class="eyebrow">Terms</p>
-  <h1 id="terms-heading">Terms, disclosure and licences</h1>
-  <p>Reviewed @Selficient.Web.Pages.LegalCopy.Reviewed.ToString("d MMMM yyyy", gb). Using Selficient means you are content with the following, which is written to be read.</p>
+<div class="legal-page">
+  <header class="legal__head">
+    <p class="eyebrow">Terms</p>
+    <h1 id="terms-heading">Terms, disclosure and licences</h1>
+    <p class="legal__lede">Using Selficient means you are content with the following, which is written to be read.</p>
+  </header>
 
-  <h2 id="advice">Guidance, not advice</h2>
-  <p>Selficient is careful guidance built from public sources, the government's Be Ready checklist, and one household's own planning. It is not professional advice. It never replaces an electrician, a gas engineer, an arborist, an MCS installer, your insurer, or the instructions of the emergency services. Prices and figures are estimates from the dates shown and will have moved. Decisions about your home, your money and your safety are yours.</p>
+  @await Html.PartialAsync("_LegalRails", Selficient.Web.Pages.LegalRails.Terms)
 
-  <h2 id="affiliate">Affiliate disclosure</h2>
-  <p>Where we point to a shop, some links earn Selficient a small commission at no cost to you. We say so beside the links and in the plan. The products are chosen because they fit the action, not because of the commission, and the price shown is the one we saw on the date beside it.</p>
+  <article class="legal" aria-labelledby="terms-heading">
+    <h2 id="advice">Guidance, not advice</h2>
+    <p>Selficient is careful guidance built from public sources, the government's Be Ready checklist, and one household's own planning. It is not professional advice. It never replaces an electrician, a gas engineer, an arborist, an MCS installer, your insurer, or the instructions of the emergency services. Prices and figures are estimates from the dates shown and will have moved. Decisions about your home, your money and your safety are yours.</p>
 
-  <h2 id="ai">Photo readings and the plan narrative</h2>
-  <p>Photo readings and the plan's narrative are produced by a language model from the photograph or the plan's own text. The model counts, reads and explains; it never changes a figure, an action or a cost, and the plan itself is right where they disagree. Readings can be wrong, and you should check anything you act on.</p>
+    <h2 id="affiliate">Affiliate disclosure</h2>
+    <p>Where we point to a shop, some links earn Selficient a small commission at no cost to you. We say so beside the links and in the plan. The products are chosen because they fit the action, not because of the commission, and the price shown is the one we saw on the date beside it.</p>
 
-  <h2 id="warranty">No warranty</h2>
-  <p>Selficient is provided as it is, free of charge, in the hope that it helps. We do not promise it is complete, correct or always available, and to the extent the law allows we are not liable for loss arising from its use. Nothing here limits liability that cannot be limited under the law of England and Wales, which governs these terms.</p>
+    <h2 id="ai">Photo readings and the plan narrative</h2>
+    <p>Photo readings and the plan's narrative are produced by a language model from the photograph or the plan's own text. The model counts, reads and explains; it never changes a figure, an action or a cost, and the plan itself is right where they disagree. Readings can be wrong, and you should check anything you act on.</p>
 
-  <h2 id="licences">Licences and attribution</h2>
-  <ul class="legal__list">
-    <li>Mapping contains OS data © Crown copyright and database right 2026, from OS Open Zoomstack under the Open Government Licence v3.0.</li>
-    <li>Solar yields come from PVGIS, © European Union, 2001 to 2026, used under its terms of use.</li>
-    <li>Postcode lookups use postcodes.io, which is open data and open source, and elevations use Open-Meteo under CC BY 4.0.</li>
-    <li>Maps are drawn by MapLibre GL JS, BSD 3-Clause; photographs are re-encoded by SkiaSharp, MIT; the typefaces Bricolage Grotesque, Atkinson Hyperlegible Next and IBM Plex Mono are under the SIL Open Font Licence; the map labels use Open Sans under the same licence.</li>
-    <li>The Be Ready checklist is Crown copyright, used under the Open Government Licence.</li>
-  </ul>
+    <h2 id="warranty">No warranty</h2>
+    <p>Selficient is provided as it is, free of charge, in the hope that it helps. We do not promise it is complete, correct or always available, and to the extent the law allows we are not liable for loss arising from its use. Nothing here limits liability that cannot be limited under the law of England and Wales, which governs these terms.</p>
 
-  <h2 id="contact">Contact</h2>
-  <p>Write to <a href="mailto:@Selficient.Web.Pages.LegalCopy.ContactEmail">@Selficient.Web.Pages.LegalCopy.ContactEmail</a>. @Selficient.Web.Pages.LegalCopy.MadeBy</p>
-</article>
+    <h2 id="licences">Licences and attribution</h2>
+    <ul class="legal__list">
+      <li>Mapping contains OS data © Crown copyright and database right 2026, from OS Open Zoomstack under the Open Government Licence v3.0.</li>
+      <li>Solar yields come from PVGIS, © European Union, 2001 to 2026, used under its terms of use.</li>
+      <li>Postcode lookups use postcodes.io, which is open data and open source, and elevations use Open-Meteo under CC BY 4.0.</li>
+      <li>Maps are drawn by MapLibre GL JS, BSD 3-Clause; photographs are re-encoded by SkiaSharp, MIT; the typefaces Bricolage Grotesque, Atkinson Hyperlegible Next and IBM Plex Mono are under the SIL Open Font Licence; the map labels use Open Sans under the same licence.</li>
+      <li>The Be Ready checklist is Crown copyright, used under the Open Government Licence.</li>
+    </ul>
+
+    <h2 id="contact">Contact</h2>
+    <p>Write to <a href="mailto:@Selficient.Web.Pages.LegalCopy.ContactEmail">@Selficient.Web.Pages.LegalCopy.ContactEmail</a>.</p>
+
+    <p class="disclosure">Reviewed @Selficient.Web.Pages.LegalCopy.Reviewed.ToString("d MMMM yyyy", gb). @Selficient.Web.Pages.LegalCopy.MadeBy</p>
+  </article>
+</div>
