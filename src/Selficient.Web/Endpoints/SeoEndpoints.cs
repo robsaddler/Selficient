@@ -20,6 +20,7 @@ public static class SeoEndpoints
     [
         ("/", "weekly", 1.0m),
         ("/plan/start", "monthly", 0.9m),
+        ("/deals", "daily", 0.8m),
         ("/plan/solar", "monthly", 0.7m),
         ("/plan/photos", "monthly", 0.6m),
         ("/privacy", "yearly", 0.3m),

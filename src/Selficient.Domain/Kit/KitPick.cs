@@ -42,6 +42,12 @@ public sealed record KitPick
     /// <summary>A sentence on why this one, or empty.</summary>
     public string Note { get; }
 
+    /// <summary>The offer this pick came from in the catalogue store, so its link can go through the click counter; null for a pick shipped in the file.</summary>
+    public long? OfferId { get; private init; }
+
+    /// <summary>The same pick, carrying its offer id.</summary>
+    public KitPick WithOffer(long offerId) => this with { OfferId = offerId };
+
     /// <summary>Creates a pick, refusing anything that could not be shown safely.</summary>
     public static Result<KitPick> Create(string actionId, string name, string retailer, decimal pricePounds, DateOnly seen, Uri? link, string? note)
     {

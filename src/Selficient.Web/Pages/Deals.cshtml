@@ -1,0 +1,33 @@
+@page "/deals"
+@using Selficient.Web.Formatting
+@model Selficient.Web.Pages.DealsModel
+@{
+    ViewData["Title"] = "The cheapest kit for a three-day plan";
+    ViewData["Description"] = "What is cheapest right now for every action a household plan buys for, checked overnight, price drops first.";
+    ViewData["Canonical"] = "https://selficient.app/deals";
+    var gb = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+}
+
+<section class="deals" aria-labelledby="deals-heading">
+  <p class="eyebrow">Where to look</p>
+  <h1 id="deals-heading">The cheapest kit for a three-day plan</h1>
+  <p class="deals__lede">@Selficient.Web.Pages.DealsModel.Lede(Model.Deals.Count, Model.Drops)</p>
+  <ul class="deals__list">
+    @foreach (var deal in Model.Deals)
+    {
+      <li class="deal" data-deal="@deal.Action.Value" data-drop="@(deal.IsDrop ? "true" : "false")">
+        <svg class="deal__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForAction(deal.Action.Value)"/></svg>
+        <div class="deal__body">
+          <h2 class="deal__title">@deal.Title</h2>
+          <p class="deal__pick"><a href="@KitLinks.Href(deal.Cheapest)" rel="sponsored noopener noreferrer" target="_blank">@deal.Cheapest.Name</a> at @deal.Cheapest.Retailer</p>
+          <p class="deal__price"><span class="data">@MoneyFormat.Amount(deal.Cheapest.Price)</span>@await Html.PartialAsync("_DealWas", deal) <span class="deal__seen">seen @deal.Cheapest.Seen.ToString("d MMM yyyy", gb)</span></p>
+          <p class="deal__others">@Selficient.Web.Pages.DealCopy.Others(deal.Others)</p>
+        </div>
+      </li>
+    }
+  </ul>
+  <p class="disclosure">Cheapest first within each action; the dearer picks last longer or do more and are on the plan itself. A link opens the shop's own search for the item; the price is what our checker read on the date given. Following a link to a shop takes you to the shop; some links earn Selficient a small commission at no cost to you.</p>
+  <p class="cluster">
+    <a class="button button--primary" href="/plan/start">Work out your own plan</a>
+  </p>
+</section>

@@ -67,3 +67,7 @@ Phase D is the launch itself: a share card for the figure (the one thing people 
 ## What this does not fix
 
 A shop that walls off robots cannot be verified by a machine; those picks are hand-checked or moved. A judge reads what a page says and can be wrong about a page that lies. Feeds lag the shelf by a day. None of these is a reason not to build it; they are the reasons the reviewer exists.
+
+## Built (31 Oct 2026)
+
+Phase A as above, with the store simplified to one `offers` table (retailer and product folded in; feeds and the retailer table arrive with Phase B). Phase C built as readers' tips rather than a crawler: "Found it cheaper?" takes a link, the worker judges it on its next wake, the reviewer approves. The weekly discoverer is not built; the tips and the Monday link check cover the gap until the feeds. Phase D: the share card and its landing, the `/deals` page. Threat model `docs/threat-models/catalogue-system.md`. Phase B waits on the accounts in `docs/handover.md` section 1.

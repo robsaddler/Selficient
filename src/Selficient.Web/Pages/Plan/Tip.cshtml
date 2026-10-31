@@ -1,0 +1,17 @@
+@page "/plan/tip"
+@model Selficient.Web.Pages.Plan.TipModel
+@{
+    ViewData["NoIndex"] = true;
+    ViewData["Title"] = "Thank you for the tip";
+    ViewData["Description"] = "A shop link a reader sent us, and what happens to it next.";
+}
+
+<section class="wizard" aria-labelledby="tip-heading">
+  <p class="eyebrow">Found it cheaper?</p>
+  <h1 id="tip-heading">@(Model.Outcome == Selficient.Application.Catalogue.TipOutcome.Taken ? "Thank you" : "We could not take that one")</h1>
+  <p class="callout" role="status" data-tip-outcome="@Model.Outcome.ToString().ToLowerInvariant()">@Model.Sentence</p>
+  <p>A link you send is opened by our checker overnight and read by a person before it is shown to anyone. We keep the link and nothing about you.</p>
+  <p class="cluster">
+    <a class="button" href="/plan">Back to your plan</a>
+  </p>
+</section>

@@ -32,6 +32,7 @@
     </days-ready>
     <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
     @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(Model.Board.Current))
+    <p class="hero__share"><button type="button" class="button button--quiet" data-share hidden>Share this figure</button> <span class="share__status" role="status" data-share-status hidden></span></p>
   </div>
   <div class="hero__scenarios">
     <h2 class="hero__scenarios-heading">What could happen here</h2>

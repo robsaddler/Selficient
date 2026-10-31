@@ -15,6 +15,10 @@ using Selficient.Infrastructure.Solar;
 using Selficient.Application.Ai;
 using Selficient.Infrastructure.Ai;
 using Selficient.Infrastructure.Images;
+using Selficient.Application.Catalogue;
+using Selficient.Infrastructure.Catalogue;
+using Selficient.Application.Share;
+using Selficient.Infrastructure.Share;
 using Anthropic;
 using Microsoft.Extensions.Logging;
 
@@ -63,7 +67,33 @@ public static class InfrastructureServiceCollectionExtensions
             .Bind(configuration.GetSection(AffiliateOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        services.AddSingleton<IKitCatalogue>(static provider => EmbeddedKitCatalogue.Load(provider.GetRequiredService<IOptions<AffiliateOptions>>().Value));
+        // The shipped picks are the seed; the pages read the store's catalogue, which the worker loads and verifies.
+        services.AddSingleton(static provider => EmbeddedKitCatalogue.Load(provider.GetRequiredService<IOptions<AffiliateOptions>>().Value));
+        services.AddOptions<CatalogueOptions>()
+            .Bind(configuration.GetSection(CatalogueOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<ICatalogueStore>(provider => new SqliteCatalogueStore(Path.Combine(environment.ContentRootPath, provider.GetRequiredService<IOptions<CatalogueOptions>>().Value.DatabasePath)));
+        services.AddSingleton(static provider => new StoredCatalogue(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<EmbeddedKitCatalogue>()));
+        services.AddSingleton<IKitCatalogue>(static provider => provider.GetRequiredService<StoredCatalogue>());
+        services.AddHttpClient<HttpPageReader>(static client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(25);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Selficient-catalogue-check/1.0");
+            })
+            .RemoveAllLoggers()
+            .AddStandardResilienceHandler();
+        services.AddSingleton<IPageReader>(static provider => new HttpPageReader(provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpPageReader)), provider.GetRequiredService<IOptions<CatalogueOptions>>().Value.PageBytes));
+        services.AddSingleton(static provider => new OfferVerifier(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<IPageReader>(), provider.GetRequiredService<IOfferJudge>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(static provider => new CatalogueOperations(provider.GetRequiredService<StoredCatalogue>(), provider.GetRequiredService<OfferVerifier>(), provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<CatalogueWorker>();
+        services.AddHostedService(static provider => provider.GetRequiredService<CatalogueWorker>());
+        // The share card is drawn on demand and cached by the endpoint; it carries a number and a scenario, nothing of a house.
+        services.AddSingleton<IShareCardRenderer, SkiaShareCardRenderer>();
+        // Readers' tips and the deals page: the allowlist is the catalogue's own, so a tip can never point the checker elsewhere.
+        services.AddSingleton<IAllowedShops, AffiliateAllowedShops>();
+        services.AddSingleton(static provider => new TipBox(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<IAllowedShops>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(static provider => new DealsReader(provider.GetRequiredService<StoredCatalogue>(), provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<TimeProvider>()));
 
         // The basemap has no fake: an absent archive is the degraded state, and the tests build
         // tiny archives of their own.
@@ -111,6 +141,7 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<FakeAssistant>();
             services.AddSingleton<IPhotoAnalyst>(static provider => provider.GetRequiredService<FakeAssistant>());
             services.AddSingleton<IPlanNarrator>(static provider => provider.GetRequiredService<FakeAssistant>());
+            services.AddSingleton<IOfferJudge, FakeOfferJudge>();
             return services;
         }
 
@@ -120,6 +151,7 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<NoAssistant>();
             services.AddSingleton<IPhotoAnalyst>(static provider => provider.GetRequiredService<NoAssistant>());
             services.AddSingleton<IPlanNarrator>(static provider => provider.GetRequiredService<NoAssistant>());
+            services.AddSingleton<IOfferJudge, NoJudge>();
         }
         else
         {
@@ -138,6 +170,11 @@ public static class InfrastructureServiceCollectionExtensions
             });
             services.AddSingleton<IPhotoAnalyst>(static provider => provider.GetRequiredService<AnthropicAssistant>());
             services.AddSingleton<IPlanNarrator>(static provider => provider.GetRequiredService<AnthropicAssistant>());
+            services.AddSingleton<IOfferJudge>(static provider =>
+            {
+                AnthropicOptions options = provider.GetRequiredService<IOptions<AnthropicOptions>>().Value;
+                return new AnthropicOfferJudge(new AnthropicClient { ApiKey = options.ApiKey, BaseUrl = options.BaseUrl.ToString().TrimEnd('/'), Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds), MaxRetries = 1 }, options.Model);
+            });
         }
 
         AddUpstreamClient<PostcodesIoGeocoder>(services, static o => o.PostcodesBaseUrl);

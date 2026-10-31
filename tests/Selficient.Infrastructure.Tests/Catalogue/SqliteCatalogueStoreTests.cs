@@ -1,0 +1,198 @@
+using Selficient.Application.Catalogue;
+using Selficient.Domain.Kit;
+using Selficient.Domain.Measures;
+using Selficient.Domain.Plans;
+using Selficient.Infrastructure.Catalogue;
+
+namespace Selficient.Infrastructure.Tests.Catalogue;
+
+public sealed class SqliteCatalogueStoreTests : IDisposable
+{
+    private static readonly DateTimeOffset Night = new(2026, 10, 31, 2, 15, 0, TimeSpan.Zero);
+
+    private readonly string _path = Path.Combine(Path.GetTempPath(), $"selficient-store-test-{Guid.NewGuid():N}.db");
+    private readonly SqliteCatalogueStore _store;
+
+    public SqliteCatalogueStoreTests() => _store = new SqliteCatalogueStore(_path);
+
+    private static KitPick Pick(string action, string name, decimal pounds, string retailer = "Amazon") =>
+        KitPick.Create(action, name, retailer, pounds, new DateOnly(2026, 10, 29), new Uri($"https://www.amazon.co.uk/s?k={Uri.EscapeDataString(name)}"), "Why.").Value;
+
+    private static OfferCheck Check(Verdict verdict, long? pricePence = null, DateTimeOffset? at = null) =>
+        new(at ?? Night, verdict, verdict == Verdict.Landed ? 200 : 404, "Evidence.", pricePence is { } p ? Money.FromPence(p) : null, "rule");
+
+    private async Task<SqliteCatalogueStore> SeededAsync()
+    {
+        await _store.SeedAsync([Pick("headtorches", "Petzl Tikkina", 22m), Pick("headtorches", "Ledlenser MH3", 26m, "Ledlenser"), Pick("water-cans", "Water carrier 10 l", 9.5m)], CancellationToken.None);
+        return _store;
+    }
+
+    [Fact]
+    public void The_store_needs_a_path_and_resolves_it()
+    {
+        Should.Throw<ArgumentException>(() => new SqliteCatalogueStore(" "));
+        Should.Throw<ArgumentException>(() => new SqliteCatalogueStore(null!));
+        _store.Path.ShouldBe(Path.GetFullPath(_path));
+    }
+
+    [Fact]
+    public async Task Seeding_fills_an_empty_store_and_the_shown_offers_are_the_live_and_failing_ones()
+    {
+        (await _store.CountAsync(CancellationToken.None)).ShouldBe(0);
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.SeedAsync(null!, CancellationToken.None));
+
+        SqliteCatalogueStore store = await SeededAsync();
+
+        (await store.CountAsync(CancellationToken.None)).ShouldBe(3);
+        IReadOnlyList<Offer> shown = await store.ShownAsync(CancellationToken.None);
+        shown.Select(o => o.Name).ShouldBe(["Petzl Tikkina", "Ledlenser MH3", "Water carrier 10 l"], "by action, then price");
+        Offer first = shown[0];
+        first.Id.ShouldBe(1L);
+        first.Action.ShouldBe(ActionId.From("headtorches"));
+        first.Retailer.ShouldBe("Amazon");
+        first.Price.ShouldBe(Money.FromPence(2200));
+        first.Seen.ShouldBe(new DateOnly(2026, 10, 29));
+        first.Link.ShouldBe(new Uri("https://www.amazon.co.uk/s?k=Petzl%20Tikkina"));
+        first.Note.ShouldBe("Why.");
+        first.Status.ShouldBe(OfferStatus.Live);
+        first.Failures.ShouldBe(0);
+        (await store.FindAsync(2, CancellationToken.None)).ShouldNotBeNull().Name.ShouldBe("Ledlenser MH3");
+        (await store.FindAsync(99, CancellationToken.None)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_landing_refreshes_the_offer_and_two_failures_running_hide_it()
+    {
+        SqliteCatalogueStore store = await SeededAsync();
+
+        await store.RecordCheckAsync(1, Check(Verdict.Dead), CancellationToken.None);
+        Offer failing = (await store.FindAsync(1, CancellationToken.None))!;
+        await store.RecordCheckAsync(1, Check(Verdict.RobotWall), CancellationToken.None);
+        Offer walled = (await store.FindAsync(1, CancellationToken.None))!;
+        await store.RecordCheckAsync(1, Check(Verdict.Landed, 2150, Night.AddDays(1)), CancellationToken.None);
+        Offer revived = (await store.FindAsync(1, CancellationToken.None))!;
+        await store.RecordCheckAsync(1, Check(Verdict.Landed, null, Night.AddDays(2)), CancellationToken.None);
+        Offer unpriced = (await store.FindAsync(1, CancellationToken.None))!;
+        await store.RecordCheckAsync(1, Check(Verdict.WrongItem), CancellationToken.None);
+        await store.RecordCheckAsync(1, Check(Verdict.NoResults), CancellationToken.None);
+        Offer hidden = (await store.FindAsync(1, CancellationToken.None))!;
+        await store.RecordCheckAsync(1, Check(Verdict.Dead), CancellationToken.None);
+        Offer stillHidden = (await store.FindAsync(1, CancellationToken.None))!;
+
+        failing.Status.ShouldBe(OfferStatus.Failing);
+        failing.Failures.ShouldBe(1);
+        walled.ShouldBe(failing, "a robot wall is not evidence either way");
+        revived.Status.ShouldBe(OfferStatus.Live);
+        revived.Failures.ShouldBe(0);
+        revived.Price.ShouldBe(Money.FromPence(2150));
+        revived.Seen.ShouldBe(new DateOnly(2026, 11, 1));
+        unpriced.Price.ShouldBe(Money.FromPence(2150), "a landing without a readable price keeps the last one");
+        unpriced.Seen.ShouldBe(new DateOnly(2026, 11, 2));
+        hidden.Status.ShouldBe(OfferStatus.Hidden);
+        hidden.Failures.ShouldBe(2);
+        stillHidden.Status.ShouldBe(OfferStatus.Hidden);
+        stillHidden.Failures.ShouldBe(3);
+        (await store.ShownAsync(CancellationToken.None)).Select(o => o.Id).ShouldBe([2L, 3L]);
+        (await store.AllAsync(CancellationToken.None)).Select(o => o.Id).ShouldBe([2L, 3L, 1L], "the hidden come last");
+        (await store.AllAsync(CancellationToken.None)).Count.ShouldBe(3, "a second read answers the same");
+        await Should.ThrowAsync<ArgumentNullException>(() => store.RecordCheckAsync(1, null!, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task A_landing_on_a_hidden_offer_does_not_show_it_but_a_hand_does_and_forgives_the_failures()
+    {
+        SqliteCatalogueStore store = await SeededAsync();
+        await store.RecordCheckAsync(2, Check(Verdict.Dead), CancellationToken.None);
+        await store.RecordCheckAsync(2, Check(Verdict.Dead), CancellationToken.None);
+
+        await store.RecordCheckAsync(2, Check(Verdict.Landed, 2600), CancellationToken.None);
+        Offer landedButHidden = (await store.FindAsync(2, CancellationToken.None))!;
+        await store.SetStatusAsync(2, OfferStatus.Live, CancellationToken.None);
+        Offer shown = (await store.FindAsync(2, CancellationToken.None))!;
+        await store.RecordCheckAsync(3, Check(Verdict.Dead), CancellationToken.None);
+        await store.SetStatusAsync(3, OfferStatus.Hidden, CancellationToken.None);
+        Offer hiddenByHand = (await store.FindAsync(3, CancellationToken.None))!;
+
+        landedButHidden.Status.ShouldBe(OfferStatus.Hidden, "a hidden offer waits for a hand");
+        landedButHidden.Failures.ShouldBe(0, "the landing still clears the count");
+        shown.Status.ShouldBe(OfferStatus.Live);
+        shown.Failures.ShouldBe(0);
+        hiddenByHand.Status.ShouldBe(OfferStatus.Hidden);
+        hiddenByHand.Failures.ShouldBe(1, "hiding by hand keeps the record");
+    }
+
+    [Fact]
+    public async Task Checks_come_back_newest_first_with_their_prices_and_only_as_many_as_asked()
+    {
+        SqliteCatalogueStore store = await SeededAsync();
+        await store.RecordCheckAsync(1, Check(Verdict.Dead, null, Night), CancellationToken.None);
+        await store.RecordCheckAsync(1, Check(Verdict.Landed, 2150, Night.AddDays(1)), CancellationToken.None);
+        await store.RecordCheckAsync(1, Check(Verdict.RobotWall, null, Night.AddDays(2)), CancellationToken.None);
+
+        IReadOnlyList<OfferCheck> two = await store.ChecksAsync(1, 2, CancellationToken.None);
+        IReadOnlyList<OfferCheck> none = await store.ChecksAsync(2, 5, CancellationToken.None);
+
+        two.Count.ShouldBe(2);
+        two[0].Verdict.ShouldBe(Verdict.RobotWall);
+        two[0].At.ShouldBe(Night.AddDays(2));
+        two[0].PriceSeen.ShouldBeNull();
+        two[0].Status.ShouldBe(404);
+        two[0].Evidence.ShouldBe("Evidence.");
+        two[0].JudgedBy.ShouldBe("rule");
+        two[1].Verdict.ShouldBe(Verdict.Landed);
+        two[1].PriceSeen.ShouldBe(Money.FromPence(2150));
+        none.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Clicks_count_per_offer_per_day_and_the_window_leaves_old_days_out()
+    {
+        SqliteCatalogueStore store = await SeededAsync();
+        DateOnly today = new(2026, 10, 31);
+
+        await store.RecordClickAsync(1, today, CancellationToken.None);
+        await store.RecordClickAsync(1, today, CancellationToken.None);
+        await store.RecordClickAsync(1, today.AddDays(-29), CancellationToken.None);
+        await store.RecordClickAsync(2, today.AddDays(-30), CancellationToken.None);
+        await store.RecordClickAsync(3, today.AddDays(-1), CancellationToken.None);
+
+        IReadOnlyDictionary<long, long> month = await store.ClicksAsync(30, today, CancellationToken.None);
+        IReadOnlyDictionary<long, long> day = await store.ClicksAsync(1, today, CancellationToken.None);
+
+        month.ShouldBe(new Dictionary<long, long> { [1] = 3, [3] = 1 }, ignoreOrder: true);
+        day.ShouldBe(new Dictionary<long, long> { [1] = 2 });
+    }
+
+    [Fact]
+    public async Task The_last_run_is_remembered_and_overwritten()
+    {
+        (await _store.LastVerifiedAsync(CancellationToken.None)).ShouldBeNull();
+
+        await _store.MarkVerifiedAsync(Night, CancellationToken.None);
+        DateTimeOffset? first = await _store.LastVerifiedAsync(CancellationToken.None);
+        await _store.MarkVerifiedAsync(Night.AddDays(1).ToOffset(TimeSpan.FromHours(1)), CancellationToken.None);
+        DateTimeOffset? second = await _store.LastVerifiedAsync(CancellationToken.None);
+
+        first.ShouldBe(Night);
+        second.ShouldBe(Night.AddDays(1));
+        second!.Value.Offset.ShouldBe(TimeSpan.Zero, "stamps are kept in UTC");
+    }
+
+    [Fact]
+    public async Task Many_first_calls_at_once_create_the_schema_once_and_all_succeed()
+    {
+        SqliteCatalogueStore fresh = new(Path.Combine(Path.GetTempPath(), $"selficient-store-race-{Guid.NewGuid():N}.db"));
+
+        int[] counts = await Task.WhenAll(Enumerable.Range(0, 16).Select(_ => Task.Run(() => fresh.CountAsync(CancellationToken.None))));
+
+        counts.ShouldAllBe(c => c == 0);
+        fresh.Dispose();
+        File.Delete(fresh.Path);
+    }
+
+    public void Dispose()
+    {
+        _store.Dispose();
+        File.Delete(_path);
+    }
+}

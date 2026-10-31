@@ -22,3 +22,7 @@ src/Selficient.Web/tiles/
 
 # Benchmark output
 BenchmarkDotNet.Artifacts/
+
+# The catalogue store the worker writes; the vhost keeps its own and tests use a temporary file
+catalogue.db
+catalogue.db-*

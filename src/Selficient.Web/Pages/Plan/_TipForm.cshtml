@@ -1,0 +1,13 @@
+@model string
+@* "Found it cheaper?" under an action's picks: a link and nothing else. Folded, so the list stays the list. *@
+<details class="tip">
+  <summary>Found it cheaper?</summary>
+  <form method="post" asp-page="/Plan/Tip" class="tip__form">
+    <input type="hidden" name="Action" value="@Model">
+    <label for="tip-@Model">Paste the shop's link to the item and we will check it overnight. Nothing about you is sent.</label>
+    <div class="tip__row">
+      <input id="tip-@Model" name="Link" type="url" class="input" inputmode="url" maxlength="500" placeholder="https://" required>
+      <button type="submit" class="button button--quiet">Send the link</button>
+    </div>
+  </form>
+</details>

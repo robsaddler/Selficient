@@ -50,6 +50,11 @@ public static class WebServiceCollectionExtensions
             ];
         });
         services.AddScoped<CspNonce>();
+        services.AddOptions<OperatorOptions>()
+            .Bind(configuration.GetSection(OperatorOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<OperatorSession>();
         services.AddScoped<CspPolicy>();
         services.AddSingleton<Services.ShellVersion>();
         services.AddSelficientRateLimiting(configuration);

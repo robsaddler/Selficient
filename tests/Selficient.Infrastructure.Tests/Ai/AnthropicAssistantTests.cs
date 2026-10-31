@@ -197,6 +197,9 @@ public sealed class AnthropicAssistantTests : IDisposable
         Should.Throw<OptionsValidationException>(() => badKey.GetRequiredService<IOptions<AnthropicOptions>>().Value);
         faked.GetRequiredService<IPhotoAnalyst>().ShouldBeOfType<FakeAssistant>();
         faked.GetRequiredService<IPlanNarrator>().ShouldBeSameAs(faked.GetRequiredService<IPhotoAnalyst>());
+        noKey.GetRequiredService<Selficient.Application.Catalogue.IOfferJudge>().ShouldBeOfType<Selficient.Infrastructure.Catalogue.NoJudge>();
+        withKey.GetRequiredService<Selficient.Application.Catalogue.IOfferJudge>().ShouldBeOfType<Selficient.Infrastructure.Catalogue.AnthropicOfferJudge>();
+        faked.GetRequiredService<Selficient.Application.Catalogue.IOfferJudge>().ShouldBeOfType<Selficient.Infrastructure.Catalogue.FakeOfferJudge>();
     }
 
     [Fact]

@@ -1037,4 +1037,156 @@
     translate: 0 0.5rem;
   }
 }
+
+/* The reviewer: a table of offers, read on a desk, never on a phone */
+.review h1 {
+  font-size: var(--text-2xl);
+}
+
+.review__signin {
+  margin-block-start: var(--space-5);
+  max-inline-size: 24rem;
+}
+
+.review__state {
+  margin-block: var(--space-3);
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+}
+
+.review__table {
+  margin-block-start: var(--space-5);
+  overflow-x: auto;
+}
+
+.review__offers {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-s);
+
+  & th,
+  & td {
+    text-align: start;
+    vertical-align: top;
+    padding: var(--space-2) var(--space-3);
+    border-block-end: 1px solid var(--c-contour);
+  }
+
+  & th {
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--c-ink-muted);
+  }
+
+  & tr[data-status="hidden"] td,
+  & tr[data-status="proposed"] td {
+    color: var(--c-ink-muted);
+  }
+
+  & tr[data-status="failing"] td:nth-child(6) {
+    color: var(--c-ember);
+    font-weight: 600;
+  }
+
+  & form {
+    display: inline;
+  }
+}
+
+/* The deals page: one card per action, the mark, the pick, the price and the drop */
+.deals {
+  max-inline-size: var(--measure-wide, 48rem);
+  margin-inline: auto;
+  padding-block: var(--space-6);
+}
+
+.deals__lede {
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+}
+
+.deals__list {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.deal {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  &[data-drop="true"] {
+    border-color: var(--c-pine);
+  }
+
+  & .deal__mark {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+  }
+
+  & .deal__title {
+    font-size: var(--text-m);
+    margin: 0;
+  }
+
+  & p {
+    margin: var(--space-1) 0 0;
+  }
+
+  & .deal__price .data {
+    font-weight: 600;
+  }
+
+  & .deal__was {
+    margin-inline-start: var(--space-2);
+    padding: 0 var(--space-2);
+    border-radius: 999px;
+    background: var(--c-pine-tint);
+    color: var(--c-pine);
+    font-size: var(--text-s);
+    font-weight: 600;
+  }
+
+  & .deal__seen,
+  & .deal__others {
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+
+  & .deal__seen {
+    margin-inline-start: var(--space-2);
+  }
+}
+
+/* Share this figure: a quiet button under the strip, and the sentence after it */
+.hero__share {
+  margin-block-start: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.share__status {
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+/* The share landing: the night hero alone, the figure as the whole page */
+.hero--share {
+  min-block-size: auto;
+
+  & .hero__copy {
+    max-inline-size: var(--measure);
+  }
+}
 }

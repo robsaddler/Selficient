@@ -276,6 +276,52 @@ public sealed class Journeys
         return await page.RunAxe();
     }
 
+    [Fact]
+    public async Task Sharing_the_figure_copies_a_link_that_lands_on_the_card_and_says_nothing_about_the_house()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        await context.GrantPermissionsAsync(["clipboard-read", "clipboard-write"]);
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Share this figure" }).ClickAsync();
+        await Expect(page.Locator("[data-share-status]")).ToHaveTextAsync("Link copied. Paste it into the group chat.");
+        string copied = await page.EvaluateAsync<string>("() => navigator.clipboard.readText()");
+
+        copied.ShouldEndWith("/share/storm/1");
+        copied.ShouldNotContain("NP12");
+        await page.GotoAsync(copied);
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Our house could stand on its own for" }).WaitForAsync();
+        (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe("1");
+        await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Work out yours" })).ToBeVisibleAsync();
+        await ShouldNotScrollSidewaysAsync(page);
+        IAPIResponse card = await page.APIRequest.GetAsync(copied + ".png");
+        card.Status.ShouldBe(200);
+        card.Headers["content-type"].ShouldBe("image/png");
+        (await card.BodyAsync()).Length.ShouldBeGreaterThan(10_000);
+    }
+
+    [Fact]
+    public async Task The_deals_page_lists_the_cheapest_kit_and_a_tip_is_taken_with_a_sentence()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+
+        await page.GotoAsync("/deals");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "The cheapest kit for a three-day plan" }).WaitForAsync();
+        (await page.Locator(".deal").CountAsync()).ShouldBeGreaterThan(15);
+        await ShouldNotScrollSidewaysAsync(page);
+
+        await BuildPlanAsync(page);
+        ILocator picks = page.Locator("[data-action-id=\"headtorches\"]").Locator("xpath=ancestor::li[contains(@class,'action')]").Locator("details.picks");
+        await picks.Locator("summary").First.ClickAsync();
+        await picks.Locator("details.tip summary").ClickAsync();
+        await picks.Locator("input[name=\"Link\"]").FillAsync("https://www.argos.co.uk/product/123");
+        await picks.GetByRole(AriaRole.Button, new() { Name = "Send the link" }).ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Thank you" }).WaitForAsync();
+        await Expect(page.Locator("[data-tip-outcome=\"taken\"]")).ToContainTextAsync("We will open it tonight");
+    }
+
     private static async Task BuildPlanAsync(IPage page)
     {
         await page.GotoAsync("/plan/start");

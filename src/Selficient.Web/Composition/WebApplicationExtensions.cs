@@ -52,7 +52,9 @@ public static class WebApplicationExtensions
         app.MapServiceWorkerEndpoint();
         app.MapAiPromptsEndpoint();
         app.MapGeoEndpoints();
+        app.MapOutEndpoint();
         app.MapSeoEndpoints();
+        app.MapShareEndpoints();
 
         return app;
     }

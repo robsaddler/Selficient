@@ -95,7 +95,17 @@ public static class TestMbTiles
 public sealed class ManualClock : TimeProvider
 {
     private const long Start = 1_000_000_000L;
+    private readonly DateTimeOffset _origin;
     private long _ticks = Start;
+
+    /// <summary>A clock that starts at noon on 30 October 2026.</summary>
+    public ManualClock()
+        : this(new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero))
+    {
+    }
+
+    /// <summary>A clock that starts at the given moment.</summary>
+    public ManualClock(DateTimeOffset origin) => _origin = origin;
 
     /// <summary>
     /// One tick is one <see cref="TimeSpan"/> tick for both the timestamp and the wall clock, on
@@ -109,7 +119,7 @@ public sealed class ManualClock : TimeProvider
     public override long GetTimestamp() => _ticks;
 
     /// <inheritdoc />
-    public override DateTimeOffset GetUtcNow() => new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero) + TimeSpan.FromTicks(_ticks - Start);
+    public override DateTimeOffset GetUtcNow() => _origin + TimeSpan.FromTicks(_ticks - Start);
 
     /// <summary>Moves time forward.</summary>
     public void Advance(TimeSpan by) => _ticks += by.Ticks;

@@ -1,0 +1,9 @@
+@model Selficient.Web.Pages.Admin.CatalogueModel
+@* The sign-in, on its own so the form tag helper's branches are not hidden under the page's @if. *@
+<form method="post" asp-page-handler="SignIn" class="review__signin">
+  <div class="field">
+    <label asp-for="Key">The operator's key</label>
+    <input asp-for="Key" type="password" class="input input--short" autocomplete="off">
+  </div>
+  <p><button type="submit" class="button button--primary">Sign in</button></p>
+</form>

@@ -70,3 +70,14 @@ public static class PlaceCopy
         return string.IsNullOrEmpty(locality.Region) ? locality.Outcode : $"{locality.Outcode}, {locality.Region}";
     }
 }
+
+/// <summary>Where a pick's link goes: through the click counter when it came from the store, straight to the shop when it was shipped in the file.</summary>
+public static class KitLinks
+{
+    /// <summary>The href for a pick.</summary>
+    public static string Href(Selficient.Domain.Kit.KitPick pick)
+    {
+        ArgumentNullException.ThrowIfNull(pick);
+        return pick.OfferId is { } id ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"/out/{id}") : pick.Link.ToString();
+    }
+}

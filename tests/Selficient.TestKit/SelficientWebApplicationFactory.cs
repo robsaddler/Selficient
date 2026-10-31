@@ -10,6 +10,7 @@ namespace Selficient.TestKit;
 /// </summary>
 public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly string _databasePath = Path.Combine(Path.GetTempPath(), $"selficient-catalogue-{Guid.NewGuid():N}.db");
     private string _environment = "Testing";
     private bool _useFakes = true;
 
@@ -63,6 +64,23 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
     }
 
     /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing)
+        {
+            try
+            {
+                File.Delete(_databasePath);
+            }
+            catch (IOException)
+            {
+                // Another host still has it open; the temp folder is swept by the OS.
+            }
+        }
+    }
+
+    /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -73,6 +91,8 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
         // Tests never touch the network: the deterministic fakes stand in for every upstream. The
         // Production check on this flag is covered separately in the Infrastructure tests.
         builder.UseSetting("Upstreams:UseFakes", _useFakes ? "true" : "false");
+        // The catalogue store is a file; each test host gets its own in the temp folder, never one in the source tree.
+        builder.UseSetting("Catalogue:DatabasePath", _databasePath);
         foreach ((string key, string value) in _settings)
         {
             builder.UseSetting(key, value);

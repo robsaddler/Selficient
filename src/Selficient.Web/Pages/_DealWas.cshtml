@@ -1,0 +1,7 @@
+@using Selficient.Web.Formatting
+@model Selficient.Application.Catalogue.Deal
+@* The drop, when there is one: the high the checks saw this quarter. On its own so the view holds no branch of its own. *@
+@if (Model.WasHigh is { } was)
+{
+  <span class="deal__was">down from <span class="data">@MoneyFormat.Amount(was)</span></span>
+}

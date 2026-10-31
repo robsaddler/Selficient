@@ -131,6 +131,7 @@ public sealed partial class MarketingPagesTests : IDisposable
         robots.ShouldContain("Sitemap: https://selficient.app/sitemap.xml");
         robots.ShouldContain("Disallow: /api/");
         robots.ShouldContain("Disallow: /plan/explain");
+        robots.ShouldContain("Disallow: /admin/");
         robots.ShouldContain("Disallow: /styleguide");
         llms.StatusCode.ShouldBe(HttpStatusCode.OK);
         llms.Content.Headers.ContentType!.MediaType.ShouldBe("text/plain");

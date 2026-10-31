@@ -1,0 +1,27 @@
+@page "/share/{scenario}/{days}"
+@model Selficient.Web.Pages.ShareModel
+@{
+    ViewData["NoIndex"] = true;
+    ViewData["Title"] = Model.Title;
+    ViewData["Description"] = "Someone worked out how long their house would stand when the power, the water or the roads stop. A minute of questions tells you where yours stands and what closes the gap.";
+    ViewData["ShareImage"] = Model.Image;
+    var culture = System.Globalization.CultureInfo.CurrentCulture;
+}
+
+<section class="hero hero--night night hero--share" aria-labelledby="share-heading">
+  <div class="glow" aria-hidden="true"></div>
+  <div class="hero__copy">
+    <p class="hero__brand">Selficient</p>
+    <p class="eyebrow">Shared from a household's plan</p>
+    <h1 id="share-heading">Our house could stand on its own for</h1>
+    <days-ready value="@Model.Card.Figure" class="days-ready">
+      <span class="days-ready__figure">@Model.Card.Days.ToString("0.#", culture)</span>
+      <span class="days-ready__unit">@Model.Card.Unit</span>
+    </days-ready>
+    <p class="hero__lede">That is @Model.Card.Clause. Three days is the government's ask; seven is where a storm becomes an inconvenience rather than a crisis. Nothing about the house that shared this is in the link, only the figure.</p>
+    <p class="cluster">
+      <a class="button button--primary" href="/plan/start">Work out yours</a>
+      <a class="button button--quiet" href="/">How it works</a>
+    </p>
+  </div>
+</section>

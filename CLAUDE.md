@@ -55,6 +55,11 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - The catalogue's links are the commercial surface. Never guess a shop's search address: open it. `./build/check-links.ps1` opens every pick in Chromium and reports; it runs weekly in Actions. Argos and Screwfix wall off a headless browser, Safelincs and Halfords render search by script, so picks there cannot be checked and were moved.
 - `perl -0pi` with a `|` delimiter mangled a file for the third time this project (a regex alternation inside the replacement). Use the Edit tool for anything with a pipe in it; the rule above is not a suggestion.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
+- SQLite gives Dapper a `long` for every `INTEGER` column; a record parameter declared `int` fails materialisation at the first query ("a parameterless default constructor or one matching signature … is required"), not at compile time. Declare `long` and cast.
+- `BackgroundService.StartAsync` on the .NET 10 host returns before `ExecuteAsync` has run its first line, so anything a test does straight after `StartAsync` races the service. Create the `PeriodicTimer` before the first `await` so a tick is never lost, and in tests wait for an observable (the catalogue's `IsLoaded`) before advancing a `FakeTimeProvider`.
+- Razor encodes an apostrophe in `@value` as `&#x27;`; a test that asserts a notice sentence with one must assert the encoded form, while literal markup keeps the plain character.
+- `perl -0pi` and `sed` substitutions whose replacement contains a Windows path or `\x27` lower-case or eat the rest of the line (`\L`, `\a`, `\t` are escapes); write the replacement to a file and use `sed '59r file'`, or use the Edit tool.
+- A heredoc through the Bash tool (`cat <<'EOF'`) collapses `\` to `\` and turns `\x27` and `\L` into their escapes even when the delimiter is quoted; a script or source file with a backslash in it goes through the Write tool, never a heredoc.
 
 ## Conventions
 

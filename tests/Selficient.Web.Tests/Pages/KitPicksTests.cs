@@ -18,6 +18,7 @@ public sealed partial class KitPicksTests : IDisposable
     public async Task Picks_render_under_their_actions_with_safe_links_and_the_disclosure()
     {
         using HttpClient client = _factory.CreateClient();
+        await _factory.Services.GetRequiredService<Selficient.Application.Catalogue.CatalogueOperations>().ReloadAsync(CancellationToken.None);
 
         using HttpResponseMessage response = await PlanPagesTests.PostRobsHouse(client);
         string html = await response.Content.ReadAsStringAsync();
@@ -29,14 +30,13 @@ public sealed partial class KitPicksTests : IDisposable
         html.ShouldContain("some links earn Selficient a small commission at no cost to you");
         html.ShouldContain("Cheapest first. Each does what the action asks; the dearer ones last longer or do more.");
         html.ShouldContain("<span class=\"pick__value\">Lowest price that does the job</span>");
-        html.ShouldContain("href=\"https://www.amazon.co.uk/s?k=Petzl", customMessage: "a link opens the shop's search for the item, not its homepage; Razor encodes the plus signs that follow");
-        html.ShouldNotContain("href=\"https://www.amazon.co.uk/\"");
+        html.ShouldNotContain("href=\"https://www.amazon.co.uk", customMessage: "the shop address is behind the counter, not on the page");
         MatchCollection links = OutboundLinks().Matches(html);
         links.Count.ShouldBeGreaterThan(20);
         foreach (Match link in links)
         {
             link.Value.ShouldContain("rel=\"sponsored noopener noreferrer\"");
-            link.Value.ShouldContain("href=\"https://");
+            link.Value.ShouldContain("href=\"/out/", customMessage: "every shop link goes out through the click counter");
         }
 
         html.ShouldNotContain("href=\"http://");
@@ -78,6 +78,6 @@ public sealed partial class KitPicksTests : IDisposable
 
     public void Dispose() => _factory.Dispose();
 
-    [GeneratedRegex("<a href=\"https?://[^>]*>")]
+    [GeneratedRegex("<a href=\"/out/[^>]*>")]
     private static partial Regex OutboundLinks();
 }
