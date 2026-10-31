@@ -7,7 +7,7 @@
     thing. Coverage is asserted per production assembly, lines and branches, never as an average.
 
 .PARAMETER SkipFrontEnd
-    Skip the JavaScript type check and lint, which need Node and an npm install.
+    Skip the JavaScript type check, the lint and the stylesheet check, which need Node and an npm install.
 
 .EXAMPLE
     ./build/run-tests.ps1
@@ -59,7 +59,7 @@ node build/coverage-report.mjs $reports `
 if ($LASTEXITCODE -ne 0) { throw "Coverage is below threshold." }
 
 if (-not $SkipFrontEnd) {
-    Write-Host "`n=== Front end: types and lint ===" -ForegroundColor Cyan
+    Write-Host "`n=== Front end: types, lint and stylesheets ===" -ForegroundColor Cyan
 
     if (-not (Test-Path 'node_modules')) { npm ci --no-audit --no-fund }
     npm run check

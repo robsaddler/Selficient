@@ -15,7 +15,7 @@ public sealed class StoredCatalogue : IKitCatalogue, IDisposable
     private readonly ICatalogueStore _store;
     private readonly IKitCatalogue _shipped;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private Snapshot _snapshot = new([], new Dictionary<ActionId, IReadOnlyList<KitPick>>());
+    private Snapshot _snapshot = new([], new Dictionary<ActionId, IReadOnlyList<KitPick>>(), new Dictionary<long, KitPick>());
 
     /// <summary>Creates the catalogue over the store, with the shipped picks as the seed.</summary>
     public StoredCatalogue(ICatalogueStore store, IKitCatalogue shipped)
@@ -31,6 +31,12 @@ public sealed class StoredCatalogue : IKitCatalogue, IDisposable
 
     /// <summary>True once the store has been read at least once.</summary>
     public bool IsLoaded { get; private set; }
+
+    /// <summary>Goes up by one on every reload, so a cache keyed on it empties when the catalogue changes.</summary>
+    public int Version { get; private set; }
+
+    /// <summary>The shown pick for an offer, or null when the offer is not shown; no query, the snapshot answers.</summary>
+    public KitPick? Find(long offerId) => _snapshot.ByOffer.TryGetValue(offerId, out KitPick? pick) ? pick : null;
 
     /// <inheritdoc />
     public IReadOnlyList<KitPick> PicksFor(ActionId action)
@@ -56,8 +62,12 @@ public sealed class StoredCatalogue : IKitCatalogue, IDisposable
 
             IReadOnlyList<Offer> shown = await _store.ShownAsync(cancellationToken);
             List<KitPick> all = [.. shown.Select(static offer => offer.ToPick())];
-            _snapshot = new Snapshot(all, all.GroupBy(static p => p.Action).ToDictionary(static g => g.Key, static g => (IReadOnlyList<KitPick>)[.. g.OrderBy(static p => p.Price.Pence)]));
+            _snapshot = new Snapshot(
+                all,
+                all.GroupBy(static p => p.Action).ToDictionary(static g => g.Key, static g => (IReadOnlyList<KitPick>)[.. g.OrderBy(static p => p.Price.Pence)]),
+                all.ToDictionary(static p => p.OfferId!.Value));
             IsLoaded = true;
+            Version++;
         }
         finally
         {
@@ -68,5 +78,5 @@ public sealed class StoredCatalogue : IKitCatalogue, IDisposable
     /// <inheritdoc />
     public void Dispose() => _gate.Dispose();
 
-    private sealed record Snapshot(IReadOnlyList<KitPick> All, IReadOnlyDictionary<ActionId, IReadOnlyList<KitPick>> ByAction);
+    private sealed record Snapshot(IReadOnlyList<KitPick> All, IReadOnlyDictionary<ActionId, IReadOnlyList<KitPick>> ByAction, IReadOnlyDictionary<long, KitPick> ByOffer);
 }

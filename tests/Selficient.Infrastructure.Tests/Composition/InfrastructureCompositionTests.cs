@@ -17,8 +17,9 @@ namespace Selficient.Infrastructure.Tests.Composition;
 
 public sealed class InfrastructureCompositionTests
 {
+    // Every composition carries a database address, as the host must; these tests never open it unless they say so.
     private static IConfiguration Config(params (string Key, string Value)[] pairs) =>
-        new ConfigurationBuilder().AddInMemoryCollection(pairs.Select(p => new KeyValuePair<string, string?>(p.Key, p.Value))).Build();
+        new ConfigurationBuilder().AddInMemoryCollection((pairs.Any(p => p.Key == "Database:ConnectionString") ? pairs : pairs.Prepend((Key: "Database:ConnectionString", Value: "Server=localhost;Database=selficient_never_opened;Integrated Security=true;TrustServerCertificate=true"))).Select(p => new KeyValuePair<string, string?>(p.Key, p.Value))).Build();
 
     private static IHostEnvironment Environment(string name)
     {
@@ -119,19 +120,41 @@ public sealed class InfrastructureCompositionTests
     }
 
     [Fact]
-    public async Task The_cache_holds_a_value_for_a_second_read()
+    public async Task The_cache_holds_a_value_for_a_second_read_and_for_a_second_process()
     {
+        using Selficient.TestKit.TestDatabase database = Selficient.TestKit.TestDatabase.Create();
+        await new Selficient.Infrastructure.Data.SqlMigrator(database.ConnectionString).MigrateAsync(CancellationToken.None);
         ServiceCollection services = new();
-        services.AddSelficientInfrastructure(Config(), Environment("Development"));
+        services.AddSelficientInfrastructure(Config(("Database:ConnectionString", database.ConnectionString)), Environment("Development"));
         await using ServiceProvider provider = services.BuildServiceProvider();
         HybridCache cache = provider.GetRequiredService<HybridCache>();
         int calls = 0;
 
         string first = await cache.GetOrCreateAsync("k", _ => { calls++; return ValueTask.FromResult("v"); });
         string second = await cache.GetOrCreateAsync("k", _ => { calls++; return ValueTask.FromResult("other"); });
+        // The backend itself, driven directly: HybridCache logs and swallows a failing write, so this is where a broken table shows.
+        Microsoft.Extensions.Caching.Distributed.IDistributedCache backend = provider.GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>();
+        await backend.SetAsync("probe", [1, 2, 3], new Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+        (await backend.GetAsync("probe")).ShouldBe([1, 2, 3]);
+        // HybridCache writes the backend after it has answered the caller, so the row is waited for rather than assumed.
+        await using Microsoft.Data.SqlClient.SqlConnection connection = new(database.ConnectionString);
+        int rows = 0;
+        for (int attempt = 0; attempt < 50 && rows < 2; attempt++)
+        {
+            rows = await Dapper.SqlMapper.ExecuteScalarAsync<int>(connection, "SELECT COUNT(*) FROM dbo.cache");
+            await Task.Delay(100);
+        }
+
+        rows.ShouldBe(2, "the value is written through to the database");
+        // Another process over the same database finds the value in the shared cache and never calls the factory.
+        ServiceCollection other = new();
+        other.AddSelficientInfrastructure(Config(("Database:ConnectionString", database.ConnectionString)), Environment("Development"));
+        await using ServiceProvider otherProvider = other.BuildServiceProvider();
+        string elsewhere = await otherProvider.GetRequiredService<HybridCache>().GetOrCreateAsync("k", _ => { calls++; return ValueTask.FromResult("cold"); });
 
         first.ShouldBe("v");
         second.ShouldBe("v");
+        elsewhere.ShouldBe("v", "the cache outlives the process because it is in the database");
         calls.ShouldBe(1);
     }
 

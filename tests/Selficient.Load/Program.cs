@@ -23,14 +23,33 @@ Console.WriteLine($"Selficient on {origin}");
 
 int seconds = args.Length > 0 && int.TryParse(args[0], CultureInfo.InvariantCulture, out int given) ? given : 20;
 TimeSpan duration = TimeSpan.FromSeconds(seconds);
+// The server is cold for about a second after the first request arrives: the tiered JIT has not
+// promoted anything, the connection pool is empty and every Razor page is rendering for the first
+// time. That is a real cost, but it is a deploy's cost and not a crowd's, and in a twenty-second
+// run it is one twentieth of the samples, which lands it exactly on the p95 and made every
+// scenario miss its target by a factor of ten while the median stayed under a millisecond. The
+// warm-up pays it before the clock starts, as a site that has been serving all day already has.
+TimeSpan warmUp = TimeSpan.FromSeconds(5);
 // A second argument scales every rate: 0.05 runs the same mix at a twentieth of the load, which
 // shows what one request costs on an idle server before the full run shows what a crowd costs.
 double scale = args.Length > 1 && double.TryParse(args[1], CultureInfo.InvariantCulture, out double givenScale) && givenScale > 0 ? givenScale : 1;
 int Rate(int perSecond) => Math.Max(1, (int)Math.Round(perSecond * scale));
 
+// The limiter the fixture lifts is a fixed one-minute window and the option's own ceiling is ten
+// thousand a minute, so a run long enough to put more than that through the busiest endpoint
+// measures the limiter turning requests away rather than the server answering them: the report
+// fills with fast failures that look like the site falling over. Say so instead.
+int busiest = Rate(200) * (int)Math.Min(60, warmUp.TotalSeconds + seconds);
+if (busiest > 10_000)
+{
+    Console.Error.WriteLine($"That run would send {busiest} plan posts through a one-minute window and the limiter stops at 10,000. Shorten the run or scale the rates: ./build/run-load.ps1 {seconds} 0.5");
+    return 2;
+}
+
 // One client per scenario copy would be realistic; one shared client with cookies is enough to
 // measure the server, and the antiforgery pair is read once.
-using HttpClient client = new(new SocketsHttpHandler { UseCookies = true, PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { BaseAddress = new Uri(origin) };
+// Redirects are not followed: the click counter answers a 302 to a shop, and the shop is not under test.
+using HttpClient client = new(new SocketsHttpHandler { UseCookies = true, AllowAutoRedirect = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { BaseAddress = new Uri(origin) };
 string wizard = await client.GetStringAsync("/plan/start");
 string token = Regex.Match(wizard, "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(?<token>[^\"]+)\"").Groups["token"].Value;
 if (string.IsNullOrEmpty(token))
@@ -59,6 +78,20 @@ Dictionary<string, string> robsHouse = new()
     ["Form.FloodRisk"] = "VeryLow",
 };
 
+// The first shop link on the plan, which the click counter scenario hops through.
+string outPath;
+using (FormUrlEncodedContent firstPlan = new(robsHouse))
+using (HttpResponseMessage firstResponse = await client.PostAsync("/plan", firstPlan))
+{
+    string planHtml = await firstResponse.Content.ReadAsStringAsync();
+    outPath = Regex.Match(planHtml, "href=\"(?<path>/out/\\d+)\"").Groups["path"].Value;
+    if (string.IsNullOrEmpty(outPath))
+    {
+        Console.Error.WriteLine("No shop link on the plan.");
+        return 2;
+    }
+}
+
 Dictionary<string, string> robsRoof = new()
 {
     ["__RequestVerificationToken"] = token,
@@ -84,7 +117,7 @@ ScenarioProps plan = Scenario.Create("plan_post_200_per_second", async context =
             ? Response.Ok(sizeBytes: html.Length)
             : Response.Fail(message: response.StatusCode.ToString());
     })
-    .WithoutWarmUp()
+    .WithWarmUpDuration(warmUp)
     .WithLoadSimulations(Simulation.Inject(rate: Rate(200), interval: TimeSpan.FromSeconds(1), during: duration));
 
 // The board fragment: the whole set (every source, both seasons, every untaken action) for a
@@ -98,7 +131,7 @@ ScenarioProps board = Scenario.Create("board_post_100_per_second", async context
         using HttpResponseMessage response = await client.PostAsync("/plan/board", body);
         return response.IsSuccessStatusCode ? Response.Ok() : Response.Fail(statusCode: ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture));
     })
-    .WithoutWarmUp()
+    .WithWarmUpDuration(warmUp)
     .WithLoadSimulations(Simulation.Inject(rate: Rate(100), interval: TimeSpan.FromSeconds(1), during: duration));
 
 ScenarioProps solar = Scenario.Create("solar_post_50_per_second", async context =>
@@ -110,7 +143,7 @@ ScenarioProps solar = Scenario.Create("solar_post_50_per_second", async context 
             ? Response.Ok(sizeBytes: html.Length)
             : Response.Fail(message: response.StatusCode.ToString());
     })
-    .WithoutWarmUp()
+    .WithWarmUpDuration(warmUp)
     .WithLoadSimulations(Simulation.Inject(rate: Rate(50), interval: TimeSpan.FromSeconds(1), during: duration));
 
 ScenarioProps tiles = Scenario.Create("tiles_status_100_per_second", async context =>
@@ -118,19 +151,41 @@ ScenarioProps tiles = Scenario.Create("tiles_status_100_per_second", async conte
         using HttpResponseMessage response = await client.GetAsync("/api/tiles/status");
         return response.StatusCode == HttpStatusCode.OK ? Response.Ok() : Response.Fail(message: response.StatusCode.ToString());
     })
-    .WithoutWarmUp()
+    .WithWarmUpDuration(warmUp)
     .WithLoadSimulations(Simulation.Inject(rate: Rate(100), interval: TimeSpan.FromSeconds(1), during: duration));
+
+// The click counter: one row written per hop, which is the one write a household makes, and the
+// redirect is never followed here. The id is the first shown offer, read once before the run.
+ScenarioProps outbound = Scenario.Create("out_get_200_per_second", async context =>
+    {
+        using HttpRequestMessage request = new(HttpMethod.Get, outPath);
+        using HttpResponseMessage response = await client.SendAsync(request);
+        return response.StatusCode == HttpStatusCode.Found ? Response.Ok() : Response.Fail(message: response.StatusCode.ToString());
+    })
+    .WithWarmUpDuration(warmUp)
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(200), interval: TimeSpan.FromSeconds(1), during: duration));
+
+ScenarioProps deals = Scenario.Create("deals_get_50_per_second", async context =>
+    {
+        using HttpResponseMessage response = await client.GetAsync("/deals");
+        string html = await response.Content.ReadAsStringAsync();
+        return response.StatusCode == HttpStatusCode.OK && html.Contains("The cheapest kit for a three-day plan", StringComparison.Ordinal)
+            ? Response.Ok(sizeBytes: html.Length)
+            : Response.Fail(message: response.StatusCode.ToString());
+    })
+    .WithWarmUpDuration(warmUp)
+    .WithLoadSimulations(Simulation.Inject(rate: Rate(50), interval: TimeSpan.FromSeconds(1), during: duration));
 
 ScenarioProps landing = Scenario.Create("landing_get_100_per_second", async context =>
     {
         using HttpResponseMessage response = await client.GetAsync("/");
         return response.StatusCode == HttpStatusCode.OK ? Response.Ok() : Response.Fail(message: response.StatusCode.ToString());
     })
-    .WithoutWarmUp()
+    .WithWarmUpDuration(warmUp)
     .WithLoadSimulations(Simulation.Inject(rate: Rate(100), interval: TimeSpan.FromSeconds(1), during: duration));
 
 NodeStats stats = NBomberRunner
-    .RegisterScenarios(plan, board, solar, tiles, landing)
+    .RegisterScenarios(plan, board, solar, tiles, landing, outbound, deals)
     .WithReportFolder(Path.Combine("artifacts", "load"))
     .WithReportFormats(ReportFormat.Md)
     .Run();
@@ -143,6 +198,8 @@ NodeStats stats = NBomberRunner
     ("solar_post_50_per_second", 200),
     ("tiles_status_100_per_second", 50),
     ("landing_get_100_per_second", 100),
+    ("out_get_200_per_second", 50),
+    ("deals_get_50_per_second", 100),
 ];
 
 int failures = 0;

@@ -17,6 +17,11 @@ using Selficient.Infrastructure.Ai;
 using Selficient.Infrastructure.Images;
 using Selficient.Application.Catalogue;
 using Selficient.Infrastructure.Catalogue;
+using Selficient.Infrastructure.Data;
+using Selficient.Infrastructure.Health;
+using Selficient.Application.Operations;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.SqlServer;
 using Selficient.Application.Share;
 using Selficient.Infrastructure.Share;
 using Anthropic;
@@ -73,7 +78,33 @@ public static class InfrastructureServiceCollectionExtensions
             .Bind(configuration.GetSection(CatalogueOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        services.AddSingleton<ICatalogueStore>(provider => new SqliteCatalogueStore(Path.Combine(environment.ContentRootPath, provider.GetRequiredService<IOptions<CatalogueOptions>>().Value.DatabasePath)));
+        // The platform database (M19): SQL Server through Dapper, migrated before anything else starts.
+        services.AddOptions<DatabaseOptions>()
+            .Bind(configuration.GetSection(DatabaseOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton(static provider => new SqlMigrator(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddHostedService<MigrationStartup>();
+        services.AddSingleton<ICatalogueStore>(static provider => new SqlServerCatalogueStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        // The operations log: every hand the operator takes and every run of every job, in the database.
+        services.AddSingleton<IOperationsLog>(static provider => new SqlOperationsLog(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString, provider.GetRequiredService<TimeProvider>()));
+        // The web layer's key ring lives in the database too; the web composition root wires it to Data Protection.
+        services.AddSingleton<IKeyRingStore>(static provider => new SqlKeyRingStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        // The distributed cache behind HybridCache, in the same database, so a warm cache outlives the process. Tiles stay in process only.
+        services.AddOptions<SqlServerCacheOptions>().Configure<IOptions<DatabaseOptions>>(static (cache, database) =>
+        {
+            cache.ConnectionString = database.Value.ConnectionString;
+            cache.SchemaName = "dbo";
+            cache.TableName = "cache";
+            cache.ExpiredItemsDeletionInterval = TimeSpan.FromMinutes(30);
+        });
+        services.AddDistributedSqlServerCache(static _ => { });
+        // What the readiness probe asks: the database answers, the catalogue has loaded, the basemap is present.
+        services.AddSingleton(static provider => new DatabaseHealthCheck(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])
+            .AddCheck<CatalogueHealthCheck>("catalogue", tags: ["ready"])
+            .AddCheck<BasemapHealthCheck>("basemap", tags: ["ready"]);
         services.AddSingleton(static provider => new StoredCatalogue(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<EmbeddedKitCatalogue>()));
         services.AddSingleton<IKitCatalogue>(static provider => provider.GetRequiredService<StoredCatalogue>());
         services.AddHttpClient<HttpPageReader>(static client =>
@@ -94,6 +125,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IAllowedShops, AffiliateAllowedShops>();
         services.AddSingleton(static provider => new TipBox(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<IAllowedShops>(), provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton(static provider => new DealsReader(provider.GetRequiredService<StoredCatalogue>(), provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IDealsReader>(static provider => new CachedDealsReader(provider.GetRequiredService<DealsReader>(), provider.GetRequiredService<TimeProvider>()));
+        // The click counter: the hop increments memory, the flusher writes the store once a second and once more at stop.
+        services.AddSingleton<ClickCounter>();
+        services.AddSingleton<ClickFlusher>();
+        services.AddHostedService(static provider => provider.GetRequiredService<ClickFlusher>());
 
         // The basemap has no fake: an absent archive is the degraded state, and the tests build
         // tiny archives of their own.

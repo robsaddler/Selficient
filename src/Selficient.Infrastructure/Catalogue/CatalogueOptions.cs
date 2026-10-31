@@ -8,11 +8,6 @@ public sealed class CatalogueOptions
     /// <summary>The configuration section.</summary>
     public const string SectionName = "Catalogue";
 
-    /// <summary>Where the SQLite file lives, relative to the content root unless absolute.</summary>
-    [Required]
-    [StringLength(260, MinimumLength = 1)]
-    public string DatabasePath { get; init; } = "catalogue.db";
-
     /// <summary>Whether the worker runs its jobs on the clock. Off in tests; on on the vhost.</summary>
     public bool WorkerEnabled { get; init; }
 

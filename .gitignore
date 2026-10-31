@@ -24,5 +24,8 @@ src/Selficient.Web/tiles/
 BenchmarkDotNet.Artifacts/
 
 # The catalogue store the worker writes; the vhost keeps its own and tests use a temporary file
-catalogue.db
-catalogue.db-*
+
+# The SQLite file M18 used; the platform is SQL Server since M19 and a stray file must not come back.
+*.db
+*.db-shm
+*.db-wal

@@ -21,6 +21,20 @@
     <!-- The self-hosted basemap (M5): Dapper over a read-only SQLite MBTiles archive. -->
     <PackageVersion Include="Dapper" Version="2.1.89" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <!-- The platform database (M19): SQL Server through Dapper, migrations as embedded scripts. -->
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.SqlServer" Version="10.0.14" />
+    <!-- Transitive pin: SqlClient 7.1 still references the 9.0 Pkcs package with two advisories against it. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.14" />
+    <!-- Telemetry (M19): OpenTelemetry for traces and metrics, Serilog carrying the logs to the same collector. -->
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.1" />
+    <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <!-- Photos and AI (M8): SkiaSharp (MIT) re-encodes every upload; the official Anthropic SDK calls Claude. -->
     <PackageVersion Include="Anthropic" Version="13.3.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.154.0" />

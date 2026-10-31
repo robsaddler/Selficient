@@ -17,12 +17,19 @@ public sealed record Deal(ActionId Action, string Title, KitPick Cheapest, Money
     public bool IsDrop => WasHigh is not null;
 }
 
+/// <summary>Reads the deals; the cached reader in front of it answers the page.</summary>
+public interface IDealsReader
+{
+    /// <summary>The deals: price drops first, then the rest cheapest first.</summary>
+    Task<IReadOnlyList<Deal>> ReadAsync(CancellationToken cancellationToken);
+}
+
 /// <summary>
 /// What is cheapest right now for every action the plan buys for, with the drops first. Read from
 /// the catalogue the pages already hold and the prices the nightly checks read; nothing here is
 /// a person's.
 /// </summary>
-public sealed class DealsReader
+public sealed class DealsReader : IDealsReader
 {
     /// <summary>How far back a price counts as recent.</summary>
     public const int WindowDays = 90;
@@ -42,7 +49,10 @@ public sealed class DealsReader
         _clock = clock;
     }
 
-    /// <summary>The deals: price drops first, then the rest cheapest first.</summary>
+    /// <summary>The catalogue's version, which the cache in front keys on.</summary>
+    public int CatalogueVersion => _catalogue.Version;
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Deal>> ReadAsync(CancellationToken cancellationToken)
     {
         DateOnly today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);

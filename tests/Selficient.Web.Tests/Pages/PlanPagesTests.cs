@@ -255,7 +255,7 @@ public sealed partial class PlanPagesTests : IDisposable
                 !m.Contains("NP12 1GW", StringComparison.OrdinalIgnoreCase)
                 && !m.Contains("NP121GW", StringComparison.OrdinalIgnoreCase)
                 && !m.Contains("NP12%201GW", StringComparison.OrdinalIgnoreCase)
-                && !m.Contains("51.6655", StringComparison.Ordinal));
+                && !Coordinate().IsMatch(m));
         }
         finally
         {
@@ -289,6 +289,10 @@ public sealed partial class PlanPagesTests : IDisposable
 
     [GeneratedRegex("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(?<token>[^\"]+)\"")]
     private static partial Regex Token();
+
+    // The latitude as a number, not as a count of milliseconds: a request that happens to take 51.6655 ms is not a leak.
+    [GeneratedRegex(@"51\.6655(?!\d*\s?ms)")]
+    private static partial Regex Coordinate();
 
     private sealed class CapturingSink : ILogEventSink
     {

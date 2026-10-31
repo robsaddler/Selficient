@@ -165,8 +165,9 @@ public sealed class GoogleSolarTests : IDisposable
 
     public void Dispose() => _server.Dispose();
 
+    // Every composition carries a database address, as the host must; these tests never open it unless they say so.
     private static IConfiguration Config(params (string Key, string Value)[] pairs) =>
-        new ConfigurationBuilder().AddInMemoryCollection(pairs.Select(p => new KeyValuePair<string, string?>(p.Key, p.Value))).Build();
+        new ConfigurationBuilder().AddInMemoryCollection(pairs.Prepend((Key: "Database:ConnectionString", Value: "Server=localhost;Database=selficient_never_opened;Integrated Security=true;TrustServerCertificate=true")).Select(p => new KeyValuePair<string, string?>(p.Key, p.Value))).Build();
 
     private static IHostEnvironment Environment(string name)
     {

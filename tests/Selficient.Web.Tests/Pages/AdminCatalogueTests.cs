@@ -82,7 +82,7 @@ public sealed partial class AdminCatalogueTests : IDisposable
         Offer offer = (await store.ShownAsync(CancellationToken.None))[0];
         IKitCatalogue catalogue = _factory.Services.GetRequiredService<IKitCatalogue>();
         int before = catalogue.PicksFor(offer.Action).Count;
-        await store.RecordClickAsync(offer.Id, DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None);
+        await store.RecordClicksAsync([new ClickBatch(offer.Id, DateOnly.FromDateTime(DateTime.UtcNow), 1)], CancellationToken.None);
         string withClick = await client.GetStringAsync(new Uri(Page, UriKind.Relative));
 
         using HttpResponseMessage hidden = await client.PostAsync(new Uri(Page + $"?handler=Hide&id={offer.Id}", UriKind.Relative), Form(token));
@@ -164,6 +164,53 @@ public sealed partial class AdminCatalogueTests : IDisposable
         (await store.FindAsync(id, CancellationToken.None))!.Status.ShouldBe(OfferStatus.Live);
         _factory.Services.GetRequiredService<IKitCatalogue>().PicksFor(Selficient.Domain.Plans.ActionId.From("headtorches")).ShouldContain(p => p.OfferId == id, "an approved proposal is on the plan at once");
         Selficient.Web.Pages.Admin.CatalogueModel.ProposalsSentence(2).ShouldStartWith("2 suggestions from readers wait for you");
+    }
+
+    [Fact]
+    public async Task The_reviewer_shows_readiness_the_last_runs_and_the_last_hands_and_every_hand_is_recorded()
+    {
+        await ReadyAsync();
+        using HttpClient client = _factory.CreateClient();
+        string signIn = await TokenFrom(client, Page);
+        using HttpResponseMessage wrong = await client.PostAsync(new Uri(Page + "?handler=SignIn", UriKind.Relative), Form(signIn, ("Key", "not-the-operator-key-at-all")));
+        string review = await SignInAsync(client);
+        string token = Token().Match(review).Groups["token"].Value;
+        ICatalogueStore store = _factory.Services.GetRequiredService<ICatalogueStore>();
+        Offer offer = (await store.ShownAsync(CancellationToken.None))[0];
+        await _factory.Services.GetRequiredService<Selficient.Infrastructure.Catalogue.CatalogueWorker>().WakeAsync(CancellationToken.None);
+
+        using HttpResponseMessage hidden = await client.PostAsync(new Uri(Page + $"?handler=Hide&id={offer.Id}", UriKind.Relative), Form(token));
+        string afterHide = await hidden.Content.ReadAsStringAsync();
+        IReadOnlyList<Selficient.Application.Operations.OperatorAction> hands = await _factory.Services.GetRequiredService<Selficient.Application.Operations.IOperationsLog>().RecentHandsAsync(10, CancellationToken.None);
+        using HttpResponseMessage signedOut = await client.PostAsync(new Uri(Page + "?handler=SignOut", UriKind.Relative), Form(token));
+
+        afterHide.ShouldContain("<li data-check=\"database\" data-status=\"healthy\"><strong>database</strong>: Healthy. The database answers and holds");
+        afterHide.ShouldContain("data-check=\"catalogue\" data-status=\"healthy\"");
+        afterHide.ShouldContain("data-check=\"basemap\" data-status=\"degraded\"", customMessage: "the test host has no basemap archive and says so to the operator");
+        afterHide.ShouldContain("<li data-outcome=\"succeeded\">");
+        afterHide.ShouldContain("wake: succeeded,");
+        afterHide.ShouldContain($"hidden on offer {offer.Id}: {offer.Name} is hidden.");
+        afterHide.ShouldContain("sign-in: Refused: the key did not match.");
+        afterHide.ShouldContain("sign-in: Signed in.");
+        hands.Select(h => h.Hand).ShouldBe(["hidden", "sign-in", "sign-in"]);
+        hands[0].OfferId.ShouldBe(offer.Id);
+        (await _factory.Services.GetRequiredService<Selficient.Application.Operations.IOperationsLog>().RecentHandsAsync(1, CancellationToken.None))[0].Outcome.ShouldBe("Signed out.");
+    }
+
+    [Fact]
+    public void The_operations_lines_are_decided_in_one_place()
+    {
+        DateTimeOffset at = new(2026, 10, 31, 2, 10, 0, TimeSpan.Zero);
+        Selficient.Application.Operations.JobRun running = new(1, "wake", at, null, Selficient.Application.Operations.JobOutcome.Running, "");
+        Selficient.Application.Operations.JobRun done = new(2, "wake", at, at.AddMinutes(3), Selficient.Application.Operations.JobOutcome.Succeeded, "Verified 38.");
+
+        Selficient.Web.Pages.Admin.CatalogueModel.RunLine(running).ShouldEndWith("wake: running, still running.");
+        Selficient.Web.Pages.Admin.CatalogueModel.RunLine(done).ShouldContain("wake: succeeded, ");
+        Selficient.Web.Pages.Admin.CatalogueModel.RunLine(done).ShouldEndWith(". Verified 38.");
+        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "hide", 7, "Hidden.")).ShouldEndWith(" hide on offer 7: Hidden.");
+        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "verify", null, "Opened 38.")).ShouldEndWith(" verify: Opened 38.");
+        Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.RunLine(null!));
+        Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.HandLine(null!));
     }
 
     [Fact]

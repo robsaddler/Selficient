@@ -20,13 +20,15 @@ Nothing else is required: with no keys set the site runs with the map on its fal
 | `Anthropic:BaseUrl` | `Anthropic__BaseUrl` | `https://api.anthropic.com/` | HTTPS, or loopback for a stub. |
 | `Anthropic:TimeoutSeconds` | `Anthropic__TimeoutSeconds` | `60` | 5 to 180. |
 | `Affiliate:AmazonTag` | `Affiliate__AmazonTag` | none | Appended once to Amazon links on an exact host match. |
-| `Catalogue:DatabasePath` | `Catalogue__DatabasePath` | `catalogue.db` | The SQLite file for offers, checks and clicks, relative to the content root. Created on first use; seeded from the shipped picks when empty. |
+| `Database:ConnectionString` | `Database__ConnectionString` | none, required | The SQL Server connection string for the platform database (offers, checks, clicks, runs; later the Data Protection keys and the cache). The host migrates the schema from its embedded scripts at start and refuses to start without a connection. |
+| `Database:MigrateOnStart` | `Database__MigrateOnStart` | `true` | Runs the embedded migrations before the site answers. Leave on. |
 | `Catalogue:WorkerEnabled` | `Catalogue__WorkerEnabled` | `false` | Runs the nightly verification on the clock. Set true on the vhost. |
 | `Catalogue:VerifyAtHour` | `Catalogue__VerifyAtHour` | `2` | 0 to 23, server local time; the hour after which the night's run is due. |
 | `Catalogue:WakeEveryMinutes` | `Catalogue__WakeEveryMinutes` | `30` | 1 to 1,440 between looks at the clock. |
 | `Catalogue:PageBytes` | `Catalogue__PageBytes` | `524288` | The most of a shop page the checker reads. |
 | `Operator:Key` | `Operator__Key` | none | At least twenty characters. Unset, the reviewer at `/admin/catalogue` does not exist. |
 | `Operator:SessionHours` | `Operator__SessionHours` | `12` | 1 to 72 before the operator signs in again. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `OTEL_EXPORTER_OTLP_ENDPOINT` | none | A collector's OTLP address (gRPC 4317 or HTTP 4318). Set, the site exports traces, metrics and logs; unset, nothing leaves the box. `OTEL_EXPORTER_OTLP_HEADERS` carries a key where the collector wants one. |
 
 ## Limits and costs
 

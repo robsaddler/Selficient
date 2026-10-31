@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
+using Selficient.Web.Diagnostics;
 using Selficient.Web.Security;
 
 namespace Selficient.Web.Composition;
@@ -55,9 +57,11 @@ public static class WebServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<OperatorSession>();
+        AddKeyRing(services);
         services.AddScoped<CspPolicy>();
         services.AddSingleton<Services.ShellVersion>();
         services.AddSelficientRateLimiting(configuration);
+        services.AddSelficientTelemetry(configuration[Telemetry.EndpointVariable], Telemetry.Version(typeof(WebServiceCollectionExtensions).Assembly.GetName()));
 
         services.AddHsts(options =>
         {
@@ -79,5 +83,24 @@ public static class WebServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// The key ring that signs the operator's cookie and the antiforgery tokens lives in the platform
+    /// database, so it survives a recycle and a redeploy; on Windows the machine's DPAPI wraps every key at
+    /// rest, so the table is useless off the box. The platform guard is the analyzer's and runs one way per
+    /// operating system, which is why this method is the one composition step outside the gate.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "The DPAPI guard runs one way per operating system; the ring itself is proved by AdminCatalogueTests, whose signed cookie round-trips through it.")]
+    private static void AddKeyRing(IServiceCollection services)
+    {
+        Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder protection = services.AddDataProtection().SetApplicationName("Selficient");
+        if (OperatingSystem.IsWindows())
+        {
+            protection.ProtectKeysWithDpapi(protectToLocalMachine: true);
+        }
+
+        services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions>>(static provider =>
+            new Microsoft.Extensions.Options.ConfigureOptions<Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions>(options => options.XmlRepository = new SqlXmlRepository(provider.GetRequiredService<Selficient.Application.Operations.IKeyRingStore>())));
     }
 }

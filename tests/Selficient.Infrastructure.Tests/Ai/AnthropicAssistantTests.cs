@@ -231,8 +231,9 @@ public sealed class AnthropicAssistantTests : IDisposable
         return engine.Handle(new GeneratePlanCommand(4, 2, false, false, true, profile.Dwelling.Type, 3, profile.Dwelling.Heating, profile.Dwelling.Hob, true, true, true, true, 232m, profile.Dwelling.FloodRisk)).Value;
     }
 
+    // Every composition carries a database address, as the host must; these tests never open it unless they say so.
     private static IConfiguration Config(params (string Key, string Value)[] pairs) =>
-        new ConfigurationBuilder().AddInMemoryCollection(pairs.Select(p => new KeyValuePair<string, string?>(p.Key, p.Value))).Build();
+        new ConfigurationBuilder().AddInMemoryCollection(pairs.Prepend((Key: "Database:ConnectionString", Value: "Server=localhost;Database=selficient_never_opened;Integrated Security=true;TrustServerCertificate=true")).Select(p => new KeyValuePair<string, string?>(p.Key, p.Value))).Build();
 
     private static IHostEnvironment Environment(string name)
     {

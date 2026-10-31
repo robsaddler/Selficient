@@ -49,7 +49,8 @@ const text = [
 
 /** @type {Array<[string, string, Record<string, number | { min: number, max: number }> | undefined]>} */
 const jobs = [
-  ["BricolageGrotesque-Variable.ttf", "BricolageGrotesque.woff2", { opsz: 48, wght: { min: 500, max: 800 }, wdth: { min: 85, max: 100 } }],
+  // Weight 300 and width 75 are the figure on the hero and the scenario cards, as the design mockup drew them (M19).
+  ["BricolageGrotesque-Variable.ttf", "BricolageGrotesque.woff2", { opsz: 48, wght: { min: 300, max: 800 }, wdth: { min: 75, max: 100 } }],
   ["AtkinsonHyperlegibleNext-Variable.ttf", "AtkinsonHyperlegibleNext.woff2", { wght: { min: 400, max: 700 } }],
   ["AtkinsonHyperlegibleNext-Italic-Variable.ttf", "AtkinsonHyperlegibleNext-Italic.woff2", { wght: { min: 400, max: 700 } }],
   ["IBMPlexMono-Regular.ttf", "IBMPlexMono-Regular.woff2", undefined],

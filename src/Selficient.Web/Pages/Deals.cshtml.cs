@@ -15,10 +15,10 @@ namespace Selficient.Web.Pages;
 [EnableRateLimiting(RateLimits.PlanPolicy)]
 public sealed class DealsModel : PageModel
 {
-    private readonly DealsReader _deals;
+    private readonly IDealsReader _deals;
 
     /// <summary>Creates the page over the deals reader.</summary>
-    public DealsModel(DealsReader deals)
+    public DealsModel(IDealsReader deals)
     {
         ArgumentNullException.ThrowIfNull(deals);
         _deals = deals;

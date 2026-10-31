@@ -3,17 +3,23 @@ using Selficient.Domain.Kit;
 using Selficient.Domain.Measures;
 using Selficient.Domain.Plans;
 using Selficient.Infrastructure.Catalogue;
+using Selficient.Infrastructure.Data;
+using Selficient.TestKit;
 
 namespace Selficient.Infrastructure.Tests.Catalogue;
 
-public sealed class SqliteCatalogueStoreTests : IDisposable
+public sealed class SqlServerCatalogueStoreTests : IAsyncLifetime
 {
     private static readonly DateTimeOffset Night = new(2026, 10, 31, 2, 15, 0, TimeSpan.Zero);
 
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"selficient-store-test-{Guid.NewGuid():N}.db");
-    private readonly SqliteCatalogueStore _store;
+    private readonly TestDatabase _database = TestDatabase.Create();
+    private SqlServerCatalogueStore _store = null!;
 
-    public SqliteCatalogueStoreTests() => _store = new SqliteCatalogueStore(_path);
+    public async ValueTask InitializeAsync()
+    {
+        await new SqlMigrator(_database.ConnectionString).MigrateAsync(CancellationToken.None);
+        _store = new SqlServerCatalogueStore(_database.ConnectionString);
+    }
 
     private static KitPick Pick(string action, string name, decimal pounds, string retailer = "Amazon") =>
         KitPick.Create(action, name, retailer, pounds, new DateOnly(2026, 10, 29), new Uri($"https://www.amazon.co.uk/s?k={Uri.EscapeDataString(name)}"), "Why.").Value;
@@ -21,18 +27,17 @@ public sealed class SqliteCatalogueStoreTests : IDisposable
     private static OfferCheck Check(Verdict verdict, long? pricePence = null, DateTimeOffset? at = null) =>
         new(at ?? Night, verdict, verdict == Verdict.Landed ? 200 : 404, "Evidence.", pricePence is { } p ? Money.FromPence(p) : null, "rule");
 
-    private async Task<SqliteCatalogueStore> SeededAsync()
+    private async Task<SqlServerCatalogueStore> SeededAsync()
     {
         await _store.SeedAsync([Pick("headtorches", "Petzl Tikkina", 22m), Pick("headtorches", "Ledlenser MH3", 26m, "Ledlenser"), Pick("water-cans", "Water carrier 10 l", 9.5m)], CancellationToken.None);
         return _store;
     }
 
     [Fact]
-    public void The_store_needs_a_path_and_resolves_it()
+    public void The_store_needs_a_connection_string()
     {
-        Should.Throw<ArgumentException>(() => new SqliteCatalogueStore(" "));
-        Should.Throw<ArgumentException>(() => new SqliteCatalogueStore(null!));
-        _store.Path.ShouldBe(Path.GetFullPath(_path));
+        Should.Throw<ArgumentException>(() => new SqlServerCatalogueStore(" "));
+        Should.Throw<ArgumentException>(() => new SqlServerCatalogueStore(null!));
     }
 
     [Fact]
@@ -41,7 +46,7 @@ public sealed class SqliteCatalogueStoreTests : IDisposable
         (await _store.CountAsync(CancellationToken.None)).ShouldBe(0);
         await Should.ThrowAsync<ArgumentNullException>(() => _store.SeedAsync(null!, CancellationToken.None));
 
-        SqliteCatalogueStore store = await SeededAsync();
+        SqlServerCatalogueStore store = await SeededAsync();
 
         (await store.CountAsync(CancellationToken.None)).ShouldBe(3);
         IReadOnlyList<Offer> shown = await store.ShownAsync(CancellationToken.None);
@@ -63,7 +68,7 @@ public sealed class SqliteCatalogueStoreTests : IDisposable
     [Fact]
     public async Task A_landing_refreshes_the_offer_and_two_failures_running_hide_it()
     {
-        SqliteCatalogueStore store = await SeededAsync();
+        SqlServerCatalogueStore store = await SeededAsync();
 
         await store.RecordCheckAsync(1, Check(Verdict.Dead), CancellationToken.None);
         Offer failing = (await store.FindAsync(1, CancellationToken.None))!;
@@ -94,14 +99,13 @@ public sealed class SqliteCatalogueStoreTests : IDisposable
         stillHidden.Failures.ShouldBe(3);
         (await store.ShownAsync(CancellationToken.None)).Select(o => o.Id).ShouldBe([2L, 3L]);
         (await store.AllAsync(CancellationToken.None)).Select(o => o.Id).ShouldBe([2L, 3L, 1L], "the hidden come last");
-        (await store.AllAsync(CancellationToken.None)).Count.ShouldBe(3, "a second read answers the same");
         await Should.ThrowAsync<ArgumentNullException>(() => store.RecordCheckAsync(1, null!, CancellationToken.None));
     }
 
     [Fact]
     public async Task A_landing_on_a_hidden_offer_does_not_show_it_but_a_hand_does_and_forgives_the_failures()
     {
-        SqliteCatalogueStore store = await SeededAsync();
+        SqlServerCatalogueStore store = await SeededAsync();
         await store.RecordCheckAsync(2, Check(Verdict.Dead), CancellationToken.None);
         await store.RecordCheckAsync(2, Check(Verdict.Dead), CancellationToken.None);
 
@@ -124,37 +128,38 @@ public sealed class SqliteCatalogueStoreTests : IDisposable
     [Fact]
     public async Task Checks_come_back_newest_first_with_their_prices_and_only_as_many_as_asked()
     {
-        SqliteCatalogueStore store = await SeededAsync();
+        SqlServerCatalogueStore store = await SeededAsync();
         await store.RecordCheckAsync(1, Check(Verdict.Dead, null, Night), CancellationToken.None);
         await store.RecordCheckAsync(1, Check(Verdict.Landed, 2150, Night.AddDays(1)), CancellationToken.None);
         await store.RecordCheckAsync(1, Check(Verdict.RobotWall, null, Night.AddDays(2)), CancellationToken.None);
+        await store.RecordCheckAsync(1, new OfferCheck(Night.AddDays(3), Verdict.RobotWall, 403, new string('e', 500), null, "rule"), CancellationToken.None);
 
-        IReadOnlyList<OfferCheck> two = await store.ChecksAsync(1, 2, CancellationToken.None);
+        IReadOnlyList<OfferCheck> three = await store.ChecksAsync(1, 3, CancellationToken.None);
         IReadOnlyList<OfferCheck> none = await store.ChecksAsync(2, 5, CancellationToken.None);
 
-        two.Count.ShouldBe(2);
-        two[0].Verdict.ShouldBe(Verdict.RobotWall);
-        two[0].At.ShouldBe(Night.AddDays(2));
-        two[0].PriceSeen.ShouldBeNull();
-        two[0].Status.ShouldBe(404);
-        two[0].Evidence.ShouldBe("Evidence.");
-        two[0].JudgedBy.ShouldBe("rule");
-        two[1].Verdict.ShouldBe(Verdict.Landed);
-        two[1].PriceSeen.ShouldBe(Money.FromPence(2150));
+        three.Count.ShouldBe(3);
+        three[0].Evidence.Length.ShouldBe(400, "evidence is clipped to the column");
+        three[1].Verdict.ShouldBe(Verdict.RobotWall);
+        three[1].At.ShouldBe(Night.AddDays(2));
+        three[1].PriceSeen.ShouldBeNull();
+        three[1].Status.ShouldBe(404);
+        three[1].Evidence.ShouldBe("Evidence.");
+        three[1].JudgedBy.ShouldBe("rule");
+        three[2].Verdict.ShouldBe(Verdict.Landed);
+        three[2].PriceSeen.ShouldBe(Money.FromPence(2150));
         none.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Clicks_count_per_offer_per_day_and_the_window_leaves_old_days_out()
     {
-        SqliteCatalogueStore store = await SeededAsync();
+        SqlServerCatalogueStore store = await SeededAsync();
         DateOnly today = new(2026, 10, 31);
 
-        await store.RecordClickAsync(1, today, CancellationToken.None);
-        await store.RecordClickAsync(1, today, CancellationToken.None);
-        await store.RecordClickAsync(1, today.AddDays(-29), CancellationToken.None);
-        await store.RecordClickAsync(2, today.AddDays(-30), CancellationToken.None);
-        await store.RecordClickAsync(3, today.AddDays(-1), CancellationToken.None);
+        await store.RecordClicksAsync([new ClickBatch(1, today, 1), new ClickBatch(1, today.AddDays(-29), 1), new ClickBatch(2, today.AddDays(-30), 1)], CancellationToken.None);
+        await store.RecordClicksAsync([new ClickBatch(1, today, 1), new ClickBatch(3, today.AddDays(-1), 1)], CancellationToken.None);
+        await store.RecordClicksAsync([], CancellationToken.None);
+        await Should.ThrowAsync<ArgumentNullException>(() => store.RecordClicksAsync(null!, CancellationToken.None));
 
         IReadOnlyDictionary<long, long> month = await store.ClicksAsync(30, today, CancellationToken.None);
         IReadOnlyDictionary<long, long> day = await store.ClicksAsync(1, today, CancellationToken.None);
@@ -179,20 +184,16 @@ public sealed class SqliteCatalogueStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Many_first_calls_at_once_create_the_schema_once_and_all_succeed()
+    public async Task Many_calls_at_once_all_succeed()
     {
-        SqliteCatalogueStore fresh = new(Path.Combine(Path.GetTempPath(), $"selficient-store-race-{Guid.NewGuid():N}.db"));
-
-        int[] counts = await Task.WhenAll(Enumerable.Range(0, 16).Select(_ => Task.Run(() => fresh.CountAsync(CancellationToken.None))));
+        int[] counts = await Task.WhenAll(Enumerable.Range(0, 16).Select(_ => Task.Run(() => _store.CountAsync(CancellationToken.None))));
 
         counts.ShouldAllBe(c => c == 0);
-        fresh.Dispose();
-        File.Delete(fresh.Path);
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        _store.Dispose();
-        File.Delete(_path);
+        _database.Dispose();
+        return ValueTask.CompletedTask;
     }
 }

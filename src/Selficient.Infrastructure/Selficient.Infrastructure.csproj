@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Kit/kit-catalogue.json" LogicalName="Selficient.Infrastructure.Kit.kit-catalogue.json" />
+    <EmbeddedResource Include="Data/Migrations/*.sql" LogicalName="Selficient.Infrastructure.Data.Migrations.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +27,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Dapper" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="Anthropic" />

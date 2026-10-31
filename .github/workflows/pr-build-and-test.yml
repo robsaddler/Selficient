@@ -14,8 +14,28 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
 
-    # No database in v1, so no SQL Server service. If real-SQL integration tests are ever added,
-    # copy the mssql service block from SiteWise's workflow.
+    # The platform database (M19): every suite runs the real store and the real migrations against
+    # a SQL Server of its own in a service container; each test host creates and drops a database.
+    # The container login is composed from the run id and attempt, so no credential is written in
+    # the repository and no value is reused between runs. The server exists for one job and is
+    # reachable from nothing outside it.
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2025-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: ${{ format('Sx{0}y{1}z!Aa9', github.run_id, github.run_attempt) }}
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${{ format('Sx{0}y{1}z!Aa9', github.run_id, github.run_attempt) }}' -C -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      SELFICIENT_TEST_SQL: "Server=localhost,1433;User Id=sa;Password=${{ format('Sx{0}y{1}z!Aa9', github.run_id, github.run_attempt) }};TrustServerCertificate=true;Encrypt=true"
 
     steps:
       - uses: actions/checkout@v4.2.2

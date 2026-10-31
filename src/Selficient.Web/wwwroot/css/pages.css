@@ -47,16 +47,15 @@
 }
 
 @media (min-width: 60rem) {
+  /* The mockup's split: the words take seven twelfths, the kitchen table five, and the table fills its column. */
   .hero:not(.hero--plan) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     align-items: center;
     gap: var(--space-8);
     padding-block: var(--space-8);
-  }
 
-  .hero:not(.hero--plan) {
     & .days-ready__figure {
-      font-size: clamp(7rem, 5rem + 4vw, 10rem);
+      font-size: clamp(7rem, 3rem + 9vw, 11rem);
     }
 
     & .days-ready__unit {
@@ -259,7 +258,7 @@
   }
 
   & .days-ready__figure {
-    font-size: clamp(4.5rem, 3rem + 4vw, 7rem);
+    font-size: clamp(5rem, 3rem + 6vw, 9rem);
   }
 }
 
@@ -932,6 +931,9 @@
 }
 
 .hero__picture {
+  /* An auto inline margin on a grid item cancels the stretch and shrink-wraps it, and an SVG with
+     only a viewBox is 300px wide by default; without this the kitchen table shrinks to that. */
+  inline-size: 100%;
   max-inline-size: 30rem;
   margin-inline: auto;
 }
@@ -1187,6 +1189,43 @@
 
   & .hero__copy {
     max-inline-size: var(--measure);
+  }
+}
+
+/* The reviewer's operations: readiness, runs and hands, three quiet lists under the table */
+.review__ops {
+  margin-block-start: var(--space-6);
+  display: grid;
+  gap: var(--space-5);
+
+  & h2 {
+    font-size: var(--text-l);
+    margin: 0 0 var(--space-2);
+  }
+}
+
+.review__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-s);
+  font-variant-numeric: tabular-nums;
+
+  & li[data-status="unhealthy"],
+  & li[data-outcome="failed"] {
+    color: var(--c-ember);
+  }
+
+  & li[data-status="degraded"] {
+    color: var(--c-lantern-ink);
+  }
+}
+
+@media (min-width: 60rem) {
+  .review__ops {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 }

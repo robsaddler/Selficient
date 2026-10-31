@@ -2,8 +2,9 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Selficient.Application.Catalogue;
-
+using Selficient.Application.Operations;
 using Selficient.Web.Security;
 
 namespace Selficient.Web.Pages.Admin;
@@ -21,18 +22,24 @@ public sealed class CatalogueModel : PageModel
     private readonly CatalogueOperations _operations;
     private readonly OperatorSession _session;
     private readonly TimeProvider _clock;
+    private readonly IOperationsLog _log;
+    private readonly HealthCheckService _health;
 
     /// <summary>Creates the page over the store, the catalogue's hands and the session.</summary>
-    public CatalogueModel(ICatalogueStore store, CatalogueOperations operations, OperatorSession session, TimeProvider clock)
+    public CatalogueModel(ICatalogueStore store, CatalogueOperations operations, OperatorSession session, TimeProvider clock, IOperationsLog log, HealthCheckService health)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(operations);
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(health);
         _store = store;
         _operations = operations;
         _session = session;
         _clock = clock;
+        _log = log;
+        _health = health;
     }
 
     /// <summary>The key, typed once.</summary>
@@ -88,7 +95,7 @@ public sealed class CatalogueModel : PageModel
     }
 
     /// <summary>Signs in with the key.</summary>
-    public IActionResult OnPostSignIn()
+    public async Task<IActionResult> OnPostSignInAsync(CancellationToken cancellationToken)
     {
         if (!_session.IsConfigured)
         {
@@ -98,17 +105,20 @@ public sealed class CatalogueModel : PageModel
         if (!_session.Matches(Key))
         {
             Notice = "That is not the operator's key.";
+            await _log.RecordHandAsync("sign-in", null, "Refused: the key did not match.", cancellationToken);
             return RedirectToPage();
         }
 
         Response.Cookies.Append(OperatorSession.CookieName, _session.Issue(), _session.CookieOptions());
+        await _log.RecordHandAsync("sign-in", null, "Signed in.", cancellationToken);
         return RedirectToPage();
     }
 
     /// <summary>Signs out.</summary>
-    public IActionResult OnPostSignOut()
+    public async Task<IActionResult> OnPostSignOutAsync(CancellationToken cancellationToken)
     {
         Response.Cookies.Delete(OperatorSession.CookieName, _session.CookieOptions());
+        await _log.RecordHandAsync("sign-out", null, "Signed out.", cancellationToken);
         return RedirectToPage();
     }
 
@@ -128,6 +138,7 @@ public sealed class CatalogueModel : PageModel
 
         VerificationReport report = await _operations.VerifyAsync(cancellationToken);
         Notice = $"Opened {report.Checked}: {report.Landed} landed, {report.Walled} behind a robot wall, {report.Hidden.Count} hidden.";
+        await _log.RecordHandAsync("verify", null, Notice, cancellationToken);
         return RedirectToPage();
     }
 
@@ -142,18 +153,21 @@ public sealed class CatalogueModel : PageModel
         if (offer is null)
         {
             Notice = "There is no such offer.";
+            await _log.RecordHandAsync(said, id, Notice, cancellationToken);
             return RedirectToPage();
         }
 
         if (status == OfferStatus.Live && offer.Price.Pence == 0)
         {
             Notice = $"{offer.Name} has no price yet, so it cannot be shown. Wait for the checker to read one, or hide it.";
+            await _log.RecordHandAsync(said, id, Notice, cancellationToken);
             return RedirectToPage();
         }
 
         await _store.SetStatusAsync(id, status, cancellationToken);
         await _operations.ReloadAsync(cancellationToken);
         Notice = $"{offer.Name} is {said}.";
+        await _log.RecordHandAsync(said, id, Notice, cancellationToken);
         return RedirectToPage();
     }
 
@@ -172,7 +186,41 @@ public sealed class CatalogueModel : PageModel
 
         Rows = rows;
         LastVerified = await _store.LastVerifiedAsync(cancellationToken);
+        Hands = await _log.RecentHandsAsync(12, cancellationToken);
+        Runs = await _log.RecentRunsAsync(12, cancellationToken);
+        HealthReport report = await _health.CheckHealthAsync(cancellationToken);
+        Health = report.Entries.Select(static entry => new HealthLine(entry.Key, entry.Value.Status.ToString(), entry.Value.Description ?? string.Empty)).ToList();
     }
+
+    /// <summary>The latest hands, newest first.</summary>
+    public IReadOnlyList<OperatorAction> Hands { get; private set; } = [];
+
+    /// <summary>The latest job runs, newest first.</summary>
+    public IReadOnlyList<JobRun> Runs { get; private set; } = [];
+
+    /// <summary>What each readiness check says, for the operator alone.</summary>
+    public IReadOnlyList<HealthLine> Health { get; private set; } = [];
+
+    /// <summary>One readiness check as the page lists it.</summary>
+    public sealed record HealthLine(string Name, string Status, string Description);
+
+    /// <summary>A run as one line: when, the job, how it went, and the detail.</summary>
+    public static string RunLine(JobRun run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        string ended = run.FinishedAt is { } at ? Stamp(at) : "still running";
+        return $"{Stamp(run.StartedAt)} {run.Job}: {run.Outcome.ToString().ToLowerInvariant()}, {ended}. {run.Detail}".TrimEnd();
+    }
+
+    /// <summary>A hand as one line: when, which, on what, and what came of it.</summary>
+    public static string HandLine(OperatorAction hand)
+    {
+        ArgumentNullException.ThrowIfNull(hand);
+        string target = hand.OfferId is { } id ? $" on offer {id}" : string.Empty;
+        return $"{Stamp(hand.At)} {hand.Hand}{target}: {hand.Outcome}";
+    }
+
+    private static string Stamp(DateTimeOffset at) => at.ToLocalTime().ToString("d MMM HH:mm", CultureInfo.GetCultureInfo("en-GB"));
 
     /// <summary>One line of the review, with its phrases decided here rather than in the view.</summary>
     public sealed record OfferRow(Offer Offer, OfferCheck? LastCheck, long Clicks)

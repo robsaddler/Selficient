@@ -165,6 +165,9 @@ public sealed class CatalogueTests
         catalogue.IsLoaded.ShouldBeTrue();
         await store.Received(1).SeedAsync(Arg.Is<IReadOnlyList<KitPick>>(p => p.Count == 1), Arg.Any<CancellationToken>());
         catalogue.All.Count.ShouldBe(2);
+        catalogue.Version.ShouldBe(2, "one per reload");
+        catalogue.Find(2)!.Name.ShouldBe("Ledlenser MH3 headtorch");
+        catalogue.Find(99).ShouldBeNull();
         IReadOnlyList<KitPick> picks = catalogue.PicksFor(ActionId.From("headtorches"));
         picks.Select(p => p.OfferId).ShouldBe([1L, 2L], "cheapest first, each carrying its offer");
         catalogue.PicksFor(ActionId.From("water-cans")).ShouldBeEmpty();

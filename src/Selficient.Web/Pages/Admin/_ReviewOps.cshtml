@@ -1,0 +1,31 @@
+@model Selficient.Web.Pages.Admin.CatalogueModel
+@* What the operator alone is owed: the readiness checks in full, the last runs of the jobs, and the last hands taken here. *@
+<div class="review__ops">
+  <section aria-labelledby="ops-health">
+    <h2 id="ops-health">Readiness</h2>
+    <ul class="review__list">
+      @foreach (var line in Model.Health)
+      {
+        <li data-check="@line.Name" data-status="@line.Status.ToLowerInvariant()"><strong>@line.Name</strong>: @line.Status. @line.Description</li>
+      }
+    </ul>
+  </section>
+  <section aria-labelledby="ops-runs">
+    <h2 id="ops-runs">The last runs</h2>
+    <ul class="review__list" data-runs>
+      @foreach (var run in Model.Runs)
+      {
+        <li data-outcome="@run.Outcome.ToString().ToLowerInvariant()">@Selficient.Web.Pages.Admin.CatalogueModel.RunLine(run)</li>
+      }
+    </ul>
+  </section>
+  <section aria-labelledby="ops-hands">
+    <h2 id="ops-hands">The last hands</h2>
+    <ul class="review__list" data-hands>
+      @foreach (var hand in Model.Hands)
+      {
+        <li>@Selficient.Web.Pages.Admin.CatalogueModel.HandLine(hand)</li>
+      }
+    </ul>
+  </section>
+</div>

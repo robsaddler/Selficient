@@ -83,8 +83,8 @@ public interface ICatalogueStore
     /// <summary>One offer, or null.</summary>
     Task<Offer?> FindAsync(long id, CancellationToken cancellationToken);
 
-    /// <summary>Counts one click on an offer for the day. No person, no address.</summary>
-    Task RecordClickAsync(long id, DateOnly day, CancellationToken cancellationToken);
+    /// <summary>Adds the counted clicks to each offer's day. No person, no address.</summary>
+    Task RecordClicksAsync(IReadOnlyList<ClickBatch> batches, CancellationToken cancellationToken);
 
     /// <summary>Clicks per offer over the last days, for the reviewer.</summary>
     Task<IReadOnlyDictionary<long, long>> ClicksAsync(int days, DateOnly today, CancellationToken cancellationToken);

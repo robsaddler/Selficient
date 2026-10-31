@@ -4,19 +4,25 @@ using Selficient.Domain.Kit;
 using Selficient.Domain.Measures;
 using Selficient.Domain.Plans;
 using Selficient.Infrastructure.Catalogue;
+using Selficient.Infrastructure.Data;
 using Selficient.Infrastructure.Kit;
+using Selficient.TestKit;
 
 namespace Selficient.Infrastructure.Tests.Catalogue;
 
-public sealed class ProposalsStoreTests : IDisposable
+public sealed class ProposalsStoreTests : IAsyncLifetime
 {
     private static readonly DateOnly Today = new(2026, 10, 31);
     private static readonly DateTimeOffset Night = new(2026, 10, 31, 2, 15, 0, TimeSpan.Zero);
 
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"selficient-proposals-test-{Guid.NewGuid():N}.db");
-    private readonly SqliteCatalogueStore _store;
+    private readonly TestDatabase _database = TestDatabase.Create();
+    private SqlServerCatalogueStore _store = null!;
 
-    public ProposalsStoreTests() => _store = new SqliteCatalogueStore(_path);
+    public async ValueTask InitializeAsync()
+    {
+        await new SqlMigrator(_database.ConnectionString).MigrateAsync(CancellationToken.None);
+        _store = new SqlServerCatalogueStore(_database.ConnectionString);
+    }
 
     [Fact]
     public async Task A_proposal_goes_in_nameless_and_priceless_once_per_link_and_is_not_shown()
@@ -53,12 +59,13 @@ public sealed class ProposalsStoreTests : IDisposable
 
         await _store.DescribeAsync(id, "Petzl Tikkina head torch | Argos", null, Today.AddDays(1), CancellationToken.None);
         Offer named = (await _store.FindAsync(id, CancellationToken.None))!;
-        await _store.DescribeAsync(id, "Petzl Tikkina head torch | Argos", Money.FromPence(2150), Today.AddDays(2), CancellationToken.None);
+        await _store.DescribeAsync(id, new string('n', 200), Money.FromPence(2150), Today.AddDays(2), CancellationToken.None);
         Offer priced = (await _store.FindAsync(id, CancellationToken.None))!;
 
         named.Name.ShouldBe("Petzl Tikkina head torch | Argos");
         named.Price.ShouldBe(Money.FromPence(0), "no price read keeps none");
         named.Seen.ShouldBe(Today, "the seen date moves only with a price");
+        priced.Name.Length.ShouldBe(160, "a name is clipped to the column");
         priced.Price.ShouldBe(Money.FromPence(2150));
         priced.Seen.ShouldBe(Today.AddDays(2));
         priced.Status.ShouldBe(OfferStatus.Proposed, "describing never approves");
@@ -126,9 +133,9 @@ public sealed class ProposalsStoreTests : IDisposable
         AnthropicOfferJudge.About(priced with { Price = Money.FromPence(0) }).ShouldBeEmpty();
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        _store.Dispose();
-        File.Delete(_path);
+        _database.Dispose();
+        return ValueTask.CompletedTask;
     }
 }

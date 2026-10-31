@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Selficient.Application.Catalogue;
+using Selficient.Application.Operations;
 
 namespace Selficient.Infrastructure.Catalogue;
 
@@ -13,18 +14,21 @@ namespace Selficient.Infrastructure.Catalogue;
 public sealed partial class CatalogueWorker : BackgroundService
 {
     private readonly CatalogueOperations _operations;
+    private readonly IOperationsLog _log;
     private readonly IOptions<CatalogueOptions> _options;
     private readonly TimeProvider _clock;
     private readonly ILogger<CatalogueWorker> _logger;
 
     /// <summary>Creates the worker over the catalogue's operations.</summary>
-    public CatalogueWorker(CatalogueOperations operations, IOptions<CatalogueOptions> options, TimeProvider clock, ILogger<CatalogueWorker> logger)
+    public CatalogueWorker(CatalogueOperations operations, IOperationsLog log, IOptions<CatalogueOptions> options, TimeProvider clock, ILogger<CatalogueWorker> logger)
     {
         ArgumentNullException.ThrowIfNull(operations);
+        ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(logger);
         _operations = operations;
+        _log = log;
         _options = options;
         _clock = clock;
         _logger = logger;
@@ -33,24 +37,54 @@ public sealed partial class CatalogueWorker : BackgroundService
     /// <summary>One wake: the night's verification if it is due, with what it did in the log. Public so a test can turn the clock by hand.</summary>
     public async Task WakeAsync(CancellationToken cancellationToken)
     {
-        // Readers' tips first: there are few, they are cheap, and a reader is waiting on the reviewer.
-        int proposals = await _operations.JudgeProposalsAsync(cancellationToken);
-        if (proposals > 0)
+        long run = await _log.StartJobAsync(JobName, cancellationToken);
+        try
         {
-            Log.Proposals(_logger, proposals);
-        }
+            // Readers' tips first: there are few, they are cheap, and a reader is waiting on the reviewer.
+            int proposals = await _operations.JudgeProposalsAsync(cancellationToken);
+            if (proposals > 0)
+            {
+                Log.Proposals(_logger, proposals);
+            }
 
-        VerificationReport? report = await _operations.VerifyIfDueAsync(_options.Value.VerifyAtHour, cancellationToken);
-        if (report is null)
-        {
-            return;
-        }
+            VerificationReport? report = await _operations.VerifyIfDueAsync(_options.Value.VerifyAtHour, cancellationToken);
+            if (report is null)
+            {
+                await _log.FinishJobAsync(run, proposals > 0 ? JobOutcome.Succeeded : JobOutcome.Skipped, Detail(proposals, null), cancellationToken);
+                return;
+            }
 
-        Log.Verified(_logger, report.Checked, report.Landed, report.Walled, report.Hidden.Count);
-        foreach (Offer offer in report.Hidden)
-        {
-            Log.Hidden(_logger, offer.Name, offer.Retailer, offer.Link);
+            Log.Verified(_logger, report.Checked, report.Landed, report.Walled, report.Hidden.Count);
+            foreach (Offer offer in report.Hidden)
+            {
+                Log.Hidden(_logger, offer.Name, offer.Retailer, offer.Link);
+            }
+
+            await _log.FinishJobAsync(run, JobOutcome.Succeeded, Detail(proposals, report), cancellationToken);
         }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            await _log.FinishJobAsync(run, JobOutcome.Failed, exception.Message, cancellationToken);
+            // A plain call rather than `throw;`: an async rethrow leaves a branch in the state machine no test can take.
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(exception);
+        }
+    }
+
+    /// <summary>The job's name in the run log.</summary>
+    public const string JobName = "wake";
+
+    /// <summary>What a wake did, as the run log says it.</summary>
+    public static string Detail(int proposals, VerificationReport? report)
+    {
+        string tips = proposals switch
+        {
+            0 => "No tips waited.",
+            1 => "Opened one tip.",
+            _ => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Opened {proposals} tips."),
+        };
+        return report is null
+            ? tips + " The night's run was not due."
+            : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{tips} Verified {report.Checked}: {report.Landed} landed, {report.Walled} behind a robot wall, {report.Hidden.Count} hidden.");
     }
 
     /// <inheritdoc />

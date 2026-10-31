@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Selficient.Application.Catalogue;
+using Selficient.Infrastructure.Catalogue;
 using Selficient.TestKit;
 
 namespace Selficient.Web.Tests.Endpoints;
@@ -20,13 +21,16 @@ public sealed class OutEndpointTests : IDisposable
     }
 
     [Fact]
-    public async Task A_shop_link_counts_the_click_and_sends_the_reader_on_without_being_cached()
+    public async Task A_shop_link_counts_the_click_in_memory_and_sends_the_reader_on_without_being_cached()
     {
         (ICatalogueStore store, Offer offer) = await SeededAsync();
+        ClickCounter counter = _factory.Services.GetRequiredService<ClickCounter>();
         using HttpClient client = Client();
 
         using HttpResponseMessage first = await client.GetAsync(new Uri($"/out/{offer.Id}", UriKind.Relative));
         using HttpResponseMessage second = await client.GetAsync(new Uri($"/out/{offer.Id}", UriKind.Relative));
+        long pending = counter.Pending;
+        await _factory.Services.GetRequiredService<ClickFlusher>().FlushAsync(CancellationToken.None);
         IReadOnlyDictionary<long, long> clicks = await store.ClicksAsync(1, DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None);
 
         first.StatusCode.ShouldBe(HttpStatusCode.Found);
@@ -34,6 +38,8 @@ public sealed class OutEndpointTests : IDisposable
         first.Headers.CacheControl!.NoStore.ShouldBeTrue("a counted hop is never served from a cache");
         first.Headers.Contains("Set-Cookie").ShouldBeFalse("no cookie follows the reader to the shop");
         second.StatusCode.ShouldBe(HttpStatusCode.Found);
+        pending.ShouldBe(2, "the hop touches no database; the counter holds the clicks until the flusher writes them");
+        counter.Pending.ShouldBe(0);
         clicks[offer.Id].ShouldBe(2);
     }
 
@@ -44,6 +50,7 @@ public sealed class OutEndpointTests : IDisposable
         Offer second = (await store.ShownAsync(CancellationToken.None))[1];
         await store.SetStatusAsync(offer.Id, OfferStatus.Hidden, CancellationToken.None);
         await store.SetStatusAsync(second.Id, OfferStatus.Proposed, CancellationToken.None);
+        await _factory.Services.GetRequiredService<CatalogueOperations>().ReloadAsync(CancellationToken.None);
         using HttpClient client = Client();
 
         using HttpResponseMessage hidden = await client.GetAsync(new Uri($"/out/{offer.Id}", UriKind.Relative));
@@ -59,7 +66,7 @@ public sealed class OutEndpointTests : IDisposable
         unknown.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         notANumber.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         posted.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
-        (await store.ClicksAsync(1, DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None)).ShouldBeEmpty("nothing that did not send the reader on is counted");
+        _factory.Services.GetRequiredService<ClickCounter>().Pending.ShouldBe(0, "nothing that did not send the reader on is counted");
     }
 
     public void Dispose() => _factory.Dispose();

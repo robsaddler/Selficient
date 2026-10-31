@@ -30,6 +30,8 @@ public sealed class CatalogueWorkerTests
 
         public IPageReader Reader { get; } = Substitute.For<IPageReader>();
 
+        public Selficient.Application.Operations.IOperationsLog Log { get; } = Substitute.For<Selficient.Application.Operations.IOperationsLog>();
+
         public FakeTimeProvider Clock { get; } = new(Evening);
 
         public ListLogger Logger { get; } = new();
@@ -50,7 +52,8 @@ public sealed class CatalogueWorkerTests
             Store.LastVerifiedAsync(Arg.Any<CancellationToken>()).Returns((DateTimeOffset?)null);
             Catalogue = new StoredCatalogue(Store, shipped);
             OfferVerifier verifier = new(Store, Reader, new NoJudge(), Clock);
-            Worker = new CatalogueWorker(new CatalogueOperations(Catalogue, verifier, Store, Clock), Microsoft.Extensions.Options.Options.Create(Options), Clock, Logger);
+            Log.StartJobAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(41L);
+            Worker = new CatalogueWorker(new CatalogueOperations(Catalogue, verifier, Store, Clock), Log, Microsoft.Extensions.Options.Options.Create(Options), Clock, Logger);
         }
     }
 
@@ -61,10 +64,11 @@ public sealed class CatalogueWorkerTests
         CatalogueOperations operations = new(rig.Catalogue, new OfferVerifier(rig.Store, rig.Reader, new NoJudge(), rig.Clock), rig.Store, rig.Clock);
         IOptions<CatalogueOptions> options = Microsoft.Extensions.Options.Options.Create(new CatalogueOptions());
 
-        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(null!, options, rig.Clock, rig.Logger));
-        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, null!, rig.Clock, rig.Logger));
-        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, options, null!, rig.Logger));
-        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, options, rig.Clock, null!));
+        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(null!, rig.Log, options, rig.Clock, rig.Logger));
+        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, null!, options, rig.Clock, rig.Logger));
+        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, rig.Log, null!, rig.Clock, rig.Logger));
+        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, rig.Log, options, null!, rig.Logger));
+        Should.Throw<ArgumentNullException>(() => new CatalogueWorker(operations, rig.Log, options, rig.Clock, null!));
     }
 
     [Fact]
@@ -88,6 +92,7 @@ public sealed class CatalogueWorkerTests
             "Warning: Catalogue offer hidden after two failures: Kidde fire blanket at Amazon (https://www.amazon.co.uk/s?k=Kidde fire blanket).",
         ]);
         await rig.Store.Received(1).MarkVerifiedAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+        await rig.Log.Received().FinishJobAsync(41, Selficient.Application.Operations.JobOutcome.Succeeded, "No tips waited. Verified 2: 1 landed, 0 behind a robot wall, 1 hidden.", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -104,6 +109,29 @@ public sealed class CatalogueWorkerTests
 
         rig.Logger.Lines.ShouldBe(["Information: Catalogue proposals opened and judged: 1."]);
         await rig.Store.Received().DescribeAsync(9, "Head torch", null, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>());
+        await rig.Log.Received().FinishJobAsync(41, Selficient.Application.Operations.JobOutcome.Succeeded, "Opened one tip. The night's run was not due.", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Every_wake_is_a_run_in_the_log_with_how_it_went()
+    {
+        Rig rig = new(false);
+        rig.Store.LastVerifiedAsync(Arg.Any<CancellationToken>()).Returns(new DateTimeOffset(2026, 10, 30, 2, 30, 0, TimeSpan.Zero));
+
+        await rig.Worker.WakeAsync(CancellationToken.None);
+        rig.Store.ShownAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("The disk is full."));
+        rig.Clock.Advance(TimeSpan.FromHours(5));
+        await Should.ThrowAsync<InvalidOperationException>(() => rig.Worker.WakeAsync(CancellationToken.None));
+
+        await rig.Log.Received(2).StartJobAsync(CatalogueWorker.JobName, Arg.Any<CancellationToken>());
+        await rig.Log.Received().FinishJobAsync(41, Selficient.Application.Operations.JobOutcome.Skipped, "No tips waited. The night's run was not due.", Arg.Any<CancellationToken>());
+        await rig.Log.Received().FinishJobAsync(41, Selficient.Application.Operations.JobOutcome.Failed, "The disk is full.", Arg.Any<CancellationToken>());
+        rig.Store.ShownAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new OperationCanceledException());
+        await Should.ThrowAsync<OperationCanceledException>(() => rig.Worker.WakeAsync(CancellationToken.None));
+        await rig.Log.Received(1).FinishJobAsync(41, Selficient.Application.Operations.JobOutcome.Failed, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        CatalogueWorker.Detail(1, null).ShouldBe("Opened one tip. The night's run was not due.");
+        CatalogueWorker.Detail(3, new VerificationReport(38, 36, [], 2)).ShouldBe("Opened 3 tips. Verified 38: 36 landed, 2 behind a robot wall, 0 hidden.");
+        CatalogueWorker.Detail(0, new VerificationReport(1, 0, [], 0)).ShouldBe("No tips waited. Verified 1: 0 landed, 0 behind a robot wall, 0 hidden.");
     }
 
     [Fact]
@@ -165,14 +193,22 @@ public sealed class CatalogueWorkerTests
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         IHostEnvironment environment = Substitute.For<IHostEnvironment>();
         environment.EnvironmentName.Returns("Development");
-        environment.ContentRootPath.Returns(Path.GetTempPath());
         services.AddSelficientInfrastructure(
-            new ConfigurationBuilder().AddInMemoryCollection([new KeyValuePair<string, string?>("Catalogue:DatabasePath", $"selficient-composition-{Guid.NewGuid():N}.db")]).Build(),
+            new ConfigurationBuilder().AddInMemoryCollection([new KeyValuePair<string, string?>("Database:ConnectionString", "Server=localhost;Database=selficient_never_opened;Integrated Security=true")]).Build(),
             environment);
         using ServiceProvider provider = services.BuildServiceProvider();
 
-        SqliteCatalogueStore store = provider.GetRequiredService<ICatalogueStore>().ShouldBeOfType<SqliteCatalogueStore>();
-        store.Path.ShouldStartWith(Path.GetTempPath());
+        provider.GetRequiredService<ICatalogueStore>().ShouldBeOfType<SqlServerCatalogueStore>();
+        provider.GetRequiredService<Selficient.Infrastructure.Data.SqlMigrator>().ShouldNotBeNull();
+        provider.GetServices<IHostedService>().First().ShouldBeOfType<Selficient.Infrastructure.Data.MigrationStartup>("the schema is migrated before any other service starts");
+        provider.GetRequiredService<Selficient.Application.Operations.IOperationsLog>().ShouldBeOfType<Selficient.Infrastructure.Data.SqlOperationsLog>();
+        provider.GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>().ShouldBeOfType<Microsoft.Extensions.Caching.SqlServer.SqlServerCache>();
+        provider.GetRequiredService<IOptions<Microsoft.Extensions.Caching.SqlServer.SqlServerCacheOptions>>().Value.TableName.ShouldBe("cache");
+        provider.GetRequiredService<Selficient.Application.Operations.IKeyRingStore>().ShouldBeOfType<Selficient.Infrastructure.Data.SqlKeyRingStore>();
+        provider.GetRequiredService<IDealsReader>().ShouldBeOfType<CachedDealsReader>();
+        provider.GetServices<IHostedService>().ShouldContain(s => s is ClickFlusher);
+        provider.GetRequiredService<ClickCounter>().Pending.ShouldBe(0);
+        provider.GetRequiredService<IOptions<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckServiceOptions>>().Value.Registrations.Select(r => r.Name).ShouldBe(["database", "catalogue", "basemap"]);
         provider.GetRequiredService<IKitCatalogue>().ShouldBeOfType<StoredCatalogue>().ShouldBeSameAs(provider.GetRequiredService<StoredCatalogue>());
         provider.GetRequiredService<EmbeddedKitCatalogue>().All.Count.ShouldBeGreaterThan(30);
         provider.GetRequiredService<IPageReader>().ShouldBeOfType<HttpPageReader>();

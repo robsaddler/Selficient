@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
 using Selficient.Application.Catalogue;
+using Selficient.Domain.Kit;
 using Selficient.Web.Security;
 
 namespace Selficient.Web.Endpoints;
@@ -8,6 +9,8 @@ namespace Selficient.Web.Endpoints;
 /// <summary>
 /// Every shop link on the site goes out through here: one count per offer per day, then a redirect
 /// to the shop. No cookie, no address, no person; the count is how the catalogue learns what earns.
+/// The hop touches no database: the offer comes from the catalogue the pages already hold and the
+/// click goes on the counter, which the flusher writes once a second.
 /// </summary>
 public static class OutEndpoint
 {
@@ -16,7 +19,7 @@ public static class OutEndpoint
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        endpoints.MapGet("/out/{offer:long}", OutAsync)
+        endpoints.MapGet("/out/{offer:long}", Out)
             .RequireRateLimiting(RateLimits.ApiPolicy)
             .WithName("Out")
             .ExcludeFromDescription();
@@ -24,16 +27,16 @@ public static class OutEndpoint
         return endpoints;
     }
 
-    private static async Task<Results<RedirectHttpResult, NotFound<string>>> OutAsync(long offer, HttpContext context, ICatalogueStore store, TimeProvider clock, CancellationToken cancellationToken)
+    private static Results<RedirectHttpResult, NotFound<string>> Out(long offer, HttpContext context, StoredCatalogue catalogue, ClickCounter counter, TimeProvider clock)
     {
         context.Response.Headers[HeaderNames.CacheControl] = "no-store";
-        Offer? found = await store.FindAsync(offer, cancellationToken);
-        if (found is null || found.Status is OfferStatus.Hidden or OfferStatus.Proposed)
+        KitPick? pick = catalogue.Find(offer);
+        if (pick is null)
         {
             return TypedResults.NotFound("That item is no longer in the catalogue. The plan will show another.");
         }
 
-        await store.RecordClickAsync(found.Id, DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime), cancellationToken);
-        return TypedResults.Redirect(found.Link.ToString(), permanent: false, preserveMethod: false);
+        counter.Record(offer, DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime));
+        return TypedResults.Redirect(pick.Link.ToString(), permanent: false, preserveMethod: false);
     }
 }

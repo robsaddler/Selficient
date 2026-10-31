@@ -7,8 +7,8 @@
 @font-face {
   font-family: "Bricolage Grotesque";
   src: url("../fonts/BricolageGrotesque.woff2") format("woff2");
-  font-weight: 500 800;
-  font-stretch: 85% 100%;
+  font-weight: 300 800;
+  font-stretch: 75% 100%;
   font-display: swap;
 }
 
@@ -119,10 +119,8 @@
   --duration-reveal: 900ms;
   --duration-glow: 600ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-}
 
-/* The map library's control icons are black SVGs; in the dark they are inverted to read. */
-:root {
+  /* The map library's control icons are black SVGs; in the dark they are inverted to read. */
   --map-icon-filter: none;
 }
 
@@ -132,16 +130,13 @@
   }
 }
 
-:root[data-theme="dark"] {
-  --map-icon-filter: invert(0.85);
-}
-
 :root[data-theme="light"] {
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --map-icon-filter: invert(0.85);
 }
 
 /* The animatable Days Ready number. Registered so the figure can count up in CSS alone. */

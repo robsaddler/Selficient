@@ -1,17 +1,20 @@
 {
   "name": "selficient-frontend-checks",
   "private": true,
-  "description": "Type checking and linting for the hand-written front end. No bundler, no build output.",
+  "description": "Type checking and linting for the hand-written front end: TypeScript on the JavaScript, ESLint, and stylelint on the stylesheets. No bundler, no build output.",
   "type": "module",
   "scripts": {
-    "check": "npm run check:types && npm run check:lint",
+    "check": "npm run check:types && npm run check:lint && npm run check:css",
     "check:types": "tsc -p tsconfig.json",
-    "check:lint": "eslint \"src/Selficient.Web/wwwroot/js/**/*.js\" \"build/**/*.mjs\""
+    "check:lint": "eslint \"src/Selficient.Web/wwwroot/js/**/*.js\" \"build/**/*.mjs\"",
+    "check:css": "stylelint \"src/Selficient.Web/wwwroot/css/**/*.css\""
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",
     "eslint": "^9.38.0",
     "globals": "^15.15.0",
+    "stylelint": "^16.26.1",
+    "stylelint-config-recommended": "^14.0.1",
     "subset-font": "^2.9.0",
     "typescript": "^5.9.3"
   }

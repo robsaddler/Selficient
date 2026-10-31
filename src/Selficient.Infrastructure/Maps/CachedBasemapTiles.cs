@@ -10,7 +10,8 @@ namespace Selficient.Infrastructure.Maps;
 /// </summary>
 public sealed class CachedBasemapTiles : IBasemapTiles
 {
-    private static readonly HybridCacheEntryOptions TenMinutes = new() { Expiration = TimeSpan.FromMinutes(10), LocalCacheExpiration = TimeSpan.FromMinutes(10) };
+    // In process only: a tile is up to two megabytes and the archive is on the same disk, so the database would be a slower cache than the file.
+    private static readonly HybridCacheEntryOptions TenMinutes = new() { Expiration = TimeSpan.FromMinutes(10), LocalCacheExpiration = TimeSpan.FromMinutes(10), Flags = HybridCacheEntryFlags.DisableDistributedCache };
 
     private readonly IBasemapTiles _inner;
     private readonly HybridCache _cache;
