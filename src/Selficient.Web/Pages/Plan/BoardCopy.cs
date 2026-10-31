@@ -86,8 +86,49 @@ public static class BoardCopy
     public static string Days(int days) => days == 1 ? "1 day" : string.Create(CultureInfo.InvariantCulture, $"{days} days");
 
     /// <summary>The headline figure as the page says it.</summary>
+    /// <summary>What an action does to the board, as the line under the action says it: each need from the days it holds to the days it would.</summary>
+    public static string Turns(IReadOnlyList<Selficient.Application.Resilience.NeedShift> shifts)
+    {
+        ArgumentNullException.ThrowIfNull(shifts);
+        List<string> parts = [];
+        foreach (Selficient.Application.Resilience.NeedShift shift in shifts.Take(3))
+        {
+            parts.Add(shift.To > shift.From
+                ? $"{shift.Need.ToLowerInvariant()} from {DaysReady(shift.From)} to {DaysReady(shift.To)}"
+                : $"{shift.Need.ToLowerInvariant()} eased, though not for longer");
+        }
+
+        string more = shifts.Count > 3 ? string.Create(CultureInfo.InvariantCulture, $", and {shifts.Count - 3} more") : string.Empty;
+        return $"With this: {string.Join(", ", parts)}{more}.";
+    }
+
     /// <summary>What a tier buys, as the tier header says it.</summary>
     public static string TierOutcome(decimal? days) => days is { } d ? $"With everything up to here ticked, the house stands for {DaysReady(d)}." : string.Empty;
+
+    private static readonly Dictionary<Rung, (string Name, string What, string Mark)> Rungs = new()
+    {
+        [Rung.Survive] = ("Survive", "Stay alive: water, food, warmth, medicines, and the people and animals who depend on you.", "need-warmth"),
+        [Rung.Function] = ("Keep going", "Get through it: light, information, a way to call for help, cooking, sanitation and cash.", "need-light"),
+        [Rung.House] = ("Keep the house running", "The house as a house: the fridge and freezer, the heating, hot water, the internet and the car.", "source-house"),
+        [Rung.Normal] = ("Carry on as normal", "Life as usual: working from home, laundry and something to watch.", "need-entertainment"),
+    };
+
+    /// <summary>The rung's name as the board says it.</summary>
+    public static string RungName(Rung rung) => Rungs[rung].Name;
+
+    /// <summary>What the rung is for, in one line under its name.</summary>
+    public static string RungWhat(Rung rung) => Rungs[rung].What;
+
+    /// <summary>The mark drawn beside the rung's name.</summary>
+    public static string RungMark(Rung rung) => Rungs[rung].Mark;
+
+    /// <summary>How the rung stands over the whole stretch: how many of its needs are held to the last horizon.</summary>
+    public static string RungSummary(IReadOnlyList<BoardRow> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        int held = rows.Count(row => row.Cells.Count > 0 && row.Cells[^1].State == CellState.Held);
+        return string.Create(CultureInfo.InvariantCulture, $"Held for the whole stretch: {held} of {rows.Count}.");
+    }
 
     /// <summary>The unit after a figure: "day" for one, "days" for anything else.</summary>
     public static string Unit(decimal days) => days == 1m ? "day" : "days";

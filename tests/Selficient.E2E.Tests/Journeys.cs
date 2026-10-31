@@ -142,7 +142,7 @@ public sealed class Journeys
         await page.Locator("label[for=\"source-rooftop-solar-and-battery\"]").ClickAsync();
         await Expect(battery).ToBeVisibleAsync();
         await Expect(house).ToHaveCountAsync(0);
-        await Expect(battery.GetByText("Warmth")).ToBeVisibleAsync();
+        await Expect(battery.Locator(".board__need", new() { HasText = "Warmth" })).ToBeVisibleAsync();
         await Expect(page.Locator("#source-rooftop-solar-and-battery")).ToBeCheckedAsync();
         await Expect(page.Locator("days-ready")).ToHaveAttributeAsync("value", before);
 

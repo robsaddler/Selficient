@@ -1,0 +1,49 @@
+name: Check catalogue links
+
+# The commercial surface of the site: every kit pick's link opened in a real browser, weekly and on
+# demand. A link that no longer lands on its item raises an issue, because a household that lands on
+# a homepage or a "no results" page searches for itself without the affiliate tag.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Open every link
+        id: check
+        shell: pwsh
+        run: ./build/check-links.ps1
+        continue-on-error: true
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-links
+          path: artifacts/links/report.md
+          if-no-files-found: ignore
+      - name: Raise it
+        if: steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $title = "A catalogue link no longer lands on its item"
+          $body = Get-Content artifacts/links/report.md -Raw
+          $existing = gh issue list --state open --search "$title in:title" --json number --jq '.[0].number'
+          if ($existing) { gh issue comment $existing --body $body } else { gh issue create --title $title --body $body --label catalogue }
+      - name: Fail the run so it shows
+        if: steps.check.outcome == 'failure'
+        run: exit 1

@@ -82,10 +82,13 @@ public sealed class BoardComposerTests
         BoardSet set = BoardComposer.Compose(new BoardRequest(ResilienceProfile.FromProfile(rob), new HashSet<string> { "headtorches" }, plan, null, null));
 
         ActionTurn cash = set.Turns.Single(turn => turn.Action.Value == "cash-in-small-notes");
-        cash.Turns.ShouldContain("Food at three days", "with notes the shops count for longer");
+        NeedShift food = cash.Shifts.Single(shift => shift.Need == "Food");
+        food.Better.ShouldBeTrue("with notes the shops count for something");
+        food.To.ShouldBeGreaterThanOrEqualTo(food.From);
+        food.From.ShouldBe(set.DaysReady, "food is what the figure runs out of first");
         set.Turns.ShouldNotContain(turn => turn.Action.Value == "headtorches", "already held");
         set.Turns.ShouldNotContain(turn => turn.Action.Value == "arborist-survey", "not a provider of anything on the board");
-        set.Turns.ShouldAllBe(turn => turn.Turns.Count > 0);
+        set.Turns.ShouldAllBe(turn => turn.Shifts.Count > 0);
         set.Tiers.Count.ShouldBe(plan.Tiers.Count, "a destination per tier");
         set.Tiers.Select(tier => tier.Tier).ShouldBe(plan.Tiers.Select(tier => tier.Tier));
         set.Tiers[0].DaysReady.ShouldBeGreaterThan(set.DaysReady, "this week's shelf takes the house past where it stands");
@@ -112,18 +115,24 @@ public sealed class BoardComposerTests
     }
 
     [Fact]
-    public void Turned_lists_only_cells_that_improved()
+    public void Shifts_list_only_needs_that_improved_and_how_far()
     {
         ResilienceProfile rob = ResilienceProfile.FromProfile(Profiles.RobsHouse());
         Board before = OutageBoard.Simulate(rob, new HashSet<string>(), Scenarios.Storm, Season.Winter);
         Board after = OutageBoard.Simulate(rob, new HashSet<string> { "rooftop-solar-and-battery" }, Scenarios.Storm, Season.Winter);
 
-        IReadOnlyList<string> turned = BoardComposer.Turned(before, after);
+        IReadOnlyList<NeedShift> shifts = BoardComposer.Shifts(before, after);
 
-        turned.ShouldContain("Warmth at a day");
-        turned.ShouldContain("Fridge and freezer at a week");
-        turned.ShouldNotContain("Water to drink at a day", "already held");
-        BoardComposer.Turned(before, before).ShouldBeEmpty();
+        NeedShift warmth = shifts.Single(shift => shift.Need == "Warmth");
+        warmth.From.ShouldBe(BoardComposer.DaysHeld(before.Row("Warmth")!, before.DaysSimulated));
+        warmth.To.ShouldBe(BoardComposer.DaysHeld(after.Row("Warmth")!, after.DaysSimulated));
+        shifts.ShouldContain(shift => shift.Need == "Fridge and freezer" && shift.To > shift.From);
+        shifts.ShouldNotContain(shift => shift.Need == "Water to drink", "already held");
+        shifts.ShouldAllBe(shift => shift.Better);
+        BoardComposer.Shifts(before, before).ShouldBeEmpty();
+        BoardComposer.DaysHeld(before.Row("DrinkingWater")!, 30).ShouldBe(30m, "never rationed: the whole stretch");
+        BoardComposer.DaysHeld(new BoardRow("x", "x", Rung.Survive, true, [new DayState(CellState.Rationed, null, null)], []), 30).ShouldBe(0.5m, "rationed on the first day is half a day");
+        BoardComposer.DaysHeld(new BoardRow("x", "x", Rung.Survive, true, [new DayState(CellState.Held, "a", null), new DayState(CellState.Held, "a", null), new DayState(CellState.Lost, null, "b")], []), 30).ShouldBe(2m);
     }
 
     [Theory]

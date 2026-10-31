@@ -52,6 +52,8 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - The load harness hosts the site in a console project: declare `ServerGarbageCollection` there or it measures the workstation collector under the web server's allocation and every scenario collapses together.
 - A page that pre-renders every variant for an in-place switch pays for all of them on every request; render the one in view and post for the next.
 - A fragment that redraws itself must not be the only place the script reads the antiforgery token from: when the scenario form left the board fragment, `redraw` found no token and returned silently, and every journey that ticked a box failed with no error anywhere. Read the token from the document.
+- The catalogue's links are the commercial surface. Never guess a shop's search address: open it. `./build/check-links.ps1` opens every pick in Chromium and reports; it runs weekly in Actions. Argos and Screwfix wall off a headless browser, Safelincs and Halfords render search by script, so picks there cannot be checked and were moved.
+- `perl -0pi` with a `|` delimiter mangled a file for the third time this project (a regex alternation inside the replacement). Use the Edit tool for anything with a pipe in it; the rule above is not a suggestion.
 - Lighthouse runs from the scratchpad (`npm install lighthouse@12`, `CHROME_PATH` to Playwright's Chromium, `--ignore-certificate-errors` against the dev certificate); it is not in the gate because its scores are simulated.
 
 ## Conventions

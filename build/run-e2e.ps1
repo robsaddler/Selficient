@@ -19,7 +19,8 @@ if (Test-Path $playwright) {
     if ($LASTEXITCODE -ne 0) { throw "Playwright browser install failed." }
 }
 
-dotnet test --project tests/Selficient.E2E.Tests/Selficient.E2E.Tests.csproj --configuration Release --no-build
+# The catalogue link check opens thirty-odd shops and runs on its own schedule (build/check-links.ps1), not in the journeys.
+dotnet test --project tests/Selficient.E2E.Tests/Selficient.E2E.Tests.csproj --configuration Release --no-build -- --filter-not-trait "Category=Links"
 if ($LASTEXITCODE -ne 0) { throw "E2E tests failed." }
 
 Write-Host "`nE2E journeys passed." -ForegroundColor Green

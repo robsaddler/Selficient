@@ -10,8 +10,11 @@ public sealed record ScenarioCard(string Id, string Name, decimal DaysReady, boo
 /// <summary>A source the household could switch the board to. The first is always what is in the house.</summary>
 public sealed record SourceOption(string Id, string Name, string Sentence);
 
-/// <summary>What one untaken plan action would turn on the current board: the rows and horizons it improves.</summary>
-public sealed record ActionTurn(ActionId Action, IReadOnlyList<string> Turns);
+/// <summary>How one need moves when a provider is added: from the days it held to the days it would hold. Equal days with Better set means the need is met properly where it was only got by.</summary>
+public sealed record NeedShift(string Need, decimal From, decimal To, bool Better);
+
+/// <summary>What one untaken plan action would do to the current board: the needs it moves and how far.</summary>
+public sealed record ActionTurn(ActionId Action, IReadOnlyList<NeedShift> Shifts);
 
 /// <summary>Where a tier takes the house: the figure with everything up to and including that tier ticked, in the chosen scenario and season.</summary>
 public sealed record TierOutcome(Tier Tier, decimal DaysReady);
@@ -98,10 +101,10 @@ public static class BoardComposer
 
             HashSet<string> with = new(request.Held, StringComparer.Ordinal) { action.Id.Value };
             Board improved = OutageBoard.Simulate(request.Profile, with, scenario, season);
-            IReadOnlyList<string> turned = Turned(current, improved);
-            if (turned.Count > 0)
+            IReadOnlyList<NeedShift> shifts = Shifts(current, improved);
+            if (shifts.Count > 0)
             {
-                turns.Add(new ActionTurn(action.Id, turned));
+                turns.Add(new ActionTurn(action.Id, shifts));
             }
         }
 
@@ -151,24 +154,39 @@ public static class BoardComposer
     }
 
     /// <summary>The cells that improved, named by row and horizon.</summary>
-    internal static IReadOnlyList<string> Turned(Board before, Board after)
+    /// <summary>The needs that move between two boards: more days held, or held properly where they were only got by.</summary>
+    internal static IReadOnlyList<NeedShift> Shifts(Board before, Board after)
     {
-        List<string> turned = [];
+        List<NeedShift> shifts = [];
         for (int r = 0; r < before.Rows.Count; r++)
         {
             BoardRow was = before.Rows[r];
             BoardRow now = after.Rows[r];
+            bool better = false;
             for (int c = 0; c < was.Cells.Count; c++)
             {
                 if (now.Cells[c].State < was.Cells[c].State)
                 {
-                    turned.Add($"{was.Name} at {HorizonWords(was.Cells[c].Horizon)}");
+                    better = true;
                 }
+            }
+
+            if (better)
+            {
+                shifts.Add(new NeedShift(was.Name, DaysHeld(was, before.DaysSimulated), DaysHeld(now, after.DaysSimulated), true));
             }
         }
 
-        return turned;
+        return shifts;
     }
+
+    /// <summary>Days a need held before it was rationed or lost, as the strip and the figure count them.</summary>
+    internal static decimal DaysHeld(BoardRow row, int simulated) => row.FirstRationedDay switch
+    {
+        null => simulated,
+        1 => 0.5m,
+        int first => first - 1,
+    };
 
     private static readonly Dictionary<Horizon, string> Words = new()
     {

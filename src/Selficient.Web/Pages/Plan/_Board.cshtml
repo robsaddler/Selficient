@@ -5,13 +5,6 @@
     var set = Model.Set;
     var culture = System.Globalization.CultureInfo.CurrentCulture;
     var rungs = new[] { Rung.Normal, Rung.House, Rung.Function, Rung.Survive };
-    string RungName(Rung rung) => rung switch
-    {
-        Rung.Survive => "Survive",
-        Rung.Function => "Keep going",
-        Rung.House => "Keep the house running",
-        _ => "Carry on as normal",
-    };
 }
 
 <section class="board" aria-labelledby="board-heading" data-board data-days-ready="@set.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)" data-scenario="@set.Scenario.Id" data-scenario-name="@set.Scenario.Name" data-source="@set.SourceId" data-season="@set.Season">
@@ -58,13 +51,7 @@
   }
   @* One sheet: the chosen source in the chosen season. A switch posts for another, which costs the server a few milliseconds and the page nothing it does not show. *@
   <div class="board__sheet" data-source="@set.SourceId" data-season="@set.Season">
-      <div class="board__head" aria-hidden="true">
-        <span class="board__corner"></span>
-        @foreach (var horizon in set.Scenario.Horizons)
-        {
-          <span class="board__col">@BoardComposer.HorizonWords(horizon)</span>
-        }
-      </div>
+      @* Each rung is its own band with its name, what it is for and how it stands, and its own column labels, so four groups read as four and not as one long table. *@
       @foreach (var rung in rungs)
       {
         var rows = board.Rows.Where(row => row.Rung == rung && row.Needed).ToList();
@@ -72,8 +59,20 @@
         {
           continue;
         }
-        <div class="board__rung" aria-label="@RungName(rung)">
-          <h3 class="board__rung-name">@RungName(rung)</h3>
+        <section class="board__rung" aria-labelledby="rung-@rung">
+          <header class="board__rung-head">
+            <svg class="board__rung-mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.BoardCopy.RungMark(rung)"/></svg>
+            <h3 class="board__rung-name" id="rung-@rung">@Selficient.Web.Pages.Plan.BoardCopy.RungName(rung)</h3>
+            <p class="board__rung-what">@Selficient.Web.Pages.Plan.BoardCopy.RungWhat(rung)</p>
+            <p class="board__rung-summary data">@Selficient.Web.Pages.Plan.BoardCopy.RungSummary(rows)</p>
+          </header>
+          <div class="board__head" aria-hidden="true">
+            <span class="board__corner"></span>
+            @foreach (var horizon in set.Scenario.Horizons)
+            {
+              <span class="board__col">@BoardComposer.HorizonWords(horizon)</span>
+            }
+          </div>
           @foreach (var row in rows)
           {
             <details class="board__row">
@@ -92,7 +91,7 @@
               <p class="board__why">@Selficient.Web.Pages.Plan.BoardCopy.Row(row)</p>
             </details>
           }
-        </div>
+        </section>
       }
       <p class="board__headline">In @set.Scenario.Name.ToLowerInvariant(), with @(set.Sources.First(s => s.Id == set.SourceId).Name.ToLowerInvariant()), this house stands on its own for <strong class="data">@Selficient.Web.Pages.Plan.BoardCopy.DaysReady(board.DaysReady)</strong> in @set.Season.ToString().ToLowerInvariant().</p>
     </div>
@@ -121,7 +120,7 @@
   <ul hidden data-board-turns>
     @foreach (var turn in set.Turns)
     {
-      <li data-turns-action="@turn.Action.Value">Turns @string.Join(", ", turn.Turns.Take(3))@(turn.Turns.Count > 3 ? $" and {turn.Turns.Count - 3} more" : string.Empty).</li>
+      <li data-turns-action="@turn.Action.Value">@Selficient.Web.Pages.Plan.BoardCopy.Turns(turn.Shifts)</li>
     }
   </ul>
 </section>

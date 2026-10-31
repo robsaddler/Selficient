@@ -606,13 +606,82 @@
   }
 }
 
+/* Each rung is a band: a tinted header with its mark, name, purpose and standing, then its rows */
 .board__rung {
-  margin-block-start: var(--space-4);
+  margin-block-start: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+
+  &:first-of-type {
+    margin-block-start: 0;
+  }
+
+  & .board__head {
+    padding: var(--space-2) var(--space-3) var(--space-2);
+    border-block-end: 1px solid var(--c-contour);
+  }
+
+  & .board__row {
+    padding-inline: var(--space-3);
+  }
+
+  & .board__row:last-child {
+    padding-block-end: var(--space-2);
+  }
+}
+
+.board__rung-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "mark name summary"
+    "mark what summary";
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--c-lantern-tint);
+  border-inline-start: 4px solid var(--c-lantern);
+}
+
+.board__rung-mark {
+  grid-area: mark;
+  inline-size: 2rem;
+  block-size: 2rem;
+  color: var(--c-ink);
 }
 
 .board__rung-name {
-  font-size: var(--text-m);
-  margin-block-end: var(--space-2);
+  grid-area: name;
+  font-size: var(--text-l);
+  line-height: 1.1;
+}
+
+.board__rung-what {
+  grid-area: what;
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+.board__rung-summary {
+  grid-area: summary;
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+  text-align: end;
+}
+
+@media (max-width: 40rem) {
+  .board__rung-head {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "mark name"
+      "mark what"
+      "mark summary";
+  }
+
+  .board__rung-summary {
+    text-align: start;
+  }
 }
 
 .board__row {

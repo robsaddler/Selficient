@@ -21,6 +21,9 @@ public sealed class BoardPagesTests : IDisposable
         html.ShouldContain("A storm takes the power out: what holds, what goes, and when");
         html.ShouldContain("<days-ready value=\"1\"");
         html.ShouldContain("data-source=\"house\" data-season=\"Winter\"");
+        html.ShouldContain("<h3 class=\"board__rung-name\" id=\"rung-Survive\">Survive</h3>", customMessage: "each rung is its own band with a heading");
+        html.ShouldContain("Stay alive: water, food, warmth, medicines, and the people and animals who depend on you.");
+        html.ShouldContain("Held for the whole stretch: ", customMessage: "each band says how it stands");
         html.ShouldNotContain("data-source=\"rooftop-solar-and-battery\"", customMessage: "one sheet is drawn; a switch posts for another");
         html.ShouldContain("Held for the whole stretch by the tap.");
         html.ShouldContain("Water to drink, a day: held throughout.");
@@ -182,6 +185,13 @@ public sealed class BoardPagesTests : IDisposable
         BoardCopy.Unit(0.5m).ShouldBe("days");
         BoardCopy.TierOutcome(4m).ShouldBe("With everything up to here ticked, the house stands for 4 days.");
         BoardCopy.TierOutcome(null).ShouldBe("");
+        BoardCopy.Turns([new Selficient.Application.Resilience.NeedShift("Food", 1m, 7m, true)]).ShouldBe("With this: food from 1 day to 7 days.");
+        BoardCopy.Turns([new Selficient.Application.Resilience.NeedShift("Warmth", 30m, 30m, true), new("Light", 0.5m, 30m, true), new("Cash", 1m, 3m, true), new("Food", 1m, 3m, true)]).ShouldBe("With this: warmth eased, though not for longer, light from half a day to 30 days, cash from 1 day to 3 days, and 1 more.");
+        Should.Throw<ArgumentNullException>(() => BoardCopy.Turns(null!));
+        BoardCopy.RungName(Rung.Function).ShouldBe("Keep going");
+        BoardCopy.RungWhat(Rung.Survive).ShouldBe("Stay alive: water, food, warmth, medicines, and the people and animals who depend on you.");
+        BoardCopy.RungMark(Rung.House).ShouldBe("source-house");
+        Should.Throw<ArgumentNullException>(() => BoardCopy.RungSummary(null!));
         BoardCopy.DaysReady(14m).ShouldBe("14 days");
         BoardCopy.State(CellState.Rationed).ShouldBe("Not enough");
         Should.Throw<ArgumentNullException>(() => BoardCopy.Row(null!));
