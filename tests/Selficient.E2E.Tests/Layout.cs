@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Playwright;
+using Selficient.TestKit;
 
 namespace Selficient.E2E.Tests;
 
@@ -73,6 +74,51 @@ public sealed class Layout
 
             topOfEachColumn.Length.ShouldBeGreaterThan(0);
             topOfEachColumn.Distinct().Count().ShouldBe(1, customMessage: $"at {width}px the columns of questions start at {string.Join(", ", topOfEachColumn)}");
+        }
+    }
+
+    [Fact]
+    public async Task No_button_on_the_operators_pages_sits_against_the_box_above_it()
+    {
+        // Twice now a submit button has ended up hard against the box above it, because the panel's
+        // own gap reaches only its direct children and a nested form had nothing but a small margin.
+        // Every button on these pages is measured against whatever sits above it instead.
+        await _browser.Application.CreateOperatorAsync(username: "spacing", enrolled: false);
+        await using IBrowserContext context = await _browser.SizedAsync(1440, 900, mobile: false, theme: "light");
+        IPage page = await context.NewPageAsync();
+
+        await page.GotoAsync("/admin/sign-in");
+        await AssertRoomAboveEveryButtonAsync(page, "the sign-in");
+
+        await page.Locator("#Username").FillAsync("spacing");
+        await page.Locator("#Password").FillAsync(OperatorSignInHelper.Password);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Sign in" }).ClickAsync();
+        await page.Locator(".enrol__qr svg").WaitForAsync();
+        await AssertRoomAboveEveryButtonAsync(page, "the enrolment");
+    }
+
+    private static async Task AssertRoomAboveEveryButtonAsync(IPage page, string which)
+    {
+        // The smallest vertical gap between a submit button and whatever element ends just above it.
+        double[] gaps = await page.EvalOnSelectorAllAsync<double[]>(
+            ".panel button[type=submit]",
+            """
+            buttons => buttons.map(button => {
+              const box = button.getBoundingClientRect();
+              let nearest = Infinity;
+              for (const other of document.querySelectorAll('.panel input, .panel label, .panel p, .panel h1, .panel h2')) {
+                const above = other.getBoundingClientRect();
+                if (above.height === 0 || above.bottom > box.top) { continue; }
+                nearest = Math.min(nearest, box.top - above.bottom);
+              }
+              return nearest === Infinity ? 999 : Math.round(nearest);
+            })
+            """);
+
+        gaps.Length.ShouldBeGreaterThan(0, $"{which} has a button to measure");
+        foreach (double gap in gaps)
+        {
+            gap.ShouldBeGreaterThanOrEqualTo(12, customMessage: $"on {which} a button sits {gap} px under the thing above it, which reads as touching");
         }
     }
 

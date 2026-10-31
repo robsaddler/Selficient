@@ -1299,6 +1299,14 @@
   & .field {
     margin: 0;
   }
+
+  /* A form nested inside the panel, as the enrolment steps are, is laid out by the same gap. The
+     panel's own gap only reaches its direct children, so a nested form had nothing but a small
+     margin between its last box and its button, which reads as touching. */
+  & form {
+    display: grid;
+    gap: var(--space-4);
+  }
 }
 
 .panel--wide {
@@ -1315,7 +1323,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-block-start: var(--space-2);
+  /* No margin of its own: whatever holds it is a grid and its gap does the spacing. */
 }
 
 .field__help {
