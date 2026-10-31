@@ -11,7 +11,6 @@ namespace Selficient.Web.Tests.Pages;
 
 public sealed partial class AdminCatalogueTests : IDisposable
 {
-    private const string Key = "a-long-enough-operator-key-2026";
     private const string Page = "/admin/catalogue";
 
     private readonly IPageReader _reader = Substitute.For<IPageReader>();
@@ -22,59 +21,13 @@ public sealed partial class AdminCatalogueTests : IDisposable
         // Every link lands, as far as the reader is concerned: the verifier must never reach a real shop from a test.
         _reader.ReadAsync(Arg.Any<Uri>(), Arg.Any<CancellationToken>()).Returns(call => new PageRead(200, "Shop", "Petzl Ledlenser Roberts Water Lifesystems Kidde Campingaz Ugreen Anker Bluetti EcoFlow Jackery Honda Hyundai Mountain Warehouse Highlander Vango Energizer Duracell Panasonic Eneloop Bosch Makita Karcher Tesco Costco Wickes Toolstation Screwfix Halfords Argos Amazon Safelincs Draper Silverline Stanley Ultimate Snugpak Thermarest Rab Jerry Cans Trangia Coleman Primus still water multipack bottled tins candles matches lighter headtorch lantern radio blanket extinguisher stove gas cartridge power bank station battery solar panel inverter generator jerry can wind-up crank torch first aid kit tarp rope duct tape sleeping bag hot water bottle thermal flask storage container crate carrier", call.Arg<Uri>()));
         _factory = new SelficientWebApplicationFactory()
-            .WithSetting("Operator:Key", Key)
             .Configuring(b => b.ConfigureTestServices(s => s.AddSingleton(_reader)));
-    }
-
-    [Fact]
-    public async Task Without_an_operator_key_the_reviewer_does_not_exist()
-    {
-        using SelficientWebApplicationFactory bare = new();
-        using HttpClient client = bare.CreateClient();
-        string token = await TokenFrom(client, "/plan/start");
-
-        using HttpResponseMessage get = await client.GetAsync(new Uri(Page, UriKind.Relative));
-        using HttpResponseMessage signIn = await client.PostAsync(new Uri(Page + "?handler=SignIn", UriKind.Relative), Form(token, ("Key", "whatever-is-typed-here-does-not-matter")));
-        using HttpResponseMessage hide = await client.PostAsync(new Uri(Page + "?handler=Hide&id=1", UriKind.Relative), Form(token));
-
-        get.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        signIn.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        hide.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task The_wrong_key_is_told_so_and_the_right_one_opens_the_review()
-    {
-        using HttpClient client = _factory.CreateClient();
-        await ReadyAsync();
-
-        string signInPage = await client.GetStringAsync(new Uri(Page, UriKind.Relative));
-        string token = Token().Match(signInPage).Groups["token"].Value;
-        using HttpResponseMessage wrong = await client.PostAsync(new Uri(Page + "?handler=SignIn", UriKind.Relative), Form(token, ("Key", "not-the-operator-key-at-all")));
-        string afterWrong = await wrong.Content.ReadAsStringAsync();
-        using HttpResponseMessage right = await client.PostAsync(new Uri(Page + "?handler=SignIn", UriKind.Relative), Form(token, ("Key", Key)));
-        string review = await right.Content.ReadAsStringAsync();
-
-        signInPage.ShouldContain("The operator's key");
-        signInPage.ShouldContain("name=\"robots\" content=\"noindex, nofollow\"");
-        signInPage.ShouldNotContain("review__offers");
-        afterWrong.ShouldContain("That is not the operator&#x27;s key.", customMessage: "the notice is encoded on the page");
-        afterWrong.ShouldContain("The operator's key", customMessage: "still signed out");
-        right.StatusCode.ShouldBe(HttpStatusCode.OK, "the redirect after sign-in was followed");
-        right.Headers.CacheControl!.NoStore.ShouldBeTrue();
-        review.ShouldContain("Last verified never.");
-        review.ShouldContain("review__offers");
-        review.ShouldContain("Not yet checked.");
-        review.ShouldContain("Open every link now");
-        review.ShouldContain("Sign out");
-        review.ShouldNotContain("The operator's key");
-        OffersOnPage(review).ShouldBeGreaterThan(30);
     }
 
     [Fact]
     public async Task The_operators_hands_hide_show_and_verify_and_the_pages_follow()
     {
-        using HttpClient client = _factory.CreateClient();
+        using HttpClient client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = true, BaseAddress = new Uri("https://localhost") });
         await ReadyAsync();
         string review = await SignInAsync(client);
         string token = Token().Match(review).Groups["token"].Value;
@@ -112,30 +65,31 @@ public sealed partial class AdminCatalogueTests : IDisposable
     [Fact]
     public async Task Signing_out_closes_the_review_and_a_hand_without_a_session_is_not_found()
     {
-        using HttpClient client = _factory.CreateClient();
+        using HttpClient client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = true, BaseAddress = new Uri("https://localhost") });
         await ReadyAsync();
         string review = await SignInAsync(client);
         string token = Token().Match(review).Groups["token"].Value;
 
-        using HttpResponseMessage signedOut = await client.PostAsync(new Uri(Page + "?handler=SignOut", UriKind.Relative), Form(token));
+        using HttpResponseMessage signedOut = await client.PostAsync(new Uri("/admin/sign-out", UriKind.Relative), Form(token));
         string afterSignOut = await signedOut.Content.ReadAsStringAsync();
         using HttpResponseMessage hide = await client.PostAsync(new Uri(Page + "?handler=Hide&id=1", UriKind.Relative), Form(token));
         using HttpResponseMessage verify = await client.PostAsync(new Uri(Page + "?handler=Verify", UriKind.Relative), Form(token));
         using HttpResponseMessage forged = await client.SendAsync(WithCookie(Page, "selficient.operator=forged-value"));
 
-        afterSignOut.ShouldContain("The operator's key");
+        afterSignOut.ShouldContain("Sign in", customMessage: "signing out lands on the sign-in");
         afterSignOut.ShouldNotContain("review__offers");
-        hide.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        verify.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        (await forged.Content.ReadAsStringAsync()).ShouldContain("The operator's key", customMessage: "a forged cookie is a signed-out page");
+        // This client follows redirects, so a refused hand shows up as having been taken to the
+        // sign-in rather than as a 302.
+        hide.RequestMessage!.RequestUri!.AbsolutePath.ShouldBe("/admin/sign-in", "a hand with no session is sent to the sign-in");
+        verify.RequestMessage!.RequestUri!.AbsolutePath.ShouldBe("/admin/sign-in");
+        (await forged.Content.ReadAsStringAsync()).ShouldContain("Sign in", customMessage: "a forged cookie is a signed-out page");
     }
 
-    private static async Task<string> SignInAsync(HttpClient client)
+    private async Task<string> SignInAsync(HttpClient client)
     {
-        string token = await TokenFrom(client, Page);
-        using HttpResponseMessage response = await client.PostAsync(new Uri(Page + "?handler=SignIn", UriKind.Relative), Form(token, ("Key", Key)));
-        string review = await response.Content.ReadAsStringAsync();
-        review.ShouldContain("review__offers", customMessage: "sign-in must open the review");
+        await _factory.CreateOperatorAsync();
+        string review = await _factory.SignInAsync(client);
+        review.ShouldContain("review__offers", customMessage: $"sign-in must open the review; it answered the page titled {Regex.Match(review, "<title>(?<t>[^<]*)</title>").Groups["t"].Value}");
         return review;
     }
 
@@ -143,7 +97,7 @@ public sealed partial class AdminCatalogueTests : IDisposable
     public async Task A_readers_proposal_waits_at_the_foot_of_the_table_and_is_shown_only_once_it_has_a_price()
     {
         await ReadyAsync();
-        using HttpClient client = _factory.CreateClient();
+        using HttpClient client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = true, BaseAddress = new Uri("https://localhost") });
         ICatalogueStore store = _factory.Services.GetRequiredService<ICatalogueStore>();
         long id = (await store.ProposeAsync(Selficient.Domain.Plans.ActionId.From("headtorches"), new Uri("https://www.argos.co.uk/product/123"), "argos.co.uk", DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None))!.Value;
         string review = await SignInAsync(client);
@@ -170,9 +124,7 @@ public sealed partial class AdminCatalogueTests : IDisposable
     public async Task The_reviewer_shows_readiness_the_last_runs_and_the_last_hands_and_every_hand_is_recorded()
     {
         await ReadyAsync();
-        using HttpClient client = _factory.CreateClient();
-        string signIn = await TokenFrom(client, Page);
-        using HttpResponseMessage wrong = await client.PostAsync(new Uri(Page + "?handler=SignIn", UriKind.Relative), Form(signIn, ("Key", "not-the-operator-key-at-all")));
+        using HttpClient client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = true, BaseAddress = new Uri("https://localhost") });
         string review = await SignInAsync(client);
         string token = Token().Match(review).Groups["token"].Value;
         ICatalogueStore store = _factory.Services.GetRequiredService<ICatalogueStore>();
@@ -189,12 +141,16 @@ public sealed partial class AdminCatalogueTests : IDisposable
         afterHide.ShouldContain("data-check=\"basemap\" data-status=\"degraded\"", customMessage: "the test host has no basemap archive and says so to the operator");
         afterHide.ShouldContain("<li data-outcome=\"succeeded\">");
         afterHide.ShouldContain("wake: succeeded,");
-        afterHide.ShouldContain($"hidden on offer {offer.Id}: {offer.Name} is hidden.");
-        afterHide.ShouldContain("sign-in: Refused: the key did not match.");
-        afterHide.ShouldContain("sign-in: Signed in.");
-        hands.Select(h => h.Hand).ShouldBe(["hidden", "sign-in", "sign-in"]);
+        // Signing in and out are not hands on the catalogue any more; they are sign-in attempts,
+        // kept with the account that made them. A hand is a change to the catalogue, and it now
+        // names the operator who made it.
+        afterHide.ShouldContain($"rob, hidden on offer {offer.Id}: {offer.Name} is hidden.");
+        hands.Select(h => h.Hand).ShouldBe(["hidden"]);
         hands[0].OfferId.ShouldBe(offer.Id);
-        (await _factory.Services.GetRequiredService<Selficient.Application.Operations.IOperationsLog>().RecentHandsAsync(1, CancellationToken.None))[0].Outcome.ShouldBe("Signed out.");
+        hands[0].OperatorName.ShouldBe("rob");
+        IReadOnlyList<Selficient.Application.Security.SignInAttempt> attempts =
+            await _factory.Services.GetRequiredService<Selficient.Application.Security.IOperatorStore>().AttemptsAsync(10, CancellationToken.None);
+        attempts.ShouldContain(a => a.Outcome == "code" && a.Username == "rob");
     }
 
     [Fact]
@@ -207,8 +163,10 @@ public sealed partial class AdminCatalogueTests : IDisposable
         Selficient.Web.Pages.Admin.CatalogueModel.RunLine(running).ShouldEndWith("wake: running, still running.");
         Selficient.Web.Pages.Admin.CatalogueModel.RunLine(done).ShouldContain("wake: succeeded, ");
         Selficient.Web.Pages.Admin.CatalogueModel.RunLine(done).ShouldEndWith(". Verified 38.");
-        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "hide", 7, "Hidden.")).ShouldEndWith(" hide on offer 7: Hidden.");
-        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "verify", null, "Opened 38.")).ShouldEndWith(" verify: Opened 38.");
+        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "hide", 7, "Hidden.", "rob")).ShouldEndWith(" rob, hide on offer 7: Hidden.");
+        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "verify", null, "Opened 38.", "rob")).ShouldEndWith(" rob, verify: Opened 38.");
+        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "verify", null, "Opened 38.", null)).ShouldEndWith(" nobody recorded, verify: Opened 38.", customMessage: "a hand from before accounts existed says so rather than inventing a name");
+        Selficient.Web.Pages.Admin.CatalogueModel.HandLine(new(at, "verify", null, "Opened 38.", " ")).ShouldContain("nobody recorded");
         Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.RunLine(null!));
         Should.Throw<ArgumentNullException>(() => Selficient.Web.Pages.Admin.CatalogueModel.HandLine(null!));
     }

@@ -1,0 +1,29 @@
+@page "/admin/sign-in"
+@model Selficient.Web.Pages.Admin.SignInModel
+@{
+    ViewData["Title"] = "Sign in";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="signin-heading">
+  <form method="post" class="panel" novalidate>
+    <p class="eyebrow">The reviewer</p>
+    <h1 id="signin-heading">Sign in</h1>
+    <p class="panel__lede">The catalogue's reviewer is for the people who run Selficient. You will be asked for a code from your authenticator next.</p>
+    @if (Model.Refusal is { } refusal)
+    {
+      <p class="callout callout--warning" role="alert">@refusal</p>
+    }
+    <div class="field">
+      <label asp-for="Username">Username</label>
+      <input asp-for="Username" class="input" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label asp-for="Password">Password</label>
+      <input asp-for="Password" type="password" class="input" autocomplete="current-password" required>
+    </div>
+    <div class="panel__actions">
+      <button type="submit" class="button button--primary">Sign in</button>
+    </div>
+  </form>
+</section>

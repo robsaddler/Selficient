@@ -56,7 +56,7 @@ public static class WebServiceCollectionExtensions
             .Bind(configuration.GetSection(OperatorOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        services.AddSingleton<OperatorSession>();
+        AddOperatorSignIn(services);
         AddKeyRing(services);
         services.AddScoped<CspPolicy>();
         services.AddSingleton<Services.ShellVersion>();
@@ -86,12 +86,55 @@ public static class WebServiceCollectionExtensions
     }
 
     /// <summary>
+    /// The operator's sign-in: the cookie scheme, the three policies it carries, the sign-in use
+    /// case and the protector the application layer encrypts the second-factor secrets with. The
+    /// scheme re-reads the account on every request, so a changed password or a disabled account
+    /// ends every live session at once rather than at the next expiry.
+    /// </summary>
+    private static void AddOperatorSignIn(IServiceCollection services)
+    {
+        services.AddScoped<Selficient.Application.Security.ISecretProtector, DataProtectionSecretProtector>();
+        services.AddScoped<Selficient.Application.Security.OperatorSignIn>();
+        services.AddScoped<OperatorCookieEvents>();
+        services.AddHostedService<OperatorBootstrap>();
+        services.AddAuthentication(OperatorAuth.Scheme)
+            .AddCookie(OperatorAuth.Scheme, options =>
+            {
+                options.Cookie.Name = OperatorAuth.CookieName;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.Cookie.Path = "/admin";
+                options.Cookie.IsEssential = true;
+                options.LoginPath = "/admin/sign-in";
+                options.LogoutPath = "/admin/sign-out";
+                options.AccessDeniedPath = "/admin/sign-in";
+                options.SlidingExpiration = true;
+                options.EventsType = typeof(OperatorCookieEvents);
+            });
+        services.AddAuthorizationBuilder()
+            .AddPolicy(OperatorAuth.Policy, policy => policy
+                .AddAuthenticationSchemes(OperatorAuth.Scheme)
+                .RequireAuthenticatedUser()
+                // A half-signed-in operator has passed the password and nothing else; the reviewer
+                // is not theirs until the second factor is done, nor until a password owed is paid.
+                .RequireAssertion(context => !OperatorAuth.IsPending(context.User) && !OperatorAuth.MustChangePassword(context.User)))
+            .AddPolicy(OperatorAuth.SignedInPolicy, policy => policy
+                .AddAuthenticationSchemes(OperatorAuth.Scheme)
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context => !OperatorAuth.IsPending(context.User)))
+            .AddPolicy(OperatorAuth.PendingPolicy, policy => policy
+                .AddAuthenticationSchemes(OperatorAuth.Scheme)
+                .RequireAuthenticatedUser());
+    }
+
+    /// <summary>
     /// The key ring that signs the operator's cookie and the antiforgery tokens lives in the platform
     /// database, so it survives a recycle and a redeploy; on Windows the machine's DPAPI wraps every key at
     /// rest, so the table is useless off the box. The platform guard is the analyzer's and runs one way per
     /// operating system, which is why this method is the one composition step outside the gate.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "The DPAPI guard runs one way per operating system; the ring itself is proved by AdminCatalogueTests, whose signed cookie round-trips through it.")]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "The DPAPI guard runs one way per operating system; the ring itself is proved by the reviewer's tests, whose cookie and protected secrets round-trip through it.")]
     private static void AddKeyRing(IServiceCollection services)
     {
         Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder protection = services.AddDataProtection().SetApplicationName("Selficient");

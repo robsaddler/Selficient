@@ -9,46 +9,47 @@
 }
 
 <section class="review" aria-labelledby="review-heading">
-  <p class="eyebrow">The reviewer</p>
-  <h1 id="review-heading">The catalogue</h1>
+  <div class="review__head">
+    <div>
+      <p class="eyebrow">The reviewer</p>
+      <h1 id="review-heading">The catalogue</h1>
+    </div>
+    <div class="cluster review__who">
+      <span class="review__operator">Signed in as <strong>@Model.OperatorName</strong></span>
+      <a class="button button--quiet button--small" href="/admin/password">Change password</a>
+      <form method="post" action="/admin/sign-out"><button type="submit" class="button button--quiet button--small">Sign out</button></form>
+    </div>
+  </div>
   @if (Model.Notice is { } notice)
   {
     <p class="callout" role="status">@notice</p>
   }
-  @if (!Model.SignedIn)
-  {
-    @await Html.PartialAsync("_ReviewSignIn", Model)
-  }
-  else
-  {
-    <p class="review__state">Last verified @Model.LastVerifiedText. An offer hides itself after two failed checks running; showing it by hand forgives them. @Model.ProposalsText</p>
-    <p class="cluster">
-      <form method="post" asp-page-handler="Verify"><button type="submit" class="button">Open every link now</button></form>
-      <form method="post" asp-page-handler="SignOut"><button type="submit" class="button button--quiet">Sign out</button></form>
-    </p>
-    <div class="review__table">
-      <table class="review__offers">
-        <thead>
-          <tr><th scope="col">Action</th><th scope="col">Pick</th><th scope="col">Shop</th><th scope="col">Price</th><th scope="col">Seen</th><th scope="col">Status</th><th scope="col">Last check</th><th scope="col">Clicks, 30 days</th><th scope="col">Hand</th></tr>
-        </thead>
-        <tbody>
-          @foreach (var row in Model.Rows)
-          {
-            <tr data-status="@row.Offer.Status.ToString().ToLowerInvariant()">
-              <td class="data">@row.Offer.Action.Value</td>
-              <td><a href="@row.Offer.Link" rel="noopener noreferrer" target="_blank">@row.Offer.Name</a></td>
-              <td>@row.Offer.Retailer</td>
-              <td class="data">@MoneyFormat.Amount(row.Offer.Price)</td>
-              <td class="data">@row.Offer.Seen.ToString("d MMM", gb)</td>
-              <td>@row.StatusText</td>
-              <td>@row.CheckText</td>
-              <td class="data">@row.Clicks</td>
-              <td>@await Html.PartialAsync("_ReviewHand", row)</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    @await Html.PartialAsync("_ReviewOps", Model)
-  }
+  <p class="review__state">Last verified @Model.LastVerifiedText. An offer hides itself after two failed checks running; showing it by hand forgives them. @Model.ProposalsText</p>
+  <div class="cluster review__hands">
+    <form method="post" asp-page-handler="Verify"><button type="submit" class="button">Open every link now</button></form>
+  </div>
+  <div class="review__table">
+    <table class="review__offers">
+      <thead>
+        <tr><th scope="col">Action</th><th scope="col">Pick</th><th scope="col">Shop</th><th scope="col">Price</th><th scope="col">Seen</th><th scope="col">Status</th><th scope="col">Last check</th><th scope="col">Clicks, 30 days</th><th scope="col">Hand</th></tr>
+      </thead>
+      <tbody>
+        @foreach (var row in Model.Rows)
+        {
+          <tr data-status="@row.Offer.Status.ToString().ToLowerInvariant()">
+            <td class="data">@row.Offer.Action.Value</td>
+            <td><a href="@row.Offer.Link" rel="noopener noreferrer" target="_blank">@row.Offer.Name</a></td>
+            <td>@row.Offer.Retailer</td>
+            <td class="data">@MoneyFormat.Amount(row.Offer.Price)</td>
+            <td class="data">@row.Offer.Seen.ToString("d MMM", gb)</td>
+            <td>@row.StatusText</td>
+            <td>@row.CheckText</td>
+            <td class="data">@row.Clicks</td>
+            <td class="review__hand">@await Html.PartialAsync("_ReviewHand", row)</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @await Html.PartialAsync("_ReviewOps", Model)
 </section>

@@ -26,8 +26,12 @@ Nothing else is required: with no keys set the site runs with the map on its fal
 | `Catalogue:VerifyAtHour` | `Catalogue__VerifyAtHour` | `2` | 0 to 23, server local time; the hour after which the night's run is due. |
 | `Catalogue:WakeEveryMinutes` | `Catalogue__WakeEveryMinutes` | `30` | 1 to 1,440 between looks at the clock. |
 | `Catalogue:PageBytes` | `Catalogue__PageBytes` | `524288` | The most of a shop page the checker reads. |
-| `Operator:Key` | `Operator__Key` | none | At least twenty characters. Unset, the reviewer at `/admin/catalogue` does not exist. |
-| `Operator:SessionHours` | `Operator__SessionHours` | `12` | 1 to 72 before the operator signs in again. |
+| `Operator:Enabled` | `Operator__Enabled` | `true` | Off, the reviewer at `/admin/catalogue` and its sign-in do not exist. |
+| `Operator:SessionHours` | `Operator__SessionHours` | `8` | 1 to 24 before the password is asked for again, however much the reviewer is used. |
+| `Operator:IdleMinutes` | `Operator__IdleMinutes` | `30` | 5 to 240 of not using the reviewer before the session ends. |
+| `Operator:SecondFactorMinutes` | `Operator__SecondFactorMinutes` | `5` | 1 to 30 to finish typing the code after the password. |
+| `Operator:BootstrapUsername` | `Operator__BootstrapUsername` | none | The first account, made at start-up only when no operator exists. |
+| `Operator:BootstrapPassword` | `Operator__BootstrapPassword` | none | Its starting password, at least fourteen characters. The account must replace it and enrol an authenticator before it can review anything, so leaving these set is not a second way in. Remove them once you have signed in. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `OTEL_EXPORTER_OTLP_ENDPOINT` | none | A collector's OTLP address (gRPC 4317 or HTTP 4318). Set, the site exports traces, metrics and logs; unset, nothing leaves the box. `OTEL_EXPORTER_OTLP_HEADERS` carries a key where the collector wants one. |
 
 ## Limits and costs

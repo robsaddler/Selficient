@@ -44,6 +44,10 @@ public static class WebApplicationExtensions
 
         app.UseRouting();
         app.UseRateLimiter();
+        // Authentication before authorisation, and both before antiforgery, so a reviewer page that
+        // refuses an unsigned caller does so before anything reads a form.
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.UseAntiforgery();
 
         app.MapRazorPages();

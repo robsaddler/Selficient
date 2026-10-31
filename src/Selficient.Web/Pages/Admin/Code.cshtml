@@ -1,0 +1,25 @@
+@page "/admin/sign-in/code"
+@model Selficient.Web.Pages.Admin.CodeModel
+@{
+    ViewData["Title"] = "The code from your authenticator";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="code-heading">
+  <form method="post" class="panel" novalidate>
+    <p class="eyebrow">The reviewer</p>
+    <h1 id="code-heading">The code from your authenticator</h1>
+    <p class="panel__lede">Six digits, which change every thirty seconds. If your phone is not to hand, type one of the recovery codes you wrote down instead.</p>
+    @if (Model.Refusal is { } refusal)
+    {
+      <p class="callout callout--warning" role="alert">@refusal</p>
+    }
+    <div class="field">
+      <label asp-for="Code">Code</label>
+      <input asp-for="Code" class="input input--code" inputmode="numeric" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
+    </div>
+    <div class="panel__actions">
+      <button type="submit" class="button button--primary">Finish signing in</button>
+    </div>
+  </form>
+</section>

@@ -19,6 +19,9 @@ public sealed class Browser : IAsyncLifetime
     /// <summary>Where the application answers.</summary>
     public string Origin { get; private set; } = string.Empty;
 
+    /// <summary>The running application, so a journey can make the operator it signs in as.</summary>
+    public SelficientWebApplicationFactory Application => _factory!;
+
     /// <summary>A fresh context at phone width.</summary>
     public Task<IBrowserContext> PhoneAsync() => SizedAsync(390, 844, mobile: true, theme: "light");
 
@@ -49,7 +52,11 @@ public sealed class Browser : IAsyncLifetime
             .WithSetting("RateLimits:PlanPerMinute", "10000")
             .WithSetting("RateLimits:BoardPerMinute", "10000")
             .WithSetting("RateLimits:AiPerMinute", "1000")
-            .WithSetting("RateLimits:ApiPerMinute", "10000");
+            .WithSetting("RateLimits:ApiPerMinute", "10000")
+            // The reviewer is the one authenticated surface and had no browser coverage at all,
+            // which is how its sign-in came to put the button hard against the box. The account a
+            // journey signs in as is made through the store, as a real one is.
+            .WithSetting("Operator:Enabled", "true");
         Origin = _factory.StartOnKestrel();
 
         if (Microsoft.Playwright.Program.Main(["install", "chromium"]) != 0)

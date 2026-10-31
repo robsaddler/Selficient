@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using Selficient.TestKit;
 
 namespace Selficient.E2E.Tests;
 
@@ -64,6 +65,37 @@ public sealed class Screenshots
                 await page.Locator("[data-action-id=\"headtorches\"]").CheckAsync();
                 await SettleAsync(page);
                 await page.ScreenshotAsync(new() { Path = Target($"plan-{size}-{theme}.png"), FullPage = true });
+            }
+        }
+    }
+
+    [Fact]
+    public async Task The_reviewer_is_captured_signed_out_and_signed_in_at_every_width_in_both_themes()
+    {
+        foreach ((string size, int width, int height, bool mobile) in Sizes)
+        {
+            foreach (string theme in new[] { "light", "dark" })
+            {
+                await using IBrowserContext context = await _browser.SizedAsync(width, height, mobile, theme);
+                IPage page = await context.NewPageAsync();
+                await page.GotoAsync("/admin/catalogue");
+                await SettleAsync(page);
+                await page.ScreenshotAsync(new() { Path = Target($"reviewer-signin-{size}-{theme}.png"), FullPage = true });
+
+                // The real two steps: the password, then a code from the account's own seed.
+                await _browser.Application.CreateOperatorAsync();
+                await page.Locator("#Username").FillAsync(OperatorSignInHelper.Username);
+                await page.Locator("#Password").FillAsync(OperatorSignInHelper.Password);
+                await page.GetByRole(AriaRole.Button, new() { Name = "Sign in" }).ClickAsync();
+                await page.Locator("#Code").WaitForAsync();
+                await SettleAsync(page);
+                await page.ScreenshotAsync(new() { Path = Target($"reviewer-code-{size}-{theme}.png"), FullPage = true });
+
+                await page.Locator("#Code").FillAsync(await _browser.Application.CodeForAsync());
+                await page.GetByRole(AriaRole.Button, new() { Name = "Finish signing in" }).ClickAsync();
+                await page.Locator(".review__offers").WaitForAsync();
+                await SettleAsync(page);
+                await page.ScreenshotAsync(new() { Path = Target($"reviewer-{size}-{theme}.png"), FullPage = true });
             }
         }
     }

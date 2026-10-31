@@ -20,22 +20,22 @@ public sealed class SqlOperationsLog : IOperationsLog
     }
 
     /// <inheritdoc />
-    public async Task RecordHandAsync(string hand, long? offerId, string outcome, CancellationToken cancellationToken)
+    public async Task RecordHandAsync(string hand, long? offerId, string outcome, string? operatorName, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hand);
         ArgumentNullException.ThrowIfNull(outcome);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         await connection.ExecuteAsync(
-            "INSERT INTO dbo.operator_actions (at, hand, offer_id, outcome) VALUES (@at, @hand, @offerId, @outcome)",
-            new { at = _clock.GetUtcNow().UtcDateTime, hand = Clip(hand, 40), offerId, outcome = Clip(outcome, 400) });
+            "INSERT INTO dbo.operator_actions (at, hand, offer_id, outcome, operator_name) VALUES (@at, @hand, @offerId, @outcome, @operatorName)",
+            new { at = _clock.GetUtcNow().UtcDateTime, hand = Clip(hand, 40), offerId, outcome = Clip(outcome, 400), operatorName = operatorName is null ? null : Clip(operatorName, 64) });
     }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<OperatorAction>> RecentHandsAsync(int take, CancellationToken cancellationToken)
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
-        IEnumerable<HandRow> rows = await connection.QueryAsync<HandRow>("SELECT TOP (@take) at, hand, offer_id, outcome FROM dbo.operator_actions ORDER BY id DESC", new { take });
-        return rows.Select(static r => new OperatorAction(Utc(r.at), r.hand, r.offer_id, r.outcome)).ToList();
+        IEnumerable<HandRow> rows = await connection.QueryAsync<HandRow>("SELECT TOP (@take) at, hand, offer_id, outcome, operator_name FROM dbo.operator_actions ORDER BY id DESC", new { take });
+        return [.. rows.Select(static r => new OperatorAction(Utc(r.at), r.hand, r.offer_id, r.outcome, r.operator_name))];
     }
 
     /// <inheritdoc />
@@ -78,7 +78,7 @@ public sealed class SqlOperationsLog : IOperationsLog
     }
 
 #pragma warning disable CA1812, IDE1006, CA1707 // Dapper materialises these by column name.
-    private sealed record HandRow(DateTime at, string hand, long? offer_id, string outcome);
+    private sealed record HandRow(DateTime at, string hand, long? offer_id, string outcome, string? operator_name);
 
     private sealed record RunRow(long id, string job, DateTime started_at, DateTime? finished_at, string outcome, string detail);
 #pragma warning restore CA1812, IDE1006, CA1707

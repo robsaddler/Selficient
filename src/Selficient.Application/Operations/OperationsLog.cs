@@ -1,7 +1,7 @@
 namespace Selficient.Application.Operations;
 
 /// <summary>One hand the operator took on the reviewer.</summary>
-public sealed record OperatorAction(DateTimeOffset At, string Hand, long? OfferId, string Outcome);
+public sealed record OperatorAction(DateTimeOffset At, string Hand, long? OfferId, string Outcome, string? OperatorName);
 
 /// <summary>How a job run ended.</summary>
 public enum JobOutcome
@@ -30,7 +30,7 @@ public sealed record JobRun(long Id, string Job, DateTimeOffset StartedAt, DateT
 public interface IOperationsLog
 {
     /// <summary>Records a hand on the reviewer.</summary>
-    Task RecordHandAsync(string hand, long? offerId, string outcome, CancellationToken cancellationToken);
+    Task RecordHandAsync(string hand, long? offerId, string outcome, string? operatorName, CancellationToken cancellationToken);
 
     /// <summary>The latest hands, newest first.</summary>
     Task<IReadOnlyList<OperatorAction>> RecentHandsAsync(int take, CancellationToken cancellationToken);

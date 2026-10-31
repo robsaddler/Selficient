@@ -88,6 +88,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<ICatalogueStore>(static provider => new SqlServerCatalogueStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The operations log: every hand the operator takes and every run of every job, in the database.
         services.AddSingleton<IOperationsLog>(static provider => new SqlOperationsLog(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString, provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<Selficient.Application.Security.IOperatorStore>(static provider => new Selficient.Infrastructure.Security.SqlOperatorStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The web layer's key ring lives in the database too; the web composition root wires it to Data Protection.
         services.AddSingleton<IKeyRingStore>(static provider => new SqlKeyRingStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The distributed cache behind HybridCache, in the same database, so a warm cache outlives the process. Tiles stay in process only.

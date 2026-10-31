@@ -1,0 +1,56 @@
+@page "/admin/enrol"
+@model Selficient.Web.Pages.Admin.EnrolModel
+@{
+    ViewData["Title"] = "Set up your authenticator";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="enrol-heading">
+  <div class="panel panel--wide">
+    <p class="eyebrow">The reviewer</p>
+    <h1 id="enrol-heading">Set up your authenticator</h1>
+    @if (Model.Codes.Count > 0)
+    {
+      <p class="panel__lede">Your authenticator is set up. Write these recovery codes down somewhere that is not your phone and keep them. Each one signs you in once if you ever lose the phone, and this is the only time they are shown.</p>
+      <ul class="codes">
+        @foreach (var code in Model.Codes)
+        {
+          <li class="codes__code">@code</li>
+        }
+      </ul>
+      <div class="panel__actions">
+        <a class="button button--primary" href="/admin/catalogue">I have written them down</a>
+      </div>
+    }
+    else
+    {
+      <p class="panel__lede">Selficient asks for a code from an authenticator app as well as your password, so a stolen password alone is not a way in. Add this to Microsoft Authenticator, Google Authenticator, 1Password or any app that takes a setup key.</p>
+      <ol class="enrol__steps">
+        <li>
+          <h2>Add the account to your app</h2>
+          <p>Type this setup key in by hand, choosing a time-based code.</p>
+          <p class="enrol__secret" aria-label="Setup key">@Model.SecretText</p>
+          <p class="enrol__account">The account is <strong>@Model.AccountName</strong> and the issuer is <strong>Selficient</strong>.</p>
+        </li>
+        <li>
+          <h2>Prove it worked</h2>
+          <p>Type the six digits your app is showing now.</p>
+          @if (Model.Refusal is { } refusal)
+          {
+            <p class="callout callout--warning" role="alert">@refusal</p>
+          }
+          <form method="post" novalidate>
+            <input type="hidden" asp-for="Secret">
+            <div class="field">
+              <label asp-for="Code">The code your app shows</label>
+              <input asp-for="Code" class="input input--code" inputmode="numeric" autocomplete="one-time-code" spellcheck="false" required>
+            </div>
+            <div class="panel__actions">
+              <button type="submit" class="button button--primary">Turn the second factor on</button>
+            </div>
+          </form>
+        </li>
+      </ol>
+    }
+  </div>
+</section>

@@ -1262,4 +1262,153 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* The operator's own pages: sign in, the code, enrolment, the password. One panel, centred, with
+   the whole page quiet around it. Every row inside is laid out by the grid's gap rather than by
+   margins on the children, which is why the button no longer sits against the box above it. */
+.panel-page {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding-block: var(--space-8);
+}
+
+.panel {
+  inline-size: min(100%, 30rem);
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & h1 {
+    font-size: var(--text-2xl);
+    margin: 0;
+  }
+
+  & .eyebrow {
+    margin: 0;
+  }
+
+  & .field {
+    margin: 0;
+  }
+}
+
+.panel--wide {
+  inline-size: min(100%, 46rem);
+}
+
+.panel__lede {
+  color: var(--c-ink-muted);
+  text-wrap: pretty;
+  margin: 0;
+}
+
+.panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
+
+.field__help {
+  margin-block-start: var(--space-2);
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+/* A six-digit code and a recovery code are read back character by character, so they are set in
+   the data face, spaced, and never in the body face where a one and an l look alike. */
+.input--code {
+  font-family: var(--font-data);
+  font-size: var(--text-l);
+  letter-spacing: 0.12em;
+  max-inline-size: 14rem;
+}
+
+.enrol__steps {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding-inline-start: var(--space-6);
+
+  & h2 {
+    font-size: var(--text-l);
+    margin-block: 0 var(--space-2);
+  }
+
+  & p {
+    margin-block-end: var(--space-3);
+  }
+}
+
+.enrol__secret {
+  font-family: var(--font-data);
+  font-size: var(--text-l);
+  letter-spacing: 0.1em;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-s);
+  background: var(--c-sky);
+  overflow-wrap: anywhere;
+}
+
+.enrol__account {
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+}
+
+.codes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  gap: var(--space-2);
+}
+
+.codes__code {
+  font-family: var(--font-data);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border);
+  border-radius: var(--radius-s);
+  background: var(--c-sky);
+  text-align: center;
+}
+
+/* The reviewer's head: the title on one side, who is signed in and their two hands on the other. */
+.review__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-block-end: var(--space-4);
+}
+
+.review__who {
+  font-size: var(--text-s);
+}
+
+.review__operator {
+  color: var(--c-ink-muted);
+}
+
+.review__hands {
+  margin-block: var(--space-4);
+}
+
+/* The hand in a row sits in the middle of it, not hanging below the text beside it. */
+.review__offers .review__hand {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.review__none {
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+  margin: 0;
+}
 }

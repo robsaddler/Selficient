@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,43 +12,38 @@ namespace Selficient.Web.Pages.Admin;
 
 /// <summary>
 /// The reviewer: every offer with its last check, what it earned, and the operator's three hands
-/// (show, hide, verify now). Behind the operator key; without one configured the page does not
-/// exist. Twenty minutes on a Sunday evening is the whole operating cost of the catalogue.
+/// (show, hide, verify now). Behind a signed-in operator account with its second factor: the
+/// policy decides who may be here, not the page, and every hand is recorded against the name of
+/// the person who took it. Twenty minutes on a Sunday evening is the whole operating cost.
 /// </summary>
+[Authorize(Policy = OperatorAuth.Policy)]
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [EnableRateLimiting(RateLimits.PlanPolicy)]
 public sealed class CatalogueModel : PageModel
 {
     private readonly ICatalogueStore _store;
     private readonly CatalogueOperations _operations;
-    private readonly OperatorSession _session;
     private readonly TimeProvider _clock;
     private readonly IOperationsLog _log;
     private readonly HealthCheckService _health;
 
     /// <summary>Creates the page over the store, the catalogue's hands and the session.</summary>
-    public CatalogueModel(ICatalogueStore store, CatalogueOperations operations, OperatorSession session, TimeProvider clock, IOperationsLog log, HealthCheckService health)
+    public CatalogueModel(ICatalogueStore store, CatalogueOperations operations, TimeProvider clock, IOperationsLog log, HealthCheckService health)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(operations);
-        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(health);
         _store = store;
         _operations = operations;
-        _session = session;
         _clock = clock;
         _log = log;
         _health = health;
     }
 
-    /// <summary>The key, typed once.</summary>
-    [BindProperty]
-    public string? Key { get; set; }
-
-    /// <summary>Whether the operator is signed in.</summary>
-    public bool SignedIn { get; private set; }
+    /// <summary>The operator reading the page, which every hand is recorded against.</summary>
+    public string OperatorName => OperatorAuth.NameOf(User);
 
     /// <summary>A sentence about what the last hand did.</summary>
     [TempData]
@@ -77,49 +73,11 @@ public sealed class CatalogueModel : PageModel
         _ => string.Create(CultureInfo.InvariantCulture, $"{waiting} suggestions from readers wait for you at the foot of the table: the checker has read them where it could, and Show approves each."),
     };
 
-    /// <summary>Renders the sign-in or the review.</summary>
+    /// <summary>Renders the review. Who may see it was settled before this ran.</summary>
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsConfigured)
-        {
-            return NotFound();
-        }
-
-        SignedIn = _session.IsValid(Request.Cookies[OperatorSession.CookieName]);
-        if (SignedIn)
-        {
-            await LoadAsync(cancellationToken);
-        }
-
+        await LoadAsync(cancellationToken);
         return Page();
-    }
-
-    /// <summary>Signs in with the key.</summary>
-    public async Task<IActionResult> OnPostSignInAsync(CancellationToken cancellationToken)
-    {
-        if (!_session.IsConfigured)
-        {
-            return NotFound();
-        }
-
-        if (!_session.Matches(Key))
-        {
-            Notice = "That is not the operator's key.";
-            await _log.RecordHandAsync("sign-in", null, "Refused: the key did not match.", cancellationToken);
-            return RedirectToPage();
-        }
-
-        Response.Cookies.Append(OperatorSession.CookieName, _session.Issue(), _session.CookieOptions());
-        await _log.RecordHandAsync("sign-in", null, "Signed in.", cancellationToken);
-        return RedirectToPage();
-    }
-
-    /// <summary>Signs out.</summary>
-    public async Task<IActionResult> OnPostSignOutAsync(CancellationToken cancellationToken)
-    {
-        Response.Cookies.Delete(OperatorSession.CookieName, _session.CookieOptions());
-        await _log.RecordHandAsync("sign-out", null, "Signed out.", cancellationToken);
-        return RedirectToPage();
     }
 
     /// <summary>Hides an offer by hand.</summary>
@@ -131,47 +89,35 @@ public sealed class CatalogueModel : PageModel
     /// <summary>Opens every shown link now rather than waiting for the night.</summary>
     public async Task<IActionResult> OnPostVerifyAsync(CancellationToken cancellationToken)
     {
-        if (!Allowed())
-        {
-            return NotFound();
-        }
-
         VerificationReport report = await _operations.VerifyAsync(cancellationToken);
         Notice = $"Opened {report.Checked}: {report.Landed} landed, {report.Walled} behind a robot wall, {report.Hidden.Count} hidden.";
-        await _log.RecordHandAsync("verify", null, Notice, cancellationToken);
+        await _log.RecordHandAsync("verify", null, Notice, OperatorName, cancellationToken);
         return RedirectToPage();
     }
 
     private async Task<IActionResult> HandAsync(long id, OfferStatus status, string said, CancellationToken cancellationToken)
     {
-        if (!Allowed())
-        {
-            return NotFound();
-        }
-
         Offer? offer = await _store.FindAsync(id, cancellationToken);
         if (offer is null)
         {
             Notice = "There is no such offer.";
-            await _log.RecordHandAsync(said, id, Notice, cancellationToken);
+            await _log.RecordHandAsync(said, id, Notice, OperatorName, cancellationToken);
             return RedirectToPage();
         }
 
         if (status == OfferStatus.Live && offer.Price.Pence == 0)
         {
             Notice = $"{offer.Name} has no price yet, so it cannot be shown. Wait for the checker to read one, or hide it.";
-            await _log.RecordHandAsync(said, id, Notice, cancellationToken);
+            await _log.RecordHandAsync(said, id, Notice, OperatorName, cancellationToken);
             return RedirectToPage();
         }
 
         await _store.SetStatusAsync(id, status, cancellationToken);
         await _operations.ReloadAsync(cancellationToken);
         Notice = $"{offer.Name} is {said}.";
-        await _log.RecordHandAsync(said, id, Notice, cancellationToken);
+        await _log.RecordHandAsync(said, id, Notice, OperatorName, cancellationToken);
         return RedirectToPage();
     }
-
-    private bool Allowed() => _session.IsConfigured && _session.IsValid(Request.Cookies[OperatorSession.CookieName]);
 
     private async Task LoadAsync(CancellationToken cancellationToken)
     {
@@ -217,7 +163,10 @@ public sealed class CatalogueModel : PageModel
     {
         ArgumentNullException.ThrowIfNull(hand);
         string target = hand.OfferId is { } id ? $" on offer {id}" : string.Empty;
-        return $"{Stamp(hand.At)} {hand.Hand}{target}: {hand.Outcome}";
+        // The one shared key could not say who; an account can, and the trail is worth little
+        // without it. A hand from before M20 has no name and says so rather than inventing one.
+        string who = string.IsNullOrWhiteSpace(hand.OperatorName) ? "nobody recorded" : hand.OperatorName;
+        return $"{Stamp(hand.At)} {who}, {hand.Hand}{target}: {hand.Outcome}";
     }
 
     private static string Stamp(DateTimeOffset at) => at.ToLocalTime().ToString("d MMM HH:mm", CultureInfo.GetCultureInfo("en-GB"));

@@ -1,5 +1,5 @@
 @model Selficient.Web.Pages.Admin.CatalogueModel
-@* What the operator alone is owed: the readiness checks in full, the last runs of the jobs, and the last hands taken here. *@
+@* What the operator alone is owed: the readiness checks in full, the last runs of the jobs, and the last hands taken here, each naming the operator who took it. *@
 <div class="review__ops">
   <section aria-labelledby="ops-health">
     <h2 id="ops-health">Readiness</h2>
@@ -12,20 +12,34 @@
   </section>
   <section aria-labelledby="ops-runs">
     <h2 id="ops-runs">The last runs</h2>
-    <ul class="review__list" data-runs>
-      @foreach (var run in Model.Runs)
-      {
-        <li data-outcome="@run.Outcome.ToString().ToLowerInvariant()">@Selficient.Web.Pages.Admin.CatalogueModel.RunLine(run)</li>
-      }
-    </ul>
+    @if (Model.Runs.Count == 0)
+    {
+      <p class="review__none">The checker has not run yet. It wakes after 02:00 when the worker is on, and "Open every link now" runs it by hand.</p>
+    }
+    else
+    {
+      <ul class="review__list" data-runs>
+        @foreach (var run in Model.Runs)
+        {
+          <li data-outcome="@run.Outcome.ToString().ToLowerInvariant()">@Selficient.Web.Pages.Admin.CatalogueModel.RunLine(run)</li>
+        }
+      </ul>
+    }
   </section>
   <section aria-labelledby="ops-hands">
     <h2 id="ops-hands">The last hands</h2>
-    <ul class="review__list" data-hands>
-      @foreach (var hand in Model.Hands)
-      {
-        <li>@Selficient.Web.Pages.Admin.CatalogueModel.HandLine(hand)</li>
-      }
-    </ul>
+    @if (Model.Hands.Count == 0)
+    {
+      <p class="review__none">No hands have been taken on the catalogue yet.</p>
+    }
+    else
+    {
+      <ul class="review__list" data-hands>
+        @foreach (var hand in Model.Hands)
+        {
+          <li>@Selficient.Web.Pages.Admin.CatalogueModel.HandLine(hand)</li>
+        }
+      </ul>
+    }
   </section>
 </div>

@@ -92,6 +92,13 @@
     repeating-radial-gradient(ellipse 42% 64% at 16% 82%, transparent 0 calc(var(--ring) * 1.35 - 1.5px), color-mix(in oklab, var(--c-contour) 55%, transparent) calc(var(--ring) * 1.35 - 1.5px) calc(var(--ring) * 1.35));
 }
 
+/* A hand in a dense table or beside a heading: the same button, sized to sit in a row of text. */
+.button--small {
+  min-block-size: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-s);
+}
+
 .button--lantern {
   background: var(--c-lantern);
   border-color: var(--c-lantern);

@@ -40,9 +40,9 @@ public sealed class PlatformStoreTests : IAsyncLifetime
         ManualClock clock = new(Noon);
         SqlOperationsLog log = new(_database.ConnectionString, clock);
 
-        await log.RecordHandAsync("hide", 7, "Petzl Tikkina is hidden.", CancellationToken.None);
+        await log.RecordHandAsync("hide", 7, "Petzl Tikkina is hidden.", "rob", CancellationToken.None);
         clock.Advance(TimeSpan.FromMinutes(1));
-        await log.RecordHandAsync("verify", null, new string('o', 500), CancellationToken.None);
+        await log.RecordHandAsync("verify", null, new string('o', 500), null, CancellationToken.None);
         long first = await log.StartJobAsync(CatalogueWorker_JobName, CancellationToken.None);
         clock.Advance(TimeSpan.FromMinutes(2));
         await log.FinishJobAsync(first, JobOutcome.Succeeded, "Verified 38.", CancellationToken.None);
@@ -68,8 +68,8 @@ public sealed class PlatformStoreTests : IAsyncLifetime
         runs[1].StartedAt.ShouldBe(Noon.AddMinutes(1));
         runs[1].FinishedAt.ShouldBe(Noon.AddMinutes(3));
         one.Count.ShouldBe(1);
-        await Should.ThrowAsync<ArgumentException>(() => log.RecordHandAsync(" ", null, "x", CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => log.RecordHandAsync("hide", null, null!, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentException>(() => log.RecordHandAsync(" ", null, "x", "rob", CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => log.RecordHandAsync("hide", null, null!, "rob", CancellationToken.None));
         await Should.ThrowAsync<ArgumentException>(() => log.StartJobAsync(" ", CancellationToken.None));
         await Should.ThrowAsync<ArgumentNullException>(() => log.FinishJobAsync(1, JobOutcome.Failed, null!, CancellationToken.None));
         Should.Throw<ArgumentException>(() => new SqlOperationsLog(" ", clock));
