@@ -186,6 +186,42 @@ public sealed class OperatorAuthTests : IDisposable
     }
 
     [Fact]
+    public async Task A_brand_new_account_can_walk_the_whole_way_in_without_being_sent_round_in_a_circle()
+    {
+        // The bootstrap account: no authenticator and a password it owes. It has to be able to
+        // enrol, then pay the password, and reach the reviewer, without any step turning it away.
+        await _factory.CreateOperatorAsync(username: "fresh", mustChangePassword: true, enrolled: false);
+        using HttpClient client = Client();
+        string token = await OperatorSignInHelper.TokenAsync(client, "/admin/sign-in");
+        using HttpResponseMessage step = await client.PostAsync(
+            new Uri("/admin/sign-in", UriKind.Relative),
+            OperatorSignInHelper.Form(token, ("Username", "fresh"), ("Password", OperatorSignInHelper.Password)));
+        step.Headers.Location!.ToString().ShouldContain("/admin/enrol");
+
+        string enrol = await client.GetStringAsync(new Uri("/admin/enrol", UriKind.Relative));
+        string secret = System.Text.RegularExpressions.Regex.Match(enrol, "name=\"Secret\" value=\"(?<secret>[^\"]+)\"").Groups["secret"].Value;
+        using HttpResponseMessage armed = await client.PostAsync(
+            new Uri("/admin/enrol", UriKind.Relative),
+            OperatorSignInHelper.Form(
+                await OperatorSignInHelper.TokenAsync(client, "/admin/enrol"),
+                ("Secret", secret),
+                ("Code", Totp.CodeAt(Selficient.Web.Pages.Admin.EnrolModel.Base32Bytes(secret), _factory.Services.GetRequiredService<TimeProvider>().GetUtcNow()))));
+
+        (await armed.Content.ReadAsStringAsync()).ShouldContain("href=\"/admin/password\"", customMessage: "the codes page points at the password it still owes, not at the reviewer");
+        using HttpResponseMessage bounced = await client.GetAsync(new Uri("/admin/sign-in", UriKind.Relative));
+        bounced.Headers.Location!.ToString().ShouldContain("/admin/password", customMessage: "the sign-in sends it to the password rather than back to a reviewer that will refuse it");
+
+        string change = await OperatorSignInHelper.TokenAsync(client, "/admin/password");
+        using HttpResponseMessage changed = await client.PostAsync(
+            new Uri("/admin/password", UriKind.Relative),
+            OperatorSignInHelper.Form(change, ("Current", OperatorSignInHelper.Password), ("Fresh", "a password of its own choosing"), ("Again", "a password of its own choosing")));
+        using HttpResponseMessage review = await client.GetAsync(new Uri("/admin/catalogue", UriKind.Relative));
+
+        changed.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        review.StatusCode.ShouldBe(HttpStatusCode.OK, "and then the reviewer is open");
+    }
+
+    [Fact]
     public async Task Enrolment_arms_the_second_factor_and_shows_the_recovery_codes_once()
     {
         await _factory.CreateOperatorAsync(username: "newcomer", enrolled: false);

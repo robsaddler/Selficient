@@ -48,9 +48,14 @@ public sealed class SignInModel : PageModel
             return NotFound();
         }
 
-        return User.Identity?.IsAuthenticated == true && !OperatorAuth.IsPending(User)
-            ? RedirectToPage("/Admin/Catalogue")
-            : Page();
+        if (User.Identity?.IsAuthenticated != true || OperatorAuth.IsPending(User))
+        {
+            return Page();
+        }
+
+        // An operator who still owes a password is sent to the one page that lets them pay it.
+        // Sending them to the reviewer instead would bounce them back here and round again.
+        return RedirectToPage(OperatorAuth.MustChangePassword(User) ? "/Admin/Password" : "/Admin/Catalogue");
     }
 
     /// <summary>Takes the password step.</summary>

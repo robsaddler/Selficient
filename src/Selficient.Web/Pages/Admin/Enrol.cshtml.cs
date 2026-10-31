@@ -58,6 +58,9 @@ public sealed class EnrolModel : PageModel
     /// <summary>The recovery codes, shown once immediately after enrolment.</summary>
     public IReadOnlyList<string> Codes { get; private set; } = [];
 
+    /// <summary>Whether this operator still has to replace a starting password.</summary>
+    public bool OwesAPassword { get; private set; }
+
     /// <summary>Makes a seed and shows it.</summary>
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -142,6 +145,7 @@ public sealed class EnrolModel : PageModel
     private void Describe(OperatorAccount account)
     {
         AccountName = account.Username;
+        OwesAPassword = account.MustChangePassword;
         SecretText = Readable(Secret!);
     }
 

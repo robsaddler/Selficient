@@ -19,7 +19,9 @@
         }
       </ul>
       <div class="panel__actions">
-        <a class="button button--primary" href="/admin/catalogue">I have written them down</a>
+        @* An account made from the bootstrap settings still owes a password; it goes there, not to
+           the reviewer, which would turn it away. *@
+        <a class="button button--primary" href="@(Model.OwesAPassword ? "/admin/password" : "/admin/catalogue")">I have written them down</a>
       </div>
     }
     else
