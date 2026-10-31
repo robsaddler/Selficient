@@ -79,3 +79,6 @@ Read `plans/build-plan-v1.md` before touching code. It governs architecture, pat
 - Tests: xunit v3 on Microsoft.Testing.Platform, Shouldly, NSubstitute. Name tests as prose: `Adding_water_never_lowers_days_ready`.
 - Commits: imperative subject, body explains why, trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` when Claude authored.
 - Branches: `development` for integration, `main` deploys to production. No staging; test locally.
+- `repeat(auto-fit, minmax(26rem, 1fr))` does not shrink below its minimum, so a track wider than a phone makes the page scroll sideways and the E2E sideways-scroll assertion is what catches it. Write `minmax(min(26rem, 100%), 1fr)`.
+- `auto-fill` lays empty tracks and `auto-fit` collapses them: a three-item list on a wide monitor fills three of six `auto-fill` tracks and sits in the left half of the row. Use `auto-fit` wherever the item count is smaller than the tracks the width allows.
+- A page's own `max-inline-size` silently beats `--page-max`: the plan page was capped at 66rem and the deals page at 48rem long after the page width grew. Grep for `max-inline-size` on page containers before concluding the page width is wrong.

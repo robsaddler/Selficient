@@ -18,17 +18,24 @@ public sealed class Layout
 
     public Layout(Browser browser) => _browser = browser;
 
-    [Fact]
-    public async Task The_desktop_hero_stands_in_two_columns_at_the_mockups_split()
+    // A laptop and the 2000px window Rob reviews on: the design has to hold at both, and the second
+    // is where a page that stops at a fixed column width shows a third of the screen as empty ground.
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(2000)]
+    public async Task The_desktop_hero_stands_in_two_columns_at_the_mockups_split(int width)
     {
-        await using IBrowserContext context = await _browser.SizedAsync(1440, 900, mobile: false, theme: "light");
+        await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile: false, theme: "light");
         IPage page = await context.NewPageAsync();
         await page.GotoAsync("/");
 
         string columns = await page.Locator(".hero").EvaluateAsync<string>("element => getComputedStyle(element).gridTemplateColumns");
         double[] tracks = [.. columns.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(track => double.Parse(track.TrimEnd('p', 'x'), CultureInfo.InvariantCulture))];
 
+        double page_ = await page.Locator(".hero").EvaluateAsync<double>("element => element.getBoundingClientRect().width");
+
         tracks.Length.ShouldBe(2, customMessage: $"the desktop hero is the words beside the kitchen table, and the browser resolved '{columns}'");
+        (page_ / width).ShouldBeGreaterThan(0.84, customMessage: $"the column grows with the window rather than stopping dead: it is {page_:0} px of a {width} px window");
         (tracks[0] / tracks[1]).ShouldBe(7d / 5d, 0.05, "the words take seven twelfths of the row and the table five");
         double table = await page.Locator(".hero .still-life").EvaluateAsync<double>("element => element.getBoundingClientRect().width");
         table.ShouldBeGreaterThan(tracks[1] * 0.9, customMessage: $"the still life fills its column rather than sitting small inside it: it is {table:0} px in a column of {tracks[1]:0} px");
@@ -46,10 +53,12 @@ public sealed class Layout
         columns.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length.ShouldBe(1, customMessage: "on a phone the table sits under the words");
     }
 
-    [Fact]
-    public async Task The_days_ready_figure_is_set_in_the_light_narrow_face_the_subset_carries()
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(2000)]
+    public async Task The_days_ready_figure_is_set_in_the_light_narrow_face_the_subset_carries(int width)
     {
-        await using IBrowserContext context = await _browser.SizedAsync(1440, 900, mobile: false, theme: "light");
+        await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile: false, theme: "light");
         IPage page = await context.NewPageAsync();
         await page.GotoAsync("/");
         await page.WaitForFunctionAsync("() => document.fonts.status === 'loaded'");
@@ -83,9 +92,14 @@ public sealed class Layout
             }
             """);
 
+        double column = await page.Locator(".hero__copy").EvaluateAsync<double>("element => element.getBoundingClientRect().width");
+
         weight.ShouldBe("300");
         stretch.ShouldBe("75%");
-        size.ShouldBeGreaterThan(110, "the figure is the page: at least seven rem of it");
+        size.ShouldBeGreaterThan(110, customMessage: $"the figure is the page: at least seven rem of it, and it is {size:0} px");
+        // Sized against its column rather than the window, so a wide monitor does not leave the hero
+        // half empty. The mockup drew it at about a quarter of the column.
+        (size / column).ShouldBeGreaterThan(0.2, customMessage: $"the figure is {size:0} px in a {column:0} px column, which is {size / column:P0} of it");
         widths[0].ShouldBeLessThan(widths[1], "the subset carries the weight axis, so light is narrower than heavy");
         widths[0].ShouldBeLessThan(widths[2], "the subset carries the width axis, so seventy-five per cent is narrower than full");
     }

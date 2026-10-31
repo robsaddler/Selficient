@@ -649,6 +649,16 @@ progress.tier-progress {
   }
 }
 
+/* Past the width where four-to-three would make the map taller than the screen, it takes the whole
+   column at a fixed height instead of standing as a small square with the page empty beside it. */
+@container (min-width: 40rem) {
+  .house-map__frame {
+    aspect-ratio: auto;
+    block-size: 30rem;
+    max-block-size: none;
+  }
+}
+
 /* The solar estimate: the saving figure is the hero, in lantern, like Days Ready */
 .figure {
   display: flex;

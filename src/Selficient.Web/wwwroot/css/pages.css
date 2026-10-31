@@ -13,6 +13,14 @@
 }
 
 .hero__copy {
+  /* The column is not held to the reading measure: the figure, the headline and the strip are meant
+     to use the whole of it, as the mockup draws them. The sentences inside it carry their own
+     measure instead. A container so the figure can be sized against the column rather than the
+     window, which is what keeps the mockup's proportions on a wide monitor. */
+  container-type: inline-size;
+}
+
+.hero__lede {
   max-inline-size: var(--measure);
 }
 
@@ -55,7 +63,14 @@
     padding-block: var(--space-8);
 
     & .days-ready__figure {
-      font-size: clamp(7rem, 3rem + 9vw, 11rem);
+      /* A quarter of the column, which is the proportion the mockup drew, rather than a share of
+         the window: on a 2000px monitor a figure sized by vw stops growing while its column keeps
+         going and the hero reads as half empty. */
+      font-size: clamp(7rem, 24cqi, 13rem);
+    }
+
+    & .strip {
+      max-inline-size: 46rem;
     }
 
     & .days-ready__unit {
@@ -231,7 +246,8 @@
 .plan-flow {
   display: grid;
   gap: var(--space-7);
-  max-inline-size: 66rem;
+  /* No cap of its own: the plan is a board, a set of tiered lists and a map, and it reads better
+     with the room. The page width governs it and the prose inside it keeps its own measure. */
   margin-inline: auto;
 }
 
@@ -295,7 +311,9 @@
 }
 
 .risk-list {
-  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  /* auto-fit, not auto-fill: only the top three risks are shown and auto-fill would lay six tracks
+     on a wide monitor and fill three, leaving the row half empty. */
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
 }
 
 @media (min-width: 64rem) {
@@ -411,6 +429,17 @@
     max-inline-size: none;
     grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
     align-items: start;
+  }
+}
+
+/* A form is answered down one column, so the questions do not go two across however wide the window
+   is: fieldsets of different heights leave a hole beside the tall one, which reads as a fault. The
+   intro and the form are centred in the page instead, so the room left over sits evenly either side
+   rather than all of it down the right. */
+@media (min-width: 60rem) {
+  .wizard:has(> .plan-form) {
+    inline-size: min(100%, 74rem);
+    margin-inline: auto;
   }
 }
 
@@ -1099,7 +1128,6 @@
 
 /* The deals page: one card per action, the mark, the pick, the price and the drop */
 .deals {
-  max-inline-size: var(--measure-wide, 48rem);
   margin-inline: auto;
   padding-block: var(--space-6);
 }
@@ -1115,6 +1143,12 @@
   margin-block: var(--space-5);
   display: grid;
   gap: var(--space-3);
+  /* Twenty-odd cards are scanned for a price, not read in order, so they go as many across as the
+     window allows rather than down one column with the page empty either side. Cheapest first still
+     reads left to right, top to bottom. */
+  /* min(…, 100%) or the track stays 26rem on a 390px phone and the page scrolls sideways. */
+  grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr));
+  align-items: start;
 }
 
 .deal {

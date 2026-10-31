@@ -111,7 +111,11 @@
 
   /* Layout */
   --measure: 62ch;
-  --page-max: 78rem;
+  /* The column grows with the window instead of stopping dead at the mockup's 78rem: on a 2000px
+     monitor a fixed 1248px column leaves 376px of empty ground down each side, which reads as a
+     page built for a laptop. Running prose is held to --measure wherever it appears, so widening
+     this widens the grids, the board and the hero rather than the sentences. */
+  --page-max: clamp(78rem, 90vw, 110rem);
   --header-height: 4rem;
 
   /* Motion */

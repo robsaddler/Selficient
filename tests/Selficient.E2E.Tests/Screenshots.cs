@@ -15,6 +15,9 @@ public sealed class Screenshots
     [
         ("phone", 390, 844, true),
         ("desktop", 1440, 900, false),
+        // Rob reviews on a 2000px window, where a page that stops at the mockup's 78rem leaves a
+        // third of the screen empty. A capture at that width is the one that shows it.
+        ("wide", 2000, 1100, false),
     ];
 
     private readonly Browser _browser;
