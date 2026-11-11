@@ -14,6 +14,9 @@ public sealed record SourceOption(string Id, string Name, string Sentence);
 /// <summary>How one need moves when a provider is added: from the days it held to the days it would hold. Equal days with Better set means the need is met properly where it was only got by.</summary>
 public sealed record NeedShift(string Need, decimal From, decimal To, bool Better);
 
+/// <summary>A row of the board that stands better on the sheet being shown than it does today, by the row's key, with how far it moved.</summary>
+public sealed record RowShift(string Key, NeedShift Shift);
+
 /// <summary>What one untaken plan action would do to the current board: the needs it moves and how far.</summary>
 public sealed record ActionTurn(ActionId Action, IReadOnlyList<NeedShift> Shifts);
 
@@ -45,7 +48,8 @@ public sealed record BoardSet(
     ChoiceTally Tally,
     IReadOnlyList<CountedAction> Progress,
     IReadOnlyList<ActionTarget> Targets,
-    Assumptions Assumed)
+    Assumptions Assumed,
+    IReadOnlyList<RowShift> Compared)
 {
     /// <summary>The id of the "nothing extra" source.</summary>
     public const string HouseSource = "house";
@@ -208,7 +212,7 @@ public static class BoardComposer
             tiers.Add(new TierOutcome(tier.Tier, tier.Title, days, ChoiceTally.Of(tier.Actions, choices, Remaining), excludes));
         }
 
-        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices, Remaining), progress, targets, assumed);
+        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices, Remaining), progress, targets, assumed, Changes(current, sheet));
     }
 
     private static Possessions With(Possessions has, string actionId)
@@ -246,9 +250,12 @@ public static class BoardComposer
 
     /// <summary>The cells that improved, named by row and horizon.</summary>
     /// <summary>The needs that move between two boards: more days held, or held properly where they were only got by.</summary>
-    internal static IReadOnlyList<NeedShift> Shifts(Board before, Board after)
+    internal static IReadOnlyList<NeedShift> Shifts(Board before, Board after) => [.. Changes(before, after).Select(static change => change.Shift)];
+
+    /// <summary>The rows that stand better on the second board than on the first, by key: what a sheet changes against today. Nothing when they are the same board.</summary>
+    internal static IReadOnlyList<RowShift> Changes(Board before, Board after)
     {
-        List<NeedShift> shifts = [];
+        List<RowShift> shifts = [];
         for (int r = 0; r < before.Rows.Count; r++)
         {
             BoardRow was = before.Rows[r];
@@ -264,7 +271,7 @@ public static class BoardComposer
 
             if (better)
             {
-                shifts.Add(new NeedShift(was.Name, DaysHeld(was, before.DaysSimulated), DaysHeld(now, after.DaysSimulated), true));
+                shifts.Add(new RowShift(was.Key, new NeedShift(was.Name, DaysHeld(was, before.DaysSimulated), DaysHeld(now, after.DaysSimulated), true)));
             }
         }
 

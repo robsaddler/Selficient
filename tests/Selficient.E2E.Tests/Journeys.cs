@@ -277,6 +277,23 @@ public sealed class Journeys
         await Expect(page.Locator(".board__headline")).ToContainTextAsync("with everything we plan to get, this house stands on its own for");
         await Expect(page.Locator("#source-planned")).ToBeCheckedAsync();
         (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe(tonight, "the figure in the hero is the house as it is");
+        // The one table is read against today: a sentence, a line under each row that moves, and a band on each cell that differs.
+        ILocator compare = page.Locator("[data-board-compare]");
+        await Expect(compare).ToBeCheckedAsync();
+        await Expect(page.Locator("[data-board-comparison]")).ToContainTextAsync("Everything we plan to get turns");
+        await Expect(page.Locator(".board__row[data-turned=\"true\"] .board__delta").First).ToBeVisibleAsync();
+        ILocator banded = page.Locator(".cell[data-today]").First;
+        (await banded.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldNotBe("none", "a cell that stands differently today carries the band");
+        // Off, and it stays off when the board is drawn again for another season.
+        await compare.UncheckAsync();
+        await Expect(page.Locator("[data-board-comparison]")).ToBeHiddenAsync();
+        await Expect(page.Locator(".board__delta").First).ToBeHiddenAsync();
+        (await banded.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldBe("none");
+        await page.Locator("label[for=\"season-summer\"]").ClickAsync();
+        await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-season", "Summer");
+        await Expect(page.Locator("[data-board-compare]")).Not.ToBeCheckedAsync();
+        await page.Locator("[data-board-compare]").CheckAsync();
+        await Expect(page.Locator("[data-board-comparison]")).ToBeVisibleAsync();
         // Clearing what is planned takes the pill away and the board goes back to the house.
         await page.Locator(".plan__tally").GetByRole(AriaRole.Button, new() { Name = "Clear what you plan to get: The whole plan" }).ClickAsync();
         await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-source", "house");

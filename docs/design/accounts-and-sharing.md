@@ -158,7 +158,11 @@ Each is a milestone with its own threat model, adversarial tests, E2E journeys a
 | M25 | Passkeys: registration after first sign-in, sign-in by passkey, a list of passkeys in the panel with remove. |
 | M26 | The shortlist ("save for later", grouped by shop, links through `/out/{id}`), which rides on everything above: it is in the snapshot, so it is copied and synced from its first day. |
 
-## 8. Decisions still open
+## 8. Decisions, settled 11 Nov 2026
+
+Rob settled all three: sign-in codes go through his existing Postmark account (decision 62), a session lasts ninety days sliding (decision 60), and a stored plan is encrypted at rest (decision 61). What follows is the list as it stood.
+
+### As it stood
 
 1. **Email provider** (5.7). Blocks M23 going live, not being built.
 2. **Session length for a household.** Recommendation: ninety days sliding on a device, because a household that has to sign in again during a power cut has been failed by the product.

@@ -72,6 +72,9 @@ public sealed class Screenshots
                 await page.Locator("#amount-water-bottled-three-days").FillAsync("48");
                 await page.Locator("#amount-water-bottled-three-days").PressAsync("Tab");
                 await Assertions.Expect(page.Locator("[data-progress-for=\"water-bottled-three-days\"]")).ToHaveTextAsync("You have 48 litres of bottled water.");
+                // And the board switched to what is planned, compared with today, so the capture shows the bands and the lines.
+                await page.Locator("label[for=\"source-planned\"]").ClickAsync();
+                await Assertions.Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-source", "planned");
                 await SettleAsync(page);
                 await page.ScreenshotAsync(new() { Path = Target($"plan-{size}-{theme}.png"), FullPage = true });
             }

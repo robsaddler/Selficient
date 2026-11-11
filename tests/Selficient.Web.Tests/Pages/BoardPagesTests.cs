@@ -277,6 +277,38 @@ public sealed class BoardPagesTests : IDisposable
         drawn.ShouldContain("data-days-ready=\"1\"", customMessage: "the headline is still the house tonight");
         drawn.ShouldMatch("with everything we plan to get, this house stands on its own for <strong class=\"data\">[0-9.]+ days</strong>");
         drawn.ShouldContain("#source-planned\"");
+        // The same table, read against today.
+        bare.ShouldNotContain("data-board-compare", customMessage: "the house's own sheet is today");
+        offered.ShouldNotContain("data-board-compare");
+        offered.ShouldNotContain(". Today: ", customMessage: "no cell is read against today on the house sheet; only the key carries the band");
+        drawn.ShouldContain("<input type=\"checkbox\" data-board-compare checked> <span>Compare with today</span>");
+        drawn.ShouldMatch("data-board-comparison>Everything we plan to get turns [0-9]+ of [0-9]+ needs for the better\\. Today the house stands for 1 day; with this, [0-9.]+ days\\. What you plan has £[0-9.,]+ to £[0-9.,]+ still to spend\\.</p>");
+        drawn.ShouldContain("data-turned=\"true\"");
+        drawn.ShouldContain("data-turned=\"false\"");
+        drawn.ShouldMatch("<span class=\"board__delta\">1 day today, [0-9.]+ days with this</span>");
+        drawn.ShouldMatch("aria-label=\"Food, [a-z ]+: held throughout\\. Today: lost\\.\" data-today=\"lost\"");
+        drawn.ShouldContain("The band along the foot of a cell is how it stands today.");
+    }
+
+    [Fact]
+    public async Task Another_source_is_compared_with_today_in_the_same_table_and_says_so_when_it_changes_nothing()
+    {
+        using HttpClient client = _factory.CreateClient();
+        Dictionary<string, string> battery = RobsHouse();
+        battery["Form.Source"] = "rooftop-solar-and-battery";
+        Dictionary<string, string> banks = RobsHouse();
+        banks["Form.Source"] = "power-banks";
+        banks["Form.Scenario"] = "water";
+
+        string withBattery = await Post(client, "/plan/board", battery);
+        string withBanks = await Post(client, "/plan/board", banks);
+
+        withBattery.ShouldMatch("data-board-comparison>A home battery and gateway turns [0-9]+ of [0-9]+ needs for the better\\. Today the house stands for 1 day; with this, [0-9.]+ days?\\.</p>");
+        withBattery.ShouldNotContain("still to spend.</p>", customMessage: "only the plan has a cost to quote");
+        withBattery.ShouldContain(". Today: ");
+        withBanks.ShouldMatch("data-board-comparison>Power banks turns none of the [0-9]+ needs on this board\\. Today the house stands for [a-z0-9. ]+; with this, [a-z0-9. ]+\\.</p>");
+        withBanks.ShouldNotContain(". Today: ", customMessage: "nothing differs, so no cell carries a band");
+        withBanks.ShouldNotContain("board__delta\">");
     }
 
     [Fact]
@@ -418,6 +450,17 @@ public sealed class BoardPagesTests : IDisposable
         BoardCopy.Unit(0.5m).ShouldBe("days");
         BoardCopy.TierOutcome(4m).ShouldBe("With everything up to here ticked, the house stands for 4 days.");
         BoardCopy.TierOutcome(null).ShouldBe("");
+        BoardCopy.Cell(food, food.Cells[1], food.Cells[1]).ShouldBe("Food, three days: held for 1 day, then lost.", "the same today, so nothing is added");
+        BoardCopy.Cell(food, food.Cells[0], food.Cells[1]).ShouldBe("Food, a day: held throughout. Today: lost.");
+        BoardCopy.TodayMark(food.Cells[0], food.Cells[0]).ShouldBeNull();
+        BoardCopy.TodayMark(food.Cells[0], food.Cells[1]).ShouldBe("lost");
+        BoardCopy.Delta(new NeedShift("Food", 1m, 16m, true)).ShouldBe("1 day today, 16 days with this");
+        BoardCopy.Delta(new NeedShift("Warmth", 30m, 30m, true)).ShouldBe("eased with this, though not for longer");
+        Should.Throw<ArgumentNullException>(() => BoardCopy.Cell(food, food.Cells[0], null!));
+        Should.Throw<ArgumentNullException>(() => BoardCopy.TodayMark(null!, food.Cells[0]));
+        Should.Throw<ArgumentNullException>(() => BoardCopy.TodayMark(food.Cells[0], null!));
+        Should.Throw<ArgumentNullException>(() => BoardCopy.Delta(null!));
+        Should.Throw<ArgumentNullException>(() => BoardCopy.Comparison(null!));
         BoardCopy.TierOutcome(null, true).ShouldBe("");
         BoardCopy.TierOutcome(4m, true).ShouldBe("With everything up to here except what is not for you, the house stands for 4 days.");
         BoardCopy.Turns([new Selficient.Application.Resilience.NeedShift("Food", 1m, 7m, true)]).ShouldBe("With this: food from 1 day to 7 days.");

@@ -874,6 +874,88 @@
   }
 }
 
+/* Comparing a sheet with today, in the one table. Each cell that stands differently today carries a
+   band along its foot in today's colours; each row that moves says by how much under its name; and
+   a sentence above says what it adds up to. All of it follows the switch, with no script. */
+.board__compare {
+  margin-block-start: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.board__compare-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  min-block-size: 2.25rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  & input {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+  }
+}
+
+.board__comparison {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 4px solid var(--c-pine);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  background: var(--c-pine-tint);
+  text-wrap: pretty;
+}
+
+.board__delta {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--c-pine);
+}
+
+.board__key-compare {
+  flex-basis: 100%;
+}
+
+.board:has([data-board-compare]:checked) .cell[data-today] {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 0.45rem;
+    border-block-start: 2px solid var(--c-paper);
+  }
+
+  &[data-today="held"]::after {
+    background: var(--c-pine);
+  }
+
+  &[data-today="reduced"]::after {
+    background: repeating-linear-gradient(135deg, var(--c-lantern) 0 3px, var(--c-lantern-tint) 3px 8px);
+  }
+
+  &[data-today="rationed"]::after {
+    background: var(--c-lantern);
+  }
+
+  &[data-today="lost"]::after {
+    background: repeating-linear-gradient(135deg, var(--c-ink-muted) 0 2px, var(--c-paper) 2px 6px);
+  }
+}
+
+/* With the switch off, or on the house's own sheet where there is no switch, none of it shows. */
+.board:not(:has([data-board-compare]:checked)) {
+  & .board__comparison,
+  & .board__delta,
+  & .board__key-compare {
+    display: none;
+  }
+}
+
 .board__note {
   margin-block-start: var(--space-3);
   font-size: var(--text-s);

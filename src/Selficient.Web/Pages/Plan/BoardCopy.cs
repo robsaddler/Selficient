@@ -30,6 +30,47 @@ public static class BoardCopy
         };
     }
 
+    /// <summary>What a cell says when the sheet is being compared with today: its own sentence, then how the same cell stands today where that differs.</summary>
+    public static string Cell(BoardRow row, HorizonCell cell, HorizonCell today)
+    {
+        ArgumentNullException.ThrowIfNull(today);
+        string sentence = Cell(row, cell);
+        return today.State == cell.State ? sentence : $"{sentence} Today: {State(today.State).ToLowerInvariant()}.";
+    }
+
+    /// <summary>The mark a cell carries for how it stands today, when that differs from the sheet being shown; nothing when it is the same.</summary>
+    public static string? TodayMark(HorizonCell cell, HorizonCell today)
+    {
+        ArgumentNullException.ThrowIfNull(cell);
+        ArgumentNullException.ThrowIfNull(today);
+        return today.State == cell.State ? null : today.State.ToString().ToLowerInvariant();
+    }
+
+    /// <summary>How far a row moves against today, under its name: "1 day today, 16 days with this".</summary>
+    public static string Delta(NeedShift shift)
+    {
+        ArgumentNullException.ThrowIfNull(shift);
+        return shift.To > shift.From
+            ? $"{DaysReady(shift.From)} today, {DaysReady(shift.To)} with this"
+            : "eased with this, though not for longer";
+    }
+
+    /// <summary>The comparison in a sentence, above the sheet: how many needs the sheet turns, the two figures, and for the plan what it still costs.</summary>
+    public static string Comparison(BoardSet set)
+    {
+        ArgumentNullException.ThrowIfNull(set);
+        string name = set.Sources.First(source => source.Id == set.SourceId).Name;
+        int needs = set.Sheet.Rows.Count(static row => row.Needed);
+        string turns = set.Compared.Count == 0
+            ? $"{name} turns none of the {needs} needs on this board."
+            : string.Create(CultureInfo.InvariantCulture, $"{name} turns {set.Compared.Count} of {needs} needs for the better.");
+        string figures = $"Today the house stands for {DaysReady(set.Current.DaysReady)}; with this, {DaysReady(set.Sheet.DaysReady)}.";
+        string cost = set.SourceId == BoardSet.PlannedSource && set.Tally.PlannedCost.To.Pence > 0
+            ? $" What you plan has {Selficient.Web.Formatting.MoneyFormat.Range(set.Tally.PlannedCost)} still to spend."
+            : string.Empty;
+        return $"{turns} {figures}{cost}";
+    }
+
     /// <summary>The row's sentence: who carries it, who fails it, and when it turns.</summary>
     public static string Row(BoardRow row)
     {

@@ -34,11 +34,19 @@ export function initBoard(doc) {
   let scenario = board?.getAttribute("data-scenario") ?? "";
   let source = board?.getAttribute("data-source") ?? "";
   let season = board?.getAttribute("data-season") ?? "";
+  // The comparison with today is on whenever another position is drawn, until it is turned off; a
+  // redraw brings a fresh switch, so the choice is kept here and put back.
+  let compare = true;
 
   const refresh = () => {
     window.clearTimeout(pending);
     pending = window.setTimeout(() => {
-      void redraw(doc, slot, echo, { scenario, source, season });
+      void redraw(doc, slot, echo, { scenario, source, season }).then(() => {
+        const toggle = slot.querySelector("[data-board-compare]");
+        if (toggle instanceof HTMLInputElement) {
+          toggle.checked = compare;
+        }
+      });
     }, DEBOUNCE_MS);
   };
 
@@ -47,7 +55,9 @@ export function initBoard(doc) {
     if (!(target instanceof HTMLInputElement)) {
       return;
     }
-    if (target.dataset.choice) {
+    if (target.hasAttribute("data-board-compare")) {
+      compare = target.checked;
+    } else if (target.dataset.choice) {
       refresh();
     } else if (target.name === "board-source") {
       source = target.value;

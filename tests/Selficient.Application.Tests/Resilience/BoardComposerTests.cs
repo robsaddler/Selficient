@@ -209,6 +209,14 @@ public sealed class BoardComposerTests
         chosen.Sheet.DaysReady.ShouldBe(chosen.PlannedDaysReady, "the sheet is the board behind the plan's figure");
         chosen.Sheet.DaysReady.ShouldBeGreaterThan(chosen.Current.DaysReady);
         chosen.DaysReady.ShouldBe(offered.DaysReady, "the headline stays the house as it is tonight");
+        offered.Compared.ShouldBeEmpty("the house's own sheet is today, so there is nothing to compare");
+        chosen.Compared.ShouldNotBeEmpty();
+        chosen.Compared.Select(change => change.Key).ShouldBeUnique();
+        RowShift food = chosen.Compared.Single(change => change.Key == "Food");
+        food.Shift.Need.ShouldBe("Food");
+        food.Shift.To.ShouldBeGreaterThan(food.Shift.From, "the tins and the notes feed the house for longer");
+        chosen.Compared.ShouldAllBe(change => chosen.Sheet.Row(change.Key) != null);
+        chosen.Compared.ShouldNotContain(change => change.Key == "Laundry", "nothing planned washes clothes");
     }
 
     [Fact]

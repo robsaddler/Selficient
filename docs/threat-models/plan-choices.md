@@ -46,6 +46,8 @@ A household can type how much it has of five stocks (days of food, litres of bot
 | 21 | A rate that changes what an action asks for leaving the page saying "held" where the server says not | The fragment carries each counted action's target under the rate in force; the page takes its targets from it and brings the choices into line, writing only when one differs, so the redraw it causes finds nothing more to change | the E2E journey (the same £200 held at five pounds and not at twenty) |
 | 22 | The "planned" source asked for with nothing planned, or by id on a household that has none | The source is offered only when something is planned, and a source that is not offered falls back to the house, as an unknown one always has | `Everything_planned_is_a_source_of_its_own_once_something_is_planned`, `Everything_planned_is_a_pill_beside_the_house_and_draws_the_board_the_plan_leads_to` |
 
+| 23 | The comparison with today as a new input or a new cost | It is neither. The sheet and today's board were both already simulated; the comparison is the difference between them, drawn by the server, and the switch only shows and hides it in the browser | `Everything_planned_is_a_source_of_its_own_once_something_is_planned`, `Another_source_is_compared_with_today_in_the_same_table_and_says_so_when_it_changes_nothing` |
+
 ## Outcomes (adversarial pass, 11 Nov 2026)
 
 - Every case has a passing test; every gated assembly at 100% lines and branches.
