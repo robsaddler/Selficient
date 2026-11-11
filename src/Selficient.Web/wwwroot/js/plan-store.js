@@ -17,7 +17,8 @@ const LOCK = "selficient-plan-write";
 /** @typedef {{ name: string, kind: "PoweredDevice" | "Medicine" | "Supply", watts: number, hoursPerDay: number, daysOfStock: number, mustStayCold: boolean }} Dependency */
 /** @typedef {"have" | "plan" | "skip"} Choice */
 /** @typedef {Record<string, number>} Amounts */
-/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], amounts?: Amounts, house?: House | null, dependencies?: Dependency[] }} Snapshot */
+/** @typedef {{ cashRate?: number }} Assumptions */
+/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], amounts?: Amounts, assumptions?: Assumptions, house?: House | null, dependencies?: Dependency[] }} Snapshot */
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
@@ -234,6 +235,26 @@ export async function setAmounts(changes) {
 }
 
 /**
+ * The plan's assumptions the household changed to its own. One that is not here is the plan's.
+ * @returns {Promise<Assumptions>}
+ */
+export async function getAssumptions() {
+  const value = await withStore("amounts", "readonly", (s) => s.get("assumptions"));
+  return isAssumptions(value) ? { ...value } : {};
+}
+
+/** @param {Assumptions} assumptions */
+export async function saveAssumptions(assumptions) {
+  if (!isAssumptions(assumptions)) {
+    return;
+  }
+  await serialised(async () => {
+    await withStore("amounts", "readwrite", (s) => s.put(assumptions, "assumptions"));
+  });
+  announce();
+}
+
+/**
  * @param {unknown} value
  * @returns {Choice | null}
  */
@@ -298,7 +319,7 @@ export async function saveDependencies(dependencies) {
 export async function snapshot() {
   const choices = await getChoices();
   const of = (/** @type {Choice} */ kind) => Object.keys(choices).filter((id) => choices[id] === kind);
-  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), amounts: await getAmounts(), house: await getHouse(), dependencies: await getDependencies() };
+  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), amounts: await getAmounts(), assumptions: await getAssumptions(), house: await getHouse(), dependencies: await getDependencies() };
 }
 
 /**
@@ -331,6 +352,7 @@ export async function restore(data) {
     }
     await withStore("dependencies", "readwrite", (s) => s.put((data.dependencies ?? []).slice(0, 12), "list"));
     await withStore("amounts", "readwrite", (s) => s.put(data.amounts ?? {}, "all"));
+    await withStore("amounts", "readwrite", (s) => s.put(data.assumptions ?? {}, "assumptions"));
   });
   announce();
 }
@@ -383,14 +405,14 @@ export function isSnapshot(value) {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const { profile, ticks, planned, skipped, amounts, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, amounts?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
+  const { profile, ticks, planned, skipped, amounts, assumptions, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, amounts?: unknown, assumptions?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
   const profileOk = profile === null || isProfile(profile);
   const ids = (/** @type {unknown} */ list) => Array.isArray(list) && list.length <= 200 && list.every((t) => typeof t === "string" && ID.test(t));
   // The two newer lists are optional, so a file exported before they existed still opens.
   const ticksOk = ids(ticks) && (planned === undefined || ids(planned)) && (skipped === undefined || ids(skipped));
   const houseOk = house === undefined || house === null || isHouse(house);
   const dependenciesOk = dependencies === undefined || (Array.isArray(dependencies) && dependencies.length <= 12 && dependencies.every(isDependency));
-  const amountsOk = amounts === undefined || isAmounts(amounts);
+  const amountsOk = (amounts === undefined || isAmounts(amounts)) && (assumptions === undefined || isAssumptions(assumptions));
   return profileOk && ticksOk && houseOk && dependenciesOk && amountsOk;
 }
 
@@ -406,6 +428,20 @@ export function isAmounts(value) {
   }
   const entries = Object.entries(value);
   return entries.length <= 20 && entries.every(([id, amount]) => ID.test(id) && Number.isInteger(amount) && amount >= 0 && amount <= 10000);
+}
+
+/**
+ * The assumptions a household may change: so far, a whole number of pounds from 1 to 100 that a
+ * person's day costs in cash. Nothing else is kept.
+ * @param {unknown} value
+ * @returns {value is Assumptions}
+ */
+export function isAssumptions(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const entries = Object.entries(value);
+  return entries.every(([name, rate]) => name === "cashRate" && Number.isInteger(rate) && rate >= 1 && rate <= 100);
 }
 
 const KINDS = ["PoweredDevice", "Medicine", "Supply"];

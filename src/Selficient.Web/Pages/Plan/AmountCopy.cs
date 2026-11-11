@@ -1,6 +1,5 @@
 using System.Globalization;
 using Selficient.Application.Resilience;
-using Selficient.Domain.Plans;
 using Selficient.Domain.Resilience;
 using Selficient.Web.Formatting;
 
@@ -30,8 +29,29 @@ public static class AmountCopy
         ? "days of food for you"
         : string.Format(CultureInfo.InvariantCulture, Units[stockId].Unit, people);
 
-    /// <summary>What the plan asks for, beside the box.</summary>
-    public static string Suggests(decimal target) => string.Create(CultureInfo.InvariantCulture, $"The plan suggests {target:0}.");
+    /// <summary>What the plan asks for, beside the box; for cash, with the rate it rests on, which the household can change.</summary>
+    public static string Suggests(string stockId, decimal target, Assumptions assumed)
+    {
+        ArgumentNullException.ThrowIfNull(assumed);
+        return stockId == MeasuredStocks.CashPounds
+            ? string.Create(CultureInfo.InvariantCulture, $"The plan suggests {target:0}, at £{assumed.CashPoundsPerPersonPerDay} a person a day. The rate is yours to change, where the plan lists what it assumes.")
+            : string.Create(CultureInfo.InvariantCulture, $"The plan suggests {target:0}.");
+    }
+
+    /// <summary>The label on the cash rate's box.</summary>
+    public const string CashRateLabel = "What a person needs in cash for a day, when only cash will do";
+
+    /// <summary>The button that puts the plan's own rate back.</summary>
+    public static string CashRateReset => string.Create(CultureInfo.InvariantCulture, $"Use the plan's £{Assumptions.Default.CashPoundsPerPersonPerDay}");
+
+    /// <summary>What the rate comes to for this household, under the box.</summary>
+    public static string CashRateSays(Assumptions assumed, int people)
+    {
+        ArgumentNullException.ThrowIfNull(assumed);
+        decimal tenDays = 10m * people * assumed.CashPoundsPerPersonPerDay;
+        string whose = people == 1 ? "you" : string.Create(CultureInfo.InvariantCulture, $"the {people} of you");
+        return string.Create(CultureInfo.InvariantCulture, $"At £{assumed.CashPoundsPerPersonPerDay} a person a day, ten days of cash for {whose} is {tenDays.ToString("C0", Selficient.Web.Composition.SelficientCulture.EnGb)}.");
+    }
 
     /// <summary>How far the household's figure goes towards an action, as the line under the action says it.</summary>
     public static string Progress(CountedAction action)
@@ -58,19 +78,14 @@ public static class AmountCopy
 /// <summary>The box a household types its own figure into, for one action: which stock it counts, what the action asks for, and the words around it.</summary>
 public sealed record AmountView(string StockId, int Target, int Max, string Unit, string Suggests)
 {
-    /// <summary>The boxes for the actions in a tier that have one, by action id.</summary>
-    public static IReadOnlyDictionary<string, AmountView> For(IEnumerable<PlanAction> actions, ResilienceProfile household)
+    /// <summary>The boxes for the actions that have one, by action id, from what the board says each asks for.</summary>
+    public static IReadOnlyDictionary<string, AmountView> For(BoardSet set, int people)
     {
-        ArgumentNullException.ThrowIfNull(actions);
-        ArgumentNullException.ThrowIfNull(household);
+        ArgumentNullException.ThrowIfNull(set);
         Dictionary<string, AmountView> views = new(StringComparer.Ordinal);
-        foreach (PlanAction action in actions)
+        foreach (ActionTarget target in set.Targets)
         {
-            if (MeasuredStocks.ForAction(action.Id.Value) is { } stock)
-            {
-                decimal target = MeasuredStocks.Target(stock, action.Id.Value, household);
-                views[action.Id.Value] = new AmountView(stock.Id, (int)target, stock.Max, AmountCopy.Unit(stock.Id, household.Household.Size.Count), AmountCopy.Suggests(target));
-            }
+            views[target.ActionId] = new AmountView(target.StockId, (int)target.Target, MeasuredStocks.Find(target.StockId)!.Max, AmountCopy.Unit(target.StockId, people), AmountCopy.Suggests(target.StockId, target.Target, set.Assumed));
         }
 
         return views;

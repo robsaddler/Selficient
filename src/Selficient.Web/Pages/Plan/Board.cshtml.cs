@@ -46,6 +46,10 @@ public sealed class BoardModel : PageModel
     [BindProperty(Name = nameof(Amounts))]
     public Dictionary<string, int> Amounts { get; init; } = [];
 
+    /// <summary>The household's own figure for what a person's day costs in cash, in pounds; empty for the plan's.</summary>
+    [BindProperty]
+    public string? CashRate { get; set; }
+
     /// <summary>There is nothing to see here; the plan page is where the board lives.</summary>
     public IActionResult OnGet() => RedirectToPage("/Plan/Index");
 
@@ -64,13 +68,13 @@ public sealed class BoardModel : PageModel
             return Refused(planned.Error.Message);
         }
 
-        Result<BoardSet> board = IndexModel.Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe, Amounts), planned.Value);
+        Result<BoardSet> board = IndexModel.Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe, Amounts, CashRate), planned.Value);
         if (board.IsFailure)
         {
             return Refused(board.Error.Message);
         }
 
-        return Partial("_Board", new BoardView(board.Value, planned.Value.Plan.Profile.Dwelling.HasOwnRoof));
+        return Partial("_Board", new BoardView(board.Value, planned.Value.Plan.Profile.Dwelling.HasOwnRoof, planned.Value.Plan.Profile.Household.Size.Count));
     }
 
     private static ContentResult Refused(string sentence) => new() { StatusCode = StatusCodes.Status400BadRequest, ContentType = "text/plain; charset=utf-8", Content = sentence };

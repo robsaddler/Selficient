@@ -89,7 +89,35 @@ public sealed class PossessionsTests
         rob.Held.ShouldContain("butane-cartridge-stove");
         flat.Have.ShouldBe(["water-cans", "cash-in-small-notes", "water-bottled-three-days"], ignoreOrder: true, customMessage: "one person in a flat is asked for one can, £100 and nine litres");
         flat.ProgressOn("cash-in-small-notes")!.CostRemaining.ShouldBe(0m);
-        MeasuredStocks.CashPoundsPerPersonPerDay.ShouldBe(10m);
+        Assumptions.Default.CashPoundsPerPersonPerDay.ShouldBe(10);
+    }
+
+    [Fact]
+    public void A_household_that_says_a_day_costs_twenty_pounds_needs_twice_the_cash_for_the_same_days()
+    {
+        Assumptions twenty = Assumptions.Create(20).Value;
+        Assumptions five = Assumptions.Create(5).Value;
+        Dictionary<string, int> twoHundred = Figures((MeasuredStocks.CashPounds, 200));
+
+        Possessions plans = Possessions.Of(Rob, Ids(), twoHundred);
+        Possessions dear = Possessions.Of(Rob, Ids(), twoHundred, twenty);
+        Possessions cheap = Possessions.Of(Rob, Ids(), twoHundred, five);
+        Possessions copied = cheap.Copy();
+        copied.Add("cash-in-small-notes");
+
+        plans.Stock["cash-in-small-notes"].ShouldBe(5m, "£200 is five days for four at the plan's ten pounds");
+        dear.Stock["cash-in-small-notes"].ShouldBe(2.5m, "and two and a half at twenty");
+        dear.ProgressOn("cash-in-small-notes")!.Target.ShouldBe(800m);
+        cheap.Stock["cash-in-small-notes"].ShouldBe(10m);
+        cheap.Have.ShouldContain("cash-in-small-notes", "at five pounds a day £200 is the ten days the plan asks for");
+        copied.Stock["cash-in-small-notes"].ShouldBe(10m, "a copy keeps the household's rate");
+        MeasuredStocks.Target(MeasuredStocks.Find(MeasuredStocks.CashPounds)!, "cash-in-small-notes", Rob, twenty).ShouldBe(800m);
+        MeasuredStocks.Target(MeasuredStocks.Find(MeasuredStocks.CashPounds)!, "cash-in-small-notes", Rob).ShouldBe(400m);
+        Assumptions.Create(null).Value.ShouldBeSameAs(Assumptions.Default, "no figure given is the plan's");
+        Assumptions.Create(1).IsSuccess.ShouldBeTrue();
+        Assumptions.Create(100).IsSuccess.ShouldBeTrue();
+        Assumptions.Create(0).Error.Message.ShouldBe("The cash a person needs for a day must be between 1 and 100 pounds.");
+        Assumptions.Create(101).Error.Code.ShouldBe("plan.assumptions");
     }
 
     [Fact]

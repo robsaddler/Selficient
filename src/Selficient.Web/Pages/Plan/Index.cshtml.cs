@@ -25,7 +25,7 @@ public enum PlanView
 }
 
 /// <summary>What the browser posted about the plan's actions: the ones held, the ones planned and the ones ruled out, unchecked.</summary>
-internal sealed record PostedChoices(IReadOnlyList<string> Have, IReadOnlyList<string> PlanTo, IReadOnlyList<string> NotForMe, IReadOnlyDictionary<string, int> Amounts);
+internal sealed record PostedChoices(IReadOnlyList<string> Have, IReadOnlyList<string> PlanTo, IReadOnlyList<string> NotForMe, IReadOnlyDictionary<string, int> Amounts, string? CashRate = null);
 
 /// <summary>
 /// The plan page. GET shows the empty state (the browser re-posts a stored profile if it has one);
@@ -84,6 +84,10 @@ public sealed class IndexModel : PageModel
     [BindProperty(Name = nameof(Amounts))]
     public Dictionary<string, int> Amounts { get; init; } = [];
 
+    /// <summary>The household's own figure for what a person's day costs in cash, in pounds; empty for the plan's. Text, so that nonsense is answered with our sentence and not the framework's.</summary>
+    [BindProperty]
+    public string? CashRate { get; set; }
+
     /// <summary>The plan, once built.</summary>
     public PlannedHousehold? Planned { get; private set; }
 
@@ -122,7 +126,7 @@ public sealed class IndexModel : PageModel
             return Page();
         }
 
-        Result<BoardSet> board = Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe, Amounts), result.Value);
+        Result<BoardSet> board = Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe, Amounts, CashRate), result.Value);
         if (board.IsFailure)
         {
             ShowForm = true;
@@ -160,8 +164,21 @@ public sealed class IndexModel : PageModel
             return Result.Failure<BoardSet>(amounts.Error);
         }
 
+        // The plan's assumptions, or the household's own where it gave one that is a whole number in range.
+        int? rate = null;
+        if (!string.IsNullOrWhiteSpace(posted.CashRate))
+        {
+            rate = int.TryParse(posted.CashRate, NumberStyles.None, CultureInfo.InvariantCulture, out int pounds) ? pounds : 0;
+        }
+
+        Result<Selficient.Domain.Resilience.Assumptions> assumed = Selficient.Domain.Resilience.Assumptions.Create(rate);
+        if (assumed.IsFailure)
+        {
+            return Result.Failure<BoardSet>(assumed.Error);
+        }
+
         return form.ToResilienceProfile(planned.Plan.Profile)
-            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source, intended, declined, amounts.Value)));
+            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source, intended, declined, amounts.Value, assumed.Value)));
     }
 
     /// <summary>Copies a posted list into a set, or says no at the first id that is not shaped like one.</summary>

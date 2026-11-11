@@ -130,6 +130,10 @@ async function redraw(doc, slot, echo, choice) {
   for (const [id, amount] of Object.entries(amounts)) {
     body.append("Amounts[" + id + "]", String(amount));
   }
+  const assumptions = await store.getAssumptions().catch(() => /** @type {import("selficient/plan-store.js").Assumptions} */ ({}));
+  if (assumptions.cashRate !== undefined) {
+    body.set("CashRate", String(assumptions.cashRate));
+  }
   const dependencies = await store.getDependencies().catch(() => []);
   dependencies.forEach((dependency, i) => {
     body.append(`Form.Dependencies[${i}].Name`, dependency.name);
@@ -158,6 +162,7 @@ async function redraw(doc, slot, echo, choice) {
   updateTallies(doc, slot);
   placeTurns(doc, slot);
   placeProgress(doc, slot);
+  updateTargets(doc, slot);
 }
 
 /**
@@ -354,6 +359,41 @@ function placeTurns(doc, slot) {
       // Under the choice and above the picks, where the row's grid puts it.
       choice.after(note);
     }
+  }
+}
+
+/**
+ * What each counted action asks for can move with an assumption (the cash rate), so each box takes
+ * its target and the sentence beside it from the fragment. plan-page.js is then told, because a
+ * figure that fell short of the old target may reach the new one.
+ * @param {Document} doc
+ * @param {HTMLElement} slot
+ */
+function updateTargets(doc, slot) {
+  const list = slot.querySelector("[data-board-targets]");
+  if (!(list instanceof HTMLElement)) {
+    return;
+  }
+  let moved = false;
+  for (const item of list.querySelectorAll("li")) {
+    const action = item.dataset.targetAction ?? "";
+    const counted = doc.querySelector('[data-action-row="' + CSS.escape(action) + '"] [data-amount]');
+    if (!(counted instanceof HTMLElement)) {
+      continue;
+    }
+    moved = moved || counted.dataset.amountTarget !== item.dataset.target;
+    counted.dataset.amountTarget = item.dataset.target ?? "";
+    const hint = counted.querySelector(".amount__hint");
+    if (hint) {
+      hint.textContent = item.textContent ?? "";
+    }
+  }
+  const says = doc.querySelector("[data-assume-cash-says]");
+  if (says) {
+    says.textContent = list.dataset.cashSays ?? "";
+  }
+  if (moved) {
+    doc.dispatchEvent(new CustomEvent("selficient:targets"));
   }
 }
 

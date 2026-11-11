@@ -30,6 +30,7 @@ export async function initPlanPage(doc) {
   }
 
   await rememberProfile(doc);
+  await applyAssumptions(doc);
   await applyChoices(doc);
   recompute(doc);
 
@@ -55,6 +56,22 @@ export async function initPlanPage(doc) {
     }
   });
 
+  // The plan's assumptions, open to the household's own: the cash a person needs for a day.
+  doc.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.hasAttribute("data-assume-cash")) {
+      return;
+    }
+    const typed = Number.parseInt(input.value, 10);
+    const rate = Number.isInteger(typed) ? Math.min(Math.max(typed, Number(input.min)), Number(input.max)) : null;
+    void saveCashRate(doc, rate);
+  });
+
+  // What an action asks for moved with an assumption, so a count may now reach it, or no longer.
+  doc.addEventListener("selficient:targets", () => {
+    void reconcile(doc);
+  });
+
   // A figure typed into "How much do you have?": the count decides which of its actions are held.
   doc.addEventListener("change", (event) => {
     const input = event.target;
@@ -74,6 +91,8 @@ export async function initPlanPage(doc) {
     const bulk = target?.closest("[data-bulk]");
     if (bulk instanceof HTMLButtonElement && !bulk.closest("[data-board-tallies]")) {
       void applyBulk(doc, bulk);
+    } else if (target?.closest("[data-assume-reset]")) {
+      void saveCashRate(doc, null);
     } else if (target?.closest("[data-undo-button]")) {
       void undo(doc);
     } else if (target?.closest("[data-undo-dismiss]")) {
@@ -82,6 +101,7 @@ export async function initPlanPage(doc) {
   });
 
   store.onChange(() => {
+    void applyAssumptions(doc);
     void applyChoices(doc).then(() => recompute(doc));
   });
 
@@ -187,6 +207,76 @@ async function applyChoices(doc) {
 }
 
 /**
+ * Keeps the household's own rate, or goes back to the plan's, shows it in the box and has the board
+ * redrawn from it.
+ * @param {Document} doc
+ * @param {number | null} rate null is the plan's own
+ */
+async function saveCashRate(doc, rate) {
+  const input = doc.querySelector("[data-assume-cash]");
+  if (!(input instanceof HTMLInputElement)) {
+    return;
+  }
+  const plans = Number(input.dataset.assumeDefault);
+  await store.saveAssumptions(rate === null || rate === plans ? {} : { cashRate: rate });
+  input.value = String(rate ?? plans);
+  await settle(doc);
+}
+
+/**
+ * Puts the household's own rate in its box, where it has one.
+ * @param {Document} doc
+ */
+async function applyAssumptions(doc) {
+  const input = doc.querySelector("[data-assume-cash]");
+  const assumptions = await store.getAssumptions().catch(() => /** @type {import("selficient/plan-store.js").Assumptions} */ ({}));
+  if (input instanceof HTMLInputElement && doc.activeElement !== input) {
+    input.value = String(assumptions.cashRate ?? input.dataset.assumeDefault ?? "");
+  }
+}
+
+/**
+ * Brings the choices into line with every figure the household gave, without touching the figures:
+ * for when what an action asks for has moved under a figure that stayed where it was.
+ * @param {Document} doc
+ */
+async function reconcile(doc) {
+  const choices = await store.getChoices().catch(() => /** @type {Record<string, string>} */ ({}));
+  const amounts = await store.getAmounts().catch(() => /** @type {Record<string, number>} */ ({}));
+  /** @type {Record<string, import("selficient/plan-store.js").Choice | null>} */
+  const changes = {};
+  for (const [stock, amount] of Object.entries(amounts)) {
+    Object.assign(changes, figureChanges(doc, stock, amount, choices));
+  }
+  if (Object.keys(changes).length > 0) {
+    await store.setChoices(changes);
+    await settle(doc);
+  }
+}
+
+/**
+ * What a figure asks of the choices on its actions: held where it reaches, not held where it does not.
+ * @param {Document} doc
+ * @param {string} stock
+ * @param {number | null} amount
+ * @param {Record<string, string>} choices
+ * @returns {Record<string, import("selficient/plan-store.js").Choice | null>}
+ */
+function figureChanges(doc, stock, amount, choices) {
+  /** @type {Record<string, import("selficient/plan-store.js").Choice | null>} */
+  const changes = {};
+  for (const action of countedActions(doc, stock)) {
+    const reached = amount !== null && amount >= action.target;
+    if (reached && choices[action.id] !== "have") {
+      changes[action.id] = "have";
+    } else if (!reached && choices[action.id] === "have") {
+      changes[action.id] = null;
+    }
+  }
+  return changes;
+}
+
+/**
  * The actions on the page that one counted stock decides, with what each asks for.
  * @param {Document} doc
  * @param {string} stock
@@ -214,16 +304,7 @@ function countedActions(doc, stock) {
  */
 async function setFigure(doc, stock, amount) {
   const choices = await store.getChoices().catch(() => /** @type {Record<string, string>} */ ({}));
-  /** @type {Record<string, import("selficient/plan-store.js").Choice | null>} */
-  const changes = {};
-  for (const action of countedActions(doc, stock)) {
-    const reached = amount !== null && amount >= action.target;
-    if (reached && choices[action.id] !== "have") {
-      changes[action.id] = "have";
-    } else if (!reached && choices[action.id] === "have") {
-      changes[action.id] = null;
-    }
-  }
+  const changes = figureChanges(doc, stock, amount, choices);
   await store.setAmounts({ [stock]: amount });
   await store.setChoices(changes);
 }

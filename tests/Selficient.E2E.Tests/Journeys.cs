@@ -223,6 +223,71 @@ public sealed class Journeys
     }
 
     [Fact]
+    public async Task The_cash_rate_is_the_households_own_and_everything_planned_is_a_board_of_its_own()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        ILocator cash = page.Locator("[data-action-row=\"cash-in-small-notes\"]");
+        ILocator cashBox = page.Locator("#amount-cash-in-small-notes");
+        ILocator rate = page.Locator("#assume-cash");
+
+        // The plan's rate is on the page with what it comes to, and the cash action says what it rests on.
+        await Expect(rate).ToHaveValueAsync("10");
+        await Expect(page.Locator("[data-assume-cash-says]")).ToHaveTextAsync("At £10 a person a day, ten days of cash for the 4 of you is £400.");
+        await cash.Locator("[data-choice=\"have\"]").CheckAsync();
+        await Expect(cashBox).ToHaveValueAsync("400");
+        await cashBox.FillAsync("200");
+        await cashBox.PressAsync("Tab");
+        await Expect(cash.Locator("[data-progress-for]")).ToHaveTextAsync("You have 200 of 400 pounds in cash.");
+        await Expect(cash.Locator("[data-choice=\"have\"]")).Not.ToBeCheckedAsync();
+
+        // At five pounds a day the same £200 is the ten days; at twenty it is a quarter of them.
+        await rate.FillAsync("5");
+        await rate.PressAsync("Tab");
+        await Expect(page.Locator("[data-assume-cash-says]")).ToHaveTextAsync("At £5 a person a day, ten days of cash for the 4 of you is £200.");
+        await Expect(cash.Locator(".amount__hint")).ToContainTextAsync("The plan suggests 200, at £5 a person a day.");
+        await Expect(cash.Locator("[data-progress-for]")).ToHaveTextAsync("You have 200 pounds in cash.");
+        await Expect(cash.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await rate.FillAsync("20");
+        await rate.PressAsync("Tab");
+        await Expect(cash.Locator("[data-progress-for]")).ToHaveTextAsync("You have 200 of 800 pounds in cash.");
+        await Expect(cash.Locator("[data-choice=\"have\"]")).Not.ToBeCheckedAsync();
+
+        // It is kept, a figure out of range is held to the range, and one press puts the plan's back.
+        await page.ReloadAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(rate).ToHaveValueAsync("20");
+        await Expect(cash.Locator("[data-progress-for]")).ToHaveTextAsync("You have 200 of 800 pounds in cash.");
+        await rate.FillAsync("5000");
+        await rate.PressAsync("Tab");
+        await Expect(rate).ToHaveValueAsync("100");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Use the plan's £10" }).ClickAsync();
+        await Expect(rate).ToHaveValueAsync("10");
+        await Expect(cash.Locator("[data-progress-for]")).ToHaveTextAsync("You have 200 of 400 pounds in cash.");
+
+        // Nothing planned, no pill. Plan the shelf and the board can be switched to where the plan leads, while the headline stays tonight's.
+        await Expect(page.Locator("#source-planned")).ToHaveCountAsync(0);
+        await page.Locator("[data-action-row=\"food-no-cook-three-days\"] [data-choice=\"plan\"]").CheckAsync();
+        await page.Locator("[data-action-row=\"cash-in-small-notes\"] [data-choice=\"plan\"]").CheckAsync();
+        await Expect(page.Locator("label[for=\"source-planned\"]")).ToHaveTextAsync("Everything we plan to get");
+        string tonight = (await page.Locator("days-ready").GetAttributeAsync("value"))!;
+        await page.Locator("label[for=\"source-planned\"]").ClickAsync();
+        await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-source", "planned");
+        await Expect(page.Locator(".board__headline")).ToContainTextAsync("with everything we plan to get, this house stands on its own for");
+        await Expect(page.Locator("#source-planned")).ToBeCheckedAsync();
+        (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe(tonight, "the figure in the hero is the house as it is");
+        // Clearing what is planned takes the pill away and the board goes back to the house.
+        await page.Locator(".plan__tally").GetByRole(AriaRole.Button, new() { Name = "Clear what you plan to get: The whole plan" }).ClickAsync();
+        await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-source", "house");
+        await Expect(page.Locator("#source-planned")).ToHaveCountAsync(0);
+        await ShouldNotScrollSidewaysAsync(page);
+
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Export_then_start_again_then_import_brings_the_plan_back()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();

@@ -4,8 +4,43 @@ using Selficient.Domain.Primitives;
 
 namespace Selficient.Domain.Resilience;
 
+/// <summary>
+/// The figures the plan assumes where nothing published settles them, which a household can change
+/// to its own. One so far: what a person's essentials cost a day when only cash will do, which
+/// turns the pounds a household holds into the days the board counts in.
+/// </summary>
+public sealed record Assumptions
+{
+    /// <summary>The least a person's day can be said to cost, in pounds.</summary>
+    public const int MinCashPoundsPerPersonPerDay = 1;
+
+    /// <summary>The most a person's day can be said to cost, in pounds.</summary>
+    public const int MaxCashPoundsPerPersonPerDay = 100;
+
+    private Assumptions(int cashPoundsPerPersonPerDay) => CashPoundsPerPersonPerDay = cashPoundsPerPersonPerDay;
+
+    /// <summary>What a person's essentials cost a day when only cash will do, in pounds.</summary>
+    public int CashPoundsPerPersonPerDay { get; }
+
+    /// <summary>The plan's own figures: ten pounds a person a day, so ten days for four people is £400.</summary>
+    public static Assumptions Default { get; } = new(10);
+
+    /// <summary>The household's own figures, or the plan's where it gave none; a figure outside the range is refused with a sentence.</summary>
+    public static Result<Assumptions> Create(int? cashPoundsPerPersonPerDay)
+    {
+        if (cashPoundsPerPersonPerDay is not { } pounds)
+        {
+            return Result.Success(Default);
+        }
+
+        return pounds < MinCashPoundsPerPersonPerDay || pounds > MaxCashPoundsPerPersonPerDay
+            ? Result.Failure<Assumptions>(new Fault("plan.assumptions", "The cash a person needs for a day must be between 1 and 100 pounds."))
+            : Result.Success(new Assumptions(pounds));
+    }
+}
+
 /// <summary>A plan action that a measured stock counts towards, and how much of the stock it asks this household for.</summary>
-public sealed record MeasuredAction(string ActionId, Func<ResilienceProfile, decimal> Target);
+public sealed record MeasuredAction(string ActionId, Func<ResilienceProfile, Assumptions, decimal> Target);
 
 /// <summary>
 /// A stock a household can put its own figure on: ten days of tins where the plan's rows say three
@@ -23,7 +58,7 @@ public sealed record MeasuredStock(
     string ProviderId,
     IReadOnlyList<MeasuredAction> Actions,
     int Max,
-    Func<ResilienceProfile, decimal, decimal> ToStock,
+    Func<ResilienceProfile, Assumptions, decimal, decimal> ToStock,
     bool ProratesCost);
 
 /// <summary>The stocks a household can measure for itself.</summary>
@@ -44,21 +79,14 @@ public static class MeasuredStocks
     /// <summary>The id of the stove cartridge figure.</summary>
     public const string StoveCartridges = "stove-cartridges";
 
-    /// <summary>
-    /// What a person's essentials cost a day when only cash will do, in pounds. An assumption of
-    /// ours, not a published figure: it turns the pounds a household says it holds into the days
-    /// the board counts in, and ten days of it for four people is £400.
-    /// </summary>
-    public static decimal CashPoundsPerPersonPerDay => 10m;
-
     /// <summary>Every measured stock.</summary>
     public static IReadOnlyList<MeasuredStock> All { get; } =
     [
-        new(FoodDays, "stored-food", [new("food-no-cook-three-days", static _ => 3m), new("food-one-month", static _ => 30m)], 365, static (profile, days) => days * profile.Household.Size.Count, ProratesCost: true),
-        new(BottledWaterLitres, "water-bottled-three-days", [new("water-bottled-three-days", static profile => 3m * profile.Household.Size.Count * Litres.DrinkingPerPersonPerDay)], 2000, static (_, litres) => litres, ProratesCost: true),
-        new(WaterCansLitres, "water-cans", [new("water-cans", CanLitres)], 2000, static (_, litres) => litres, ProratesCost: true),
-        new(CashPounds, "cash-in-small-notes", [new("cash-in-small-notes", static profile => 10m * profile.Household.Size.Count * CashPoundsPerPersonPerDay)], 10000, static (profile, pounds) => pounds / (profile.Household.Size.Count * CashPoundsPerPersonPerDay), ProratesCost: false),
-        new(StoveCartridges, "butane-cartridge-stove", [new("butane-cartridge-stove", static _ => 10m)], 200, static (_, cartridges) => cartridges, ProratesCost: false),
+        new(FoodDays, "stored-food", [new("food-no-cook-three-days", static (_, _) => 3m), new("food-one-month", static (_, _) => 30m)], 365, static (profile, _, days) => days * profile.Household.Size.Count, ProratesCost: true),
+        new(BottledWaterLitres, "water-bottled-three-days", [new("water-bottled-three-days", static (profile, _) => 3m * profile.Household.Size.Count * Litres.DrinkingPerPersonPerDay)], 2000, static (_, _, litres) => litres, ProratesCost: true),
+        new(WaterCansLitres, "water-cans", [new("water-cans", static (profile, _) => CanLitres(profile))], 2000, static (_, _, litres) => litres, ProratesCost: true),
+        new(CashPounds, "cash-in-small-notes", [new("cash-in-small-notes", static (profile, assumed) => 10m * profile.Household.Size.Count * assumed.CashPoundsPerPersonPerDay)], 10000, static (profile, assumed, pounds) => pounds / (profile.Household.Size.Count * assumed.CashPoundsPerPersonPerDay), ProratesCost: false),
+        new(StoveCartridges, "butane-cartridge-stove", [new("butane-cartridge-stove", static (_, _) => 10m)], 200, static (_, _, cartridges) => cartridges, ProratesCost: false),
     ];
 
     private static readonly Dictionary<string, MeasuredStock> ById = All.ToDictionary(static stock => stock.Id, StringComparer.Ordinal);
@@ -73,12 +101,12 @@ public static class MeasuredStocks
     /// <summary>The measured stock this plan action counts towards, or null when the action is simply had or not.</summary>
     public static MeasuredStock? ForAction(string actionId) => ByAction.GetValueOrDefault(actionId);
 
-    /// <summary>What this action asks this household for, in the stock's own figure.</summary>
-    public static decimal Target(MeasuredStock stock, string actionId, ResilienceProfile profile)
+    /// <summary>What this action asks this household for, in the stock's own figure, under the plan's assumptions or the household's.</summary>
+    public static decimal Target(MeasuredStock stock, string actionId, ResilienceProfile profile, Assumptions? assumptions = null)
     {
         ArgumentNullException.ThrowIfNull(stock);
         ArgumentNullException.ThrowIfNull(profile);
-        return stock.Actions.First(action => action.ActionId == actionId).Target(profile);
+        return stock.Actions.First(action => action.ActionId == actionId).Target(profile, assumptions ?? Assumptions.Default);
     }
 
     /// <summary>Checks figures that arrived from a browser: each must name a measured stock and sit inside its range.</summary>
@@ -124,10 +152,12 @@ public sealed class Possessions
     private readonly ResilienceProfile _profile;
     private readonly HashSet<string> _have;
     private readonly Dictionary<string, decimal> _amounts;
+    private readonly Assumptions _assumed;
 
-    private Possessions(ResilienceProfile profile, HashSet<string> have, Dictionary<string, decimal> amounts)
+    private Possessions(ResilienceProfile profile, Assumptions assumed, HashSet<string> have, Dictionary<string, decimal> amounts)
     {
         _profile = profile;
+        _assumed = assumed;
         _have = have;
         _amounts = amounts;
     }
@@ -139,11 +169,11 @@ public sealed class Possessions
     /// What the household has. The figures must already have passed <see cref="MeasuredStocks.Check"/>;
     /// one that names no measured stock is a programming error here and throws.
     /// </summary>
-    public static Possessions Of(ResilienceProfile profile, IReadOnlySet<string> have, IReadOnlyDictionary<string, int>? amounts = null)
+    public static Possessions Of(ResilienceProfile profile, IReadOnlySet<string> have, IReadOnlyDictionary<string, int>? amounts = null, Assumptions? assumptions = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(have);
-        Possessions possessions = new(profile, new HashSet<string>(have, StringComparer.Ordinal), new Dictionary<string, decimal>(StringComparer.Ordinal));
+        Possessions possessions = new(profile, assumptions ?? Assumptions.Default, new HashSet<string>(have, StringComparer.Ordinal), new Dictionary<string, decimal>(StringComparer.Ordinal));
         foreach ((string id, int amount) in amounts ?? new Dictionary<string, int>())
         {
             MeasuredStock stock = MeasuredStocks.Find(id) ?? throw new ArgumentException("A figure names a stock the plan does not measure.", nameof(amounts));
@@ -155,7 +185,7 @@ public sealed class Possessions
     }
 
     /// <summary>A copy that can be added to without changing this one.</summary>
-    public Possessions Copy() => new(_profile, new HashSet<string>(_have, StringComparer.Ordinal), new Dictionary<string, decimal>(_amounts, StringComparer.Ordinal));
+    public Possessions Copy() => new(_profile, _assumed, new HashSet<string>(_have, StringComparer.Ordinal), new Dictionary<string, decimal>(_amounts, StringComparer.Ordinal));
 
     /// <summary>
     /// Adds an action as if it were done. For an action a stated figure counts towards, the figure
@@ -166,7 +196,7 @@ public sealed class Possessions
         ArgumentNullException.ThrowIfNull(actionId);
         if (MeasuredStocks.ForAction(actionId) is { } stock && _amounts.TryGetValue(stock.Id, out decimal amount))
         {
-            _amounts[stock.Id] = Math.Max(amount, MeasuredStocks.Target(stock, actionId, _profile));
+            _amounts[stock.Id] = Math.Max(amount, MeasuredStocks.Target(stock, actionId, _profile, _assumed));
             Settle(stock);
             return;
         }
@@ -216,7 +246,7 @@ public sealed class Possessions
             foreach ((string id, decimal amount) in _amounts)
             {
                 MeasuredStock stock = MeasuredStocks.Find(id)!;
-                stocks[stock.ProviderId] = stock.ToStock(_profile, amount);
+                stocks[stock.ProviderId] = stock.ToStock(_profile, _assumed, amount);
             }
 
             return stocks;
@@ -232,7 +262,7 @@ public sealed class Possessions
             return null;
         }
 
-        decimal target = MeasuredStocks.Target(stock, actionId, _profile);
+        decimal target = MeasuredStocks.Target(stock, actionId, _profile, _assumed);
         decimal missing = Math.Max(0m, target - amount) / target;
         return new Progress(actionId, stock.Id, amount, target, stock.ProratesCost ? missing : Math.Ceiling(missing));
     }
@@ -243,7 +273,7 @@ public sealed class Possessions
         decimal amount = _amounts[stock.Id];
         foreach (MeasuredAction action in stock.Actions)
         {
-            if (amount >= action.Target(_profile))
+            if (amount >= action.Target(_profile, _assumed))
             {
                 _have.Add(action.ActionId);
             }

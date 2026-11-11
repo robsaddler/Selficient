@@ -1,9 +1,7 @@
 using Selficient.Application.Kit;
 using Selficient.Application.Resilience;
 using Selficient.Domain.Kit;
-using Selficient.Domain.Households;
 using Selficient.Domain.Plans;
-using Selficient.Domain.Resilience;
 
 namespace Selficient.Web.Pages.Plan;
 
@@ -11,7 +9,7 @@ namespace Selficient.Web.Pages.Plan;
 public sealed class PlanTierView
 {
     /// <summary>Builds the view.</summary>
-    public PlanTierView(PlanTier tier, IKitCatalogue catalogue, TierOutcome? outcome = null, HouseholdProfile? household = null)
+    public PlanTierView(PlanTier tier, IKitCatalogue catalogue, TierOutcome? outcome = null, IReadOnlyDictionary<string, AmountView>? amounts = null)
     {
         ArgumentNullException.ThrowIfNull(tier);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -19,7 +17,7 @@ public sealed class PlanTierView
         Reached = outcome ?? new TierOutcome(tier.Tier, tier.Title, 0m, ChoiceTally.Of(tier.Actions, PlanChoices.None), false);
         Outcome = outcome?.DaysReady;
         Picks = tier.Actions.ToDictionary(static a => a.Id, a => catalogue.PicksFor(a.Id));
-        Amounts = household is null ? new Dictionary<string, AmountView>() : AmountView.For(tier.Actions, ResilienceProfile.FromProfile(household));
+        Amounts = amounts ?? new Dictionary<string, AmountView>();
     }
 
     /// <summary>The question "how much do you have?" for each action in the tier a household can put its own figure on, by action id.</summary>

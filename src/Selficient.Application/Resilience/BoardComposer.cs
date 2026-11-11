@@ -27,6 +27,9 @@ public sealed record TierOutcome(Tier Tier, string Title, decimal DaysReady, Cho
 /// <summary>A plan action the household put its own figure towards: how far the figure goes, and what the rest of the action would cost.</summary>
 public sealed record CountedAction(Progress Counted, MoneyRange Rest);
 
+/// <summary>What a plan action asks this household for, in the figure of the stock it counts towards, under the assumptions in force.</summary>
+public sealed record ActionTarget(string ActionId, string StockId, decimal Target);
+
 /// <summary>Everything the Board page draws for one household and one chosen scenario.</summary>
 public sealed record BoardSet(
     Scenario Scenario,
@@ -40,10 +43,15 @@ public sealed record BoardSet(
     IReadOnlyList<TierOutcome> Tiers,
     decimal PlannedDaysReady,
     ChoiceTally Tally,
-    IReadOnlyList<CountedAction> Progress)
+    IReadOnlyList<CountedAction> Progress,
+    IReadOnlyList<ActionTarget> Targets,
+    Assumptions Assumed)
 {
     /// <summary>The id of the "nothing extra" source.</summary>
     public const string HouseSource = "house";
+
+    /// <summary>The id of the source that is the house with everything it plans to get.</summary>
+    public const string PlannedSource = "planned";
 
     /// <summary>The headline figure: the chosen scenario, what the house has, the chosen season.</summary>
     public decimal DaysReady => Current.DaysReady;
@@ -53,7 +61,8 @@ public sealed record BoardSet(
 /// What the composer needs: the household as the engine sees it, what it holds, the plan, and the
 /// choice of scenario and season. Planned and Skipped are the actions the household means to get
 /// and the ones it has ruled out; neither moves the figure for today. Amounts are the household's
-/// own figures for the stocks it counted, already checked, which do.
+/// own figures for the stocks it counted, already checked, which do; Assumptions are the plan's
+/// figures the household changed to its own.
 /// </summary>
 public sealed record BoardRequest(
     ResilienceProfile Profile,
@@ -64,7 +73,8 @@ public sealed record BoardRequest(
     string? SourceId = null,
     IReadOnlySet<string>? Planned = null,
     IReadOnlySet<string>? Skipped = null,
-    IReadOnlyDictionary<string, int>? Amounts = null);
+    IReadOnlyDictionary<string, int>? Amounts = null,
+    Assumptions? Assumptions = null);
 
 /// <summary>
 /// Composes the set for a page. Pure: it only runs the engine, several times, and arranges the
@@ -92,7 +102,7 @@ public static class BoardComposer
         Season season = request.Season ?? scenario.DefaultSeason;
 
         // What the house has: the actions held, with the household's own figures deciding the stocks it counted.
-        Possessions has = Possessions.Of(request.Profile, request.Held, request.Amounts);
+        Possessions has = Possessions.Of(request.Profile, request.Held, request.Amounts, request.Assumptions);
 
         List<ScenarioCard> cards = [];
         foreach (Scenario candidate in Ranked(request.Plan.Risks))
@@ -101,7 +111,21 @@ public static class BoardComposer
             cards.Add(new ScenarioCard(candidate.Id, candidate.Name, board.DaysReady, candidate.Id == scenario.Id));
         }
 
+        PlanChoices choices = new(has.Have, request.Planned ?? PlanChoices.None.Planned, request.Skipped ?? PlanChoices.None.Skipped);
+
+        // What the house has with everything it means to get: the second figure, and a sheet of its own to switch the board to.
+        Possessions intended = has.Copy();
+        foreach (string planned in choices.Planned)
+        {
+            intended.Add(planned);
+        }
+
         List<SourceOption> sources = [new SourceOption(BoardSet.HouseSource, "What is in the house", "Nothing bought yet beyond what the plan says you have ticked.")];
+        if (choices.Planned.Count > 0)
+        {
+            sources.Add(new SourceOption(BoardSet.PlannedSource, "Everything we plan to get", "What is in the house, with every action marked as planned in place."));
+        }
+
         foreach ((string id, Placement where, string name, string sentence) in Candidates)
         {
             if (request.Profile.CanHave(where) && !has.Have.Contains(id))
@@ -113,31 +137,30 @@ public static class BoardComposer
         // The house in the chosen season is the figure; the sheet is that, or the house with one more source.
         Board current = OutageBoard.Simulate(request.Profile, has, scenario, season);
         string sourceId = request.SourceId is { } chosen && sources.Any(source => source.Id == chosen) ? chosen : BoardSet.HouseSource;
+        // Where the plan takes the house. One more run, and only when something is planned.
+        Board withPlanned = choices.Planned.Count > 0 ? OutageBoard.Simulate(request.Profile, intended, scenario, season) : current;
+        decimal plannedDays = withPlanned.DaysReady;
         Board sheet = current;
-        if (sourceId != BoardSet.HouseSource)
+        if (sourceId == BoardSet.PlannedSource)
+        {
+            sheet = withPlanned;
+        }
+        else if (sourceId != BoardSet.HouseSource)
         {
             sheet = OutageBoard.Simulate(request.Profile, With(has, sourceId), scenario, season);
         }
 
-        PlanChoices choices = new(has.Have, request.Planned ?? PlanChoices.None.Planned, request.Skipped ?? PlanChoices.None.Skipped);
-
-        // Where the plan takes the house: what it has, with what it means to get. One more run, and only when something is planned.
-        decimal plannedDays = current.DaysReady;
-        if (choices.Planned.Count > 0)
-        {
-            Possessions intended = has.Copy();
-            foreach (string planned in choices.Planned)
-            {
-                intended.Add(planned);
-            }
-
-            plannedDays = OutageBoard.Simulate(request.Profile, intended, scenario, season).DaysReady;
-        }
-
         List<ActionTurn> turns = [];
         List<CountedAction> progress = [];
+        List<ActionTarget> targets = [];
+        Assumptions assumed = request.Assumptions ?? Assumptions.Default;
         foreach (PlanAction action in request.Plan.Actions)
         {
+            if (MeasuredStocks.ForAction(action.Id.Value) is { } measured)
+            {
+                targets.Add(new ActionTarget(action.Id.Value, measured.Id, MeasuredStocks.Target(measured, action.Id.Value, request.Profile, assumed)));
+            }
+
             if (has.ProgressOn(action.Id.Value) is { } counted)
             {
                 progress.Add(new CountedAction(counted, action.Cost.Share(counted.CostRemaining)));
@@ -185,7 +208,7 @@ public static class BoardComposer
             tiers.Add(new TierOutcome(tier.Tier, tier.Title, days, ChoiceTally.Of(tier.Actions, choices, Remaining), excludes));
         }
 
-        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices, Remaining), progress);
+        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices, Remaining), progress, targets, assumed);
     }
 
     private static Possessions With(Possessions has, string actionId)

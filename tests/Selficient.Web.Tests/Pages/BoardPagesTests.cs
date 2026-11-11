@@ -226,6 +226,60 @@ public sealed class BoardPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_cash_rate_is_the_households_to_change_and_nonsense_is_refused_with_a_sentence()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string page = await Post(client, "/plan", RobsHouse());
+        string plans = await Post(client, "/plan/board", RobsHouse(), "Amounts[cash-pounds]=200");
+        string cheap = await Post(client, "/plan/board", RobsHouse(), "Amounts[cash-pounds]=200", "CashRate=5");
+        string blank = await Post(client, "/plan/board", RobsHouse(), "CashRate=");
+        using HttpResponseMessage zero = await PostRaw(client, "/plan/board", RobsHouse(), "CashRate=0");
+        using HttpResponseMessage huge = await PostRaw(client, "/plan/board", RobsHouse(), "CashRate=101");
+        using HttpResponseMessage words = await PostRaw(client, "/plan/board", RobsHouse(), "CashRate=<script>");
+        using HttpResponseMessage signed = await PostRaw(client, "/plan/board", RobsHouse(), "CashRate=-5");
+
+        page.ShouldContain("<h3 id=\"assumptions-heading\">What the plan assumes</h3>");
+        page.ShouldContain("<label for=\"assume-cash\">What a person needs in cash for a day, when only cash will do</label>");
+        page.ShouldContain("min=\"1\" max=\"100\" step=\"1\" autocomplete=\"off\" value=\"10\" data-assume-cash data-assume-default=\"10\"");
+        page.ShouldContain("data-assume-reset>Use the plan&#x27;s £10</button>");
+        page.ShouldContain("At £10 a person a day, ten days of cash for the 4 of you is £400.");
+        plans.ShouldContain("<li data-progress-action=\"cash-in-small-notes\">You have 200 of 400 pounds in cash.</li>");
+        plans.ShouldContain("<li data-target-action=\"cash-in-small-notes\" data-target=\"400\">The plan suggests 400, at £10 a person a day.");
+        cheap.ShouldContain("<li data-progress-action=\"cash-in-small-notes\">You have 200 pounds in cash.</li>", customMessage: "at five pounds a day £200 is the ten days");
+        cheap.ShouldContain("<li data-target-action=\"cash-in-small-notes\" data-target=\"200\">The plan suggests 200, at £5 a person a day.");
+        cheap.ShouldContain("data-cash-says=\"At £5 a person a day, ten days of cash for the 4 of you is £200.\"");
+        blank.ShouldContain("data-target=\"400\"", customMessage: "an empty box is the plan's own rate");
+        foreach (HttpResponseMessage refused in new[] { zero, huge, words, signed })
+        {
+            refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await refused.Content.ReadAsStringAsync()).ShouldBe("The cash a person needs for a day must be between 1 and 100 pounds.");
+        }
+    }
+
+    [Fact]
+    public async Task Everything_planned_is_a_pill_beside_the_house_and_draws_the_board_the_plan_leads_to()
+    {
+        using HttpClient client = _factory.CreateClient();
+        Dictionary<string, string> chosen = RobsHouse();
+        chosen["Form.Source"] = "planned";
+        string[] planned = ["PlanTo=water-bottled-three-days", "PlanTo=food-no-cook-three-days", "PlanTo=cash-in-small-notes"];
+
+        string bare = await Post(client, "/plan/board", chosen);
+        string offered = await Post(client, "/plan/board", RobsHouse(), planned);
+        string drawn = await Post(client, "/plan/board", chosen, planned);
+
+        bare.ShouldNotContain("id=\"source-planned\"", customMessage: "nothing is planned, so there is nothing to switch to");
+        bare.ShouldContain("data-source=\"house\"");
+        offered.ShouldContain("id=\"source-planned\" value=\"planned\" class=\"seg__input\">", customMessage: "offered and not chosen");
+        offered.ShouldContain("Everything we plan to get</label>");
+        drawn.ShouldContain("id=\"source-planned\" value=\"planned\" class=\"seg__input\" checked");
+        drawn.ShouldContain("data-days-ready=\"1\"", customMessage: "the headline is still the house tonight");
+        drawn.ShouldMatch("with everything we plan to get, this house stands on its own for <strong class=\"data\">[0-9.]+ days</strong>");
+        drawn.ShouldContain("#source-planned\"");
+    }
+
+    [Fact]
     public void The_words_around_a_figure_are_whole_and_say_what_is_counted()
     {
         Selficient.Domain.Measures.MoneyRange month = Selficient.Domain.Measures.MoneyRange.Pounds(140m, 240m);
@@ -238,7 +292,15 @@ public sealed class BoardPagesTests : IDisposable
         AmountCopy.Unit(MeasuredStocks.WaterCansLitres, 4).ShouldBe("litres of water in cans");
         AmountCopy.Unit(MeasuredStocks.CashPounds, 4).ShouldBe("pounds in notes and coins");
         AmountCopy.Unit(MeasuredStocks.StoveCartridges, 4).ShouldBe("cartridges for the stove");
-        AmountCopy.Suggests(36m).ShouldBe("The plan suggests 36.");
+        AmountCopy.Suggests(MeasuredStocks.BottledWaterLitres, 36m, Assumptions.Default).ShouldBe("The plan suggests 36.");
+        AmountCopy.Suggests(MeasuredStocks.CashPounds, 800m, Assumptions.Create(20).Value).ShouldBe("The plan suggests 800, at £20 a person a day. The rate is yours to change, where the plan lists what it assumes.");
+        AmountCopy.CashRateLabel.ShouldBe("What a person needs in cash for a day, when only cash will do");
+        AmountCopy.CashRateReset.ShouldBe("Use the plan's £10");
+        AmountCopy.CashRateSays(Assumptions.Default, 4).ShouldBe("At £10 a person a day, ten days of cash for the 4 of you is £400.");
+        AmountCopy.CashRateSays(Assumptions.Create(25).Value, 1).ShouldBe("At £25 a person a day, ten days of cash for you is £250.");
+        AmountCopy.CashRateSays(Assumptions.Create(100).Value, 4).ShouldBe("At £100 a person a day, ten days of cash for the 4 of you is £4,000.");
+        Should.Throw<ArgumentNullException>(() => AmountCopy.Suggests(MeasuredStocks.CashPounds, 1m, null!));
+        Should.Throw<ArgumentNullException>(() => AmountCopy.CashRateSays(null!, 4));
         AmountCopy.Progress(new CountedAction(new Progress("food-one-month", MeasuredStocks.FoodDays, 45m, 30m, 0m), free)).ShouldBe("You have 45 days of food.");
         AmountCopy.Progress(new CountedAction(new Progress("food-one-month", MeasuredStocks.FoodDays, 10m, 30m, 2m / 3m), month.Share(2m / 3m))).ShouldBe("You have 10 of 30 days of food. The rest would cost £93.33 to £160.");
         AmountCopy.Progress(new CountedAction(new Progress("food-one-month", MeasuredStocks.FoodDays, 0m, 30m, 1m), month)).ShouldBe("You have none of the 30 days of food.");
@@ -246,8 +308,7 @@ public sealed class BoardPagesTests : IDisposable
         AmountCopy.Progress(new CountedAction(new Progress("butane-cartridge-stove", MeasuredStocks.StoveCartridges, 4m, 10m, 1m), month)).ShouldBe("You have 4 of 10 cartridges.", "a stove part stocked is not costed by the cartridge");
         AmountCopy.Progress(new CountedAction(new Progress("water-cans", MeasuredStocks.WaterCansLitres, 50m, 100m, 0.5m), free)).ShouldBe("You have 50 of 100 litres in cans.", "nothing to cost when the rest is free");
         Should.Throw<ArgumentNullException>(() => AmountCopy.Progress(null!));
-        Should.Throw<ArgumentNullException>(() => AmountView.For(null!, ResilienceProfile.FromProfile(Profiles.Flat())));
-        Should.Throw<ArgumentNullException>(() => AmountView.For([], null!));
+        Should.Throw<ArgumentNullException>(() => AmountView.For(null!, 4));
     }
 
     [Fact]

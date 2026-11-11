@@ -410,6 +410,45 @@ progress.tier-progress {
   display: none;
 }
 
+/* What the plan assumes: the figures it had to choose for itself, each open to the household's own. */
+.assumptions {
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & h3 {
+    font-size: var(--text-l);
+  }
+
+  & .assumptions__lede {
+    margin-block-start: var(--space-2);
+    color: var(--c-ink-muted);
+    max-inline-size: var(--measure);
+  }
+
+  & .assumptions__item {
+    display: grid;
+    gap: var(--space-2);
+    margin-block-start: var(--space-4);
+
+    & label {
+      font-weight: 600;
+    }
+  }
+
+  & .assumptions__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+
+    & .input.input--short {
+      inline-size: 6rem;
+    }
+  }
+}
+
 /* The tally: how many of a stretch, or of the whole plan, the household has, plans, has not decided
    and has ruled out, with what the planned and the undecided would cost and a way to clear each. */
 .tally {

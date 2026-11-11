@@ -188,6 +188,50 @@ public sealed class BoardComposerTests
     }
 
     [Fact]
+    public void Everything_planned_is_a_source_of_its_own_once_something_is_planned()
+    {
+        HouseholdProfile rob = Profiles.RobsHouse();
+        Plan plan = PlanFor(rob);
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob);
+        HashSet<string> none = [];
+        HashSet<string> shelf = ["water-bottled-three-days", "food-no-cook-three-days", "cash-in-small-notes"];
+
+        BoardSet nothingPlanned = BoardComposer.Compose(new BoardRequest(profile, none, plan, null, null, BoardSet.PlannedSource));
+        BoardSet offered = BoardComposer.Compose(new BoardRequest(profile, none, plan, null, null, null, shelf));
+        BoardSet chosen = BoardComposer.Compose(new BoardRequest(profile, none, plan, null, null, BoardSet.PlannedSource, shelf));
+
+        nothingPlanned.Sources.ShouldNotContain(source => source.Id == BoardSet.PlannedSource, "with nothing planned the sheet would be the house again");
+        nothingPlanned.SourceId.ShouldBe(BoardSet.HouseSource);
+        offered.Sources[1].ShouldBe(new SourceOption(BoardSet.PlannedSource, "Everything we plan to get", "What is in the house, with every action marked as planned in place."), "straight after the house, before the things that could be bought");
+        offered.SourceId.ShouldBe(BoardSet.HouseSource, "offered, not chosen");
+        offered.Sheet.ShouldBeSameAs(offered.Current);
+        chosen.SourceId.ShouldBe(BoardSet.PlannedSource);
+        chosen.Sheet.DaysReady.ShouldBe(chosen.PlannedDaysReady, "the sheet is the board behind the plan's figure");
+        chosen.Sheet.DaysReady.ShouldBeGreaterThan(chosen.Current.DaysReady);
+        chosen.DaysReady.ShouldBe(offered.DaysReady, "the headline stays the house as it is tonight");
+    }
+
+    [Fact]
+    public void The_households_own_rate_for_cash_moves_what_the_cash_action_asks_for()
+    {
+        HouseholdProfile rob = Profiles.RobsHouse();
+        Plan plan = PlanFor(rob);
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob);
+        Dictionary<string, int> twoHundred = new() { [MeasuredStocks.CashPounds] = 200 };
+
+        BoardSet plans = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), plan, null, null, null, null, null, twoHundred));
+        BoardSet cheap = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), plan, null, null, null, null, null, twoHundred, Assumptions.Create(5).Value));
+
+        plans.Assumed.ShouldBeSameAs(Assumptions.Default);
+        plans.Targets.Single(target => target.ActionId == "cash-in-small-notes").ShouldBe(new ActionTarget("cash-in-small-notes", MeasuredStocks.CashPounds, 400m));
+        plans.Targets.Select(target => target.StockId).Distinct().Count().ShouldBe(5, "every stock a detached house with an electric hob can count");
+        plans.Tally.Have.ShouldBe(0, "£200 is half of what the plan asks at ten pounds");
+        cheap.Assumed.CashPoundsPerPersonPerDay.ShouldBe(5);
+        cheap.Targets.Single(target => target.ActionId == "cash-in-small-notes").Target.ShouldBe(200m);
+        cheap.Tally.Have.ShouldBe(1, "and all of it at five");
+    }
+
+    [Fact]
     public void Scenarios_rank_by_the_risks_and_the_rest_follow()
     {
         HouseholdProfile rob = Profiles.RobsHouse();

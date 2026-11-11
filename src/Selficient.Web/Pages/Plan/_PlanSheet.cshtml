@@ -11,6 +11,8 @@
     var topRisks = risks.Take(3).ToList();
     var moreRisks = risks.Skip(3).ToList();
     var outcomes = Model.Board.Tiers.ToDictionary(tier => tier.Tier);
+    var amounts = Selficient.Web.Pages.Plan.AmountView.For(Model.Board, household.Size.Count);
+    var assumed = Model.Board.Assumed;
 }
 
 @*
@@ -57,8 +59,23 @@
   </p>
   @foreach (var tier in planned.Plan.Tiers)
   {
-    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier], planned.Plan.Profile))
+    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier], amounts))
   }
+  @* The figures the plan had to choose for itself, each open to the household's own. The script keeps the choice in this browser and the board redraws from it. *@
+  <section class="assumptions" aria-labelledby="assumptions-heading">
+    <h3 id="assumptions-heading">What the plan assumes</h3>
+    <p class="assumptions__lede">Where nothing published settles a figure, the plan uses its own. Change it to yours and everything that rests on it follows.</p>
+    <div class="assumptions__item">
+      <label for="assume-cash">@Selficient.Web.Pages.Plan.AmountCopy.CashRateLabel</label>
+      <div class="assumptions__row">
+        <span aria-hidden="true">£</span>
+        <input id="assume-cash" class="input input--short" type="number" inputmode="numeric" min="@Selficient.Domain.Resilience.Assumptions.MinCashPoundsPerPersonPerDay" max="@Selficient.Domain.Resilience.Assumptions.MaxCashPoundsPerPersonPerDay" step="1" autocomplete="off" value="@assumed.CashPoundsPerPersonPerDay" data-assume-cash data-assume-default="@Selficient.Domain.Resilience.Assumptions.Default.CashPoundsPerPersonPerDay" aria-describedby="assume-cash-says">
+        <span>pounds a person a day</span>
+        <button type="button" class="tally__button" data-assume-reset>@Selficient.Web.Pages.Plan.AmountCopy.CashRateReset</button>
+      </div>
+      <p class="field__hint" id="assume-cash-says" data-assume-cash-says>@Selficient.Web.Pages.Plan.AmountCopy.CashRateSays(assumed, household.Size.Count)</p>
+    </div>
+  </section>
   <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
   @if (planned.Plan.Profile.Dwelling.HasOwnRoof)
   {
@@ -70,7 +87,7 @@
 </section>
 
 <div data-board-slot>
-  @await Html.PartialAsync("_Board", new Selficient.Web.Pages.Plan.BoardView(Model.Board, planned.Plan.Profile.Dwelling.HasOwnRoof))
+  @await Html.PartialAsync("_Board", new Selficient.Web.Pages.Plan.BoardView(Model.Board, planned.Plan.Profile.Dwelling.HasOwnRoof, household.Size.Count))
 </div>
 
 <section class="rely" aria-labelledby="rely-heading">

@@ -33,6 +33,13 @@
       <li data-progress-action="@counted.Counted.ActionId">@Selficient.Web.Pages.Plan.AmountCopy.Progress(counted)</li>
     }
   </ul>
+  @* What each counted action asks for under the assumptions in force, and what the cash rate comes to; the script copies these onto the boxes. *@
+  <ul hidden data-board-targets data-cash-says="@Selficient.Web.Pages.Plan.AmountCopy.CashRateSays(set.Assumed, Model.People)">
+    @foreach (var target in set.Targets)
+    {
+      <li data-target-action="@target.ActionId" data-target="@target.Target.ToString("0", System.Globalization.CultureInfo.InvariantCulture)">@Selficient.Web.Pages.Plan.AmountCopy.Suggests(target.StockId, target.Target, set.Assumed)</li>
+    }
+  </ul>
   @* The counts for the whole plan and for each stretch; the script copies each onto the tally of the same scope. *@
   <div hidden data-board-tallies>
     @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForPlan(set))
