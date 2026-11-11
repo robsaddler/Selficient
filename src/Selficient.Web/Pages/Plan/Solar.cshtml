@@ -58,7 +58,7 @@ else if (Model.RoofNotice is { } notice)
   <form method="post" class="plan-form" novalidate>
     <div asp-validation-summary="ModelOnly" class="callout callout--warning" role="alert"></div>
 
-    <fieldset class="form-section">
+    <fieldset class="form-section form-section--where">
       <legend>Where the roof is</legend>
       <div class="field">
         <label asp-for="Form.Postcode"></label>
@@ -76,7 +76,7 @@ else if (Model.RoofNotice is { } notice)
       }
     </fieldset>
 
-    <fieldset class="form-section">
+    <fieldset class="form-section form-section--roof">
       <legend>The roof</legend>
       <fieldset class="compass" aria-describedby="compass-hint">
         <legend>Which way does your main roof slope face?</legend>
@@ -114,7 +114,7 @@ else if (Model.RoofNotice is { } notice)
       </div>
     </fieldset>
 
-    <fieldset class="form-section">
+    <fieldset class="form-section form-section--battery">
       <legend>The battery</legend>
       <div class="field">
         <label asp-for="Form.BatteryKilowattHours"></label>
@@ -129,7 +129,7 @@ else if (Model.RoofNotice is { } notice)
       </div>
     </fieldset>
 
-    <fieldset class="form-section">
+    <fieldset class="form-section form-section--electricity">
       <legend>Your electricity</legend>
       <div class="field">
         <label asp-for="Form.People"></label>

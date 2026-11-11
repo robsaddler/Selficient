@@ -376,6 +376,9 @@ progress.tier-progress {
 .field {
   display: grid;
   gap: var(--space-1);
+  /* Rows keep their own height. A field beside a taller neighbour is stretched to the row, and
+     without this its rows stretched too, so a number box grew to several times its height. */
+  align-content: start;
 
   & label {
     font-weight: 600;

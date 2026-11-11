@@ -450,15 +450,75 @@
 
 /* The solar form has four fieldsets: two by two on a desktop, the submit row across both */
 @media (min-width: 60rem) {
+  /* Where the roof is and the battery stand one above the other on the left, the roof takes the
+     whole of the right beside them, and the electricity runs across underneath. Two by two left a
+     hole under each short panel, because the four are nowhere near the same height. */
   .solar-form-section .plan-form {
     max-inline-size: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    align-items: stretch;
 
     & > :not(fieldset) {
       grid-column: 1 / -1;
     }
+
+    & > .form-section--where {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    & > .form-section--battery {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    & > .form-section--roof {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+
+    & > .form-section--electricity {
+      grid-column: 1 / -1;
+    }
   }
+
+  .solar-form-section .form-section {
+    align-content: start;
+  }
+
+  /* Inside the roof: the compass on one side, the three numbers in a column beside it. Left to the
+     shared auto-fit rule they scattered into three ragged columns with the compass wedged in one. */
+  .solar-form-section .form-section--roof {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--space-6);
+
+    & > .compass {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      align-content: start;
+    }
+
+    & > .field {
+      grid-column: 2;
+    }
+  }
+
+  /* The four electricity questions sit in one row, the two ticks beside the two numbers. */
+  .solar-form-section .form-section--electricity {
+    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+    column-gap: var(--space-6);
+    align-items: start;
+
+    & .field--check {
+      grid-column: auto;
+    }
+  }
+}
+
+/* The compass question is a label like the ones beside it, not a second heading for the panel. */
+.solar-form-section .compass legend {
+  font-family: var(--font-body);
+  font-size: var(--text-m);
 }
 
 .notice,

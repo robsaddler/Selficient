@@ -340,15 +340,17 @@ public sealed class OperatorAuthTests : IDisposable
         string review = await _factory.SignInAsync(client);
         string token = System.Text.RegularExpressions.Regex.Match(review, "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(?<token>[^\"]+)\"").Groups["token"].Value;
 
-        using HttpResponseMessage verified = await client.PostAsync(
-            new Uri("/admin/catalogue?handler=Verify", UriKind.Relative),
+        // A hand that touches no network: hiding an offer that is not there is still a hand, and is
+        // still recorded. Pressing "Open every link now" here once reached out to real shops.
+        using HttpResponseMessage hidden = await client.PostAsync(
+            new Uri("/admin/catalogue?handler=Hide&id=987654321", UriKind.Relative),
             OperatorSignInHelper.Form(token));
 
-        verified.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        hidden.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         using IServiceScope scope = _factory.Services.CreateScope();
         IReadOnlyList<Selficient.Application.Operations.OperatorAction> hands =
             await scope.ServiceProvider.GetRequiredService<Selficient.Application.Operations.IOperationsLog>().RecentHandsAsync(5, CancellationToken.None);
-        hands.ShouldContain(hand => hand.Hand == "verify" && hand.OperatorName == "rob");
+        hands.ShouldContain(hand => hand.Hand == "hidden" && hand.OperatorName == "rob");
     }
 
     [Fact]

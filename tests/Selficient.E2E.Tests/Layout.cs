@@ -122,6 +122,28 @@ public sealed class Layout
         }
     }
 
+    [Theory]
+    [InlineData("/plan/solar")]
+    [InlineData("/plan/start")]
+    public async Task No_text_box_is_stretched_taller_than_a_line_of_typing_needs(string path)
+    {
+        // A field beside a taller neighbour stretched its rows and the number boxes on the solar
+        // form grew to several times their height. Every single-line box is measured instead.
+        foreach (int width in new[] { 1440, 2000 })
+        {
+            await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile: false, theme: "light");
+            IPage page = await context.NewPageAsync();
+            await page.GotoAsync(path);
+
+            double[] heights = await page.EvalOnSelectorAllAsync<double[]>(
+                "input.input, select.input",
+                "boxes => boxes.map(box => Math.round(box.getBoundingClientRect().height)).filter(height => height > 0)");
+
+            heights.Length.ShouldBeGreaterThan(0);
+            heights.Max().ShouldBeLessThanOrEqualTo(60, customMessage: $"on {path} at {width}px the boxes are {string.Join(", ", heights)} px tall");
+        }
+    }
+
     [Fact]
     public async Task The_phone_hero_is_one_column()
     {
