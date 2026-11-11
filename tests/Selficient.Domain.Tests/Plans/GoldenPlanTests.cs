@@ -31,7 +31,8 @@ public sealed class GoldenPlanTests
 
         plan.Tiers[0].Actions.Select(a => a.Id.Value).ShouldBe([
             "water-bottled-three-days", "food-no-cook-three-days", "power-failure-lights", "headtorches",
-            "power-banks", "radio-dab-fm-with-crank", "safety-kit", "cash-in-small-notes",
+            "power-banks", "radio-dab-fm-with-crank", "no-flush-toilet-kit", "landline-battery-backup",
+            "safety-kit", "cash-in-small-notes",
             "candles-and-matches", "save-emergency-numbers", "priority-services-register",
             "arborist-survey", "clear-leaf-litter-under-decking", "car-above-half-a-tank",
         ]);
@@ -79,8 +80,8 @@ public sealed class GoldenPlanTests
 
         return ids.IsSupersetOf([
             "water-bottled-three-days", "food-no-cook-three-days", "power-failure-lights", "headtorches",
-            "power-banks", "radio-dab-fm-with-crank", "safety-kit", "cash-in-small-notes",
-            "candles-and-matches", "save-emergency-numbers",
+            "power-banks", "radio-dab-fm-with-crank", "no-flush-toilet-kit", "landline-battery-backup",
+            "safety-kit", "cash-in-small-notes", "candles-and-matches", "save-emergency-numbers",
         ]) && plan.Tiers.Count == 4 && plan.Actions.All(a => a.Why.EndsWith('.') && a.Title.Length > 0);
     }
 }

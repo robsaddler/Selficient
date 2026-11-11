@@ -47,7 +47,6 @@ public sealed class CatalogueWorkerTests
             Options = new CatalogueOptions { WorkerEnabled = enabled, VerifyAtHour = 2, WakeEveryMinutes = 30 };
             IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
             shipped.All.Returns([]);
-            Store.CountAsync(Arg.Any<CancellationToken>()).Returns(1);
             Store.ShownAsync(Arg.Any<CancellationToken>()).Returns([]);
             Store.LastVerifiedAsync(Arg.Any<CancellationToken>()).Returns((DateTimeOffset?)null);
             Catalogue = new StoredCatalogue(Store, shipped);
@@ -152,7 +151,7 @@ public sealed class CatalogueWorkerTests
     public async Task A_store_that_cannot_be_read_at_start_is_logged_and_the_pages_keep_the_shipped_picks()
     {
         Rig rig = new(false);
-        rig.Store.CountAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("The disk is full."));
+        rig.Store.AllAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("The disk is full."));
 
         await rig.Worker.StartAsync(CancellationToken.None);
         await (rig.Worker.ExecuteTask ?? Task.CompletedTask);

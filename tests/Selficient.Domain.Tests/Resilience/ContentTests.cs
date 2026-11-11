@@ -20,7 +20,13 @@ public sealed class ContentTests
     [Fact]
     public void Scenarios_are_distinct_bounded_and_ordered()
     {
-        Scenarios.All.Count.ShouldBe(7);
+        Scenarios.All.Count.ShouldBe(8);
+        Scenarios.Find("blackout").ShouldBe(Scenarios.Blackout);
+        Scenarios.Blackout.Risk.ShouldBe(RiskKind.RegionalDisruption);
+        Scenarios.Blackout.Availability(Utility.MainsWater, 1).ShouldBe(0.5m, "the towers drain over the first day");
+        Scenarios.Blackout.Availability(Utility.MainsWater, 2).ShouldBe(0m);
+        Scenarios.Blackout.Availability(Utility.Electricity, 4).ShouldBe(0.8m, "power comes back unevenly");
+        Scenarios.Blackout.Availability(Utility.Electricity, 6).ShouldBe(1m);
         Scenarios.All.Select(scenario => scenario.Id).ShouldBeUnique();
         foreach (Scenario scenario in Scenarios.All)
         {
@@ -99,7 +105,7 @@ public sealed class ContentTests
             .SelectMany(profile => builder.Build(profile, risks.Run(profile)).Value.Tiers.SelectMany(tier => tier.Actions))
             .Select(action => action.Id.Value)
             .ToHashSet(StringComparer.Ordinal);
-        string[] soldByThePlan = ["water-bottled-three-days", "water-cans", "bath-liner", "food-no-cook-three-days", "food-one-month", "butane-cartridge-stove", "cash-in-small-notes", "heating-fallback", "power-failure-lights", "headtorches", "rechargeable-lanterns", "candles-and-matches", "radio-dab-fm-with-crank", "power-banks", "portable-power-station", "rooftop-solar-and-battery", "boiler-plug-and-socket", "satellite-internet-on-standby", "car-above-half-a-tank", "gravity-water-filter"];
+        string[] soldByThePlan = ["water-bottled-three-days", "water-cans", "bath-liner", "food-no-cook-three-days", "food-one-month", "butane-cartridge-stove", "cash-in-small-notes", "heating-fallback", "power-failure-lights", "headtorches", "rechargeable-lanterns", "candles-and-matches", "radio-dab-fm-with-crank", "power-banks", "portable-power-station", "rooftop-solar-and-battery", "boiler-plug-and-socket", "satellite-internet-on-standby", "car-above-half-a-tank", "gravity-water-filter", "no-flush-toilet-kit"];
 
         foreach (string id in soldByThePlan)
         {

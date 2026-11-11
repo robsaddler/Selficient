@@ -68,10 +68,7 @@ public interface IAllowedShops
 /// <summary>The catalogue store: offers, their checks, and the clicks they earn.</summary>
 public interface ICatalogueStore
 {
-    /// <summary>How many offers the store holds, of any status.</summary>
-    Task<int> CountAsync(CancellationToken cancellationToken);
-
-    /// <summary>Puts the shipped picks in as live offers, once, when the store is empty.</summary>
+    /// <summary>Puts shipped picks in as live offers. The caller passes only the picks the store has never held.</summary>
     Task SeedAsync(IReadOnlyList<KitPick> picks, CancellationToken cancellationToken);
 
     /// <summary>Every offer a household may see, cheapest first within each action.</summary>

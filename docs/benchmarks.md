@@ -81,6 +81,10 @@ The first run of the day scored 63 to 70 on performance and 95 on accessibility.
 | 31 Oct 2026 | Landing GET | 100/s | 1.0 ms | 2.7 ms | 7.9 ms | 100 ms | 0 of 2,000 |
 | 31 Oct 2026 | Shop hop GET (`/out/{id}`, counted) | 200/s | 0.5 ms | 2.5 ms | 5.9 ms | 50 ms | 0 of 4,000 |
 | 31 Oct 2026 | Deals GET | 50/s | 0.7 ms | 2.7 ms | 6.3 ms | 100 ms | 0 of 1,000 |
+| 11 Nov 2026, eight scenarios | Plan POST | 200/s | 7.4 ms | 51.7 ms | 67.4 ms | 150 ms | 0 of 4,000 |
+| 11 Nov 2026, eight scenarios | Board fragment POST | 100/s | 6.4 ms | 46.9 ms | 60.8 ms | 150 ms | 0 of 2,000 |
+
+The eighth scenario (the whole grid going down) adds one card, and so one seven-day simulation, to every plan page; one run on 11 Nov 2026 put the plan POST about a millisecond higher at the median and five at the p95, and the other five scenarios where they were.
 
 Dev workstation, Release build, 750 requests a second across seven scenarios. Three consecutive runs agreed to within about five milliseconds on the two posts and under a millisecond everywhere else. The shop hop is as cheap as the tile probe because it is a dictionary lookup and an increment: the catalogue is a snapshot indexed by offer id, and the clicks are written behind by a background flusher once a second, so a reader on their way to a shop never waits for a write.
 

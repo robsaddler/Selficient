@@ -66,7 +66,6 @@ public sealed class ClickFlusherAndDealsCacheTests
         ICatalogueStore store = Substitute.For<ICatalogueStore>();
         IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
         shipped.All.Returns([]);
-        store.CountAsync(Arg.Any<CancellationToken>()).Returns(1);
         store.ShownAsync(Arg.Any<CancellationToken>()).Returns([new Offer(1, ActionId.From("headtorches"), "Petzl Tikkina", "Amazon", Money.FromPence(2200), new DateOnly(2026, 10, 29), new Uri("https://www.amazon.co.uk/s?k=Petzl"), "", OfferStatus.Live, 0)]);
         store.PriceSpansAsync(Arg.Any<int>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).Returns(new Dictionary<long, PriceSpan>());
         using StoredCatalogue catalogue = new(store, shipped);
@@ -96,7 +95,6 @@ public sealed class ClickFlusherAndDealsCacheTests
         ICatalogueStore store = Substitute.For<ICatalogueStore>();
         IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
         shipped.All.Returns([]);
-        store.CountAsync(Arg.Any<CancellationToken>()).Returns(1);
         store.ShownAsync(Arg.Any<CancellationToken>()).Returns([]);
         store.PriceSpansAsync(Arg.Any<int>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("The database is locked."));
         using StoredCatalogue catalogue = new(store, shipped);

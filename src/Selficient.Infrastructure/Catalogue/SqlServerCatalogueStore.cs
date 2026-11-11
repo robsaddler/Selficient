@@ -24,13 +24,6 @@ public sealed class SqlServerCatalogueStore : ICatalogueStore
     }
 
     /// <inheritdoc />
-    public async Task<int> CountAsync(CancellationToken cancellationToken)
-    {
-        await using SqlConnection connection = await OpenAsync(cancellationToken);
-        return await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.offers");
-    }
-
-    /// <inheritdoc />
     public async Task SeedAsync(IReadOnlyList<KitPick> picks, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(picks);

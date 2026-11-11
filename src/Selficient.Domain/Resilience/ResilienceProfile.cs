@@ -218,7 +218,7 @@ public sealed record ResilienceProfile
                 "mains-tap", "shops", "deliveries", "pharmacy", "cash-machines", "fridge-freezer", "closed-freezer",
                 "router", "phones", "phone-charging", "mains-lighting", "blankets", "kettle-water", "fridge-food", "phone-torches",
                 "medicine-stock", "cash-at-home", "books-and-games", "television", "washing-machine", "laptop-and-screen",
-                "supplies-at-home", "microwave",
+                "supplies-at-home", "microwave", "bin-bags",
             ];
             fixtures.Add(HeatingFixtures[Dwelling.Heating]);
             if (Dwelling.Heating is HeatingType.Electric or HeatingType.Wood)

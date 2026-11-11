@@ -7,8 +7,9 @@ namespace Selficient.Application.Catalogue;
 /// <summary>
 /// The catalogue the pages read, drawn from the store and held in memory, so a plan page costs no
 /// query. Until the store has answered once the shipped picks stand in, so a page never shows nothing.
-/// The store is seeded from the shipped picks the first time it is empty, and the snapshot
-/// is reloaded after every verification run and every hand of the reviewer.
+/// Every shipped pick the store has never held is added on each reload, so a release that ships a
+/// new action reaches a store seeded before it, and the snapshot is reloaded after every
+/// verification run and every hand of the reviewer.
 /// </summary>
 public sealed class StoredCatalogue : IKitCatalogue, IDisposable
 {
@@ -49,15 +50,21 @@ public sealed class StoredCatalogue : IKitCatalogue, IDisposable
         return _snapshot.ByAction.TryGetValue(action, out IReadOnlyList<KitPick>? picks) ? picks : [];
     }
 
-    /// <summary>Seeds the store if it is empty, then takes the snapshot the pages read.</summary>
+    /// <summary>Adds the shipped picks the store has never held, then takes the snapshot the pages read.</summary>
     public async Task ReloadAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            if (await _store.CountAsync(cancellationToken) == 0)
+            // Every shipped pick the store has never held is added, not only when the store is empty:
+            // a release that ships a new action must reach a database seeded before that action
+            // existed. A pick an operator has hidden is still held, so it is not brought back.
+            IReadOnlyList<Offer> held = await _store.AllAsync(cancellationToken);
+            HashSet<(string Action, string Link)> known = [.. held.Select(static offer => (offer.Action.Value, offer.Link.ToString()))];
+            List<KitPick> fresh = [.. _shipped.All.Where(pick => !known.Contains((pick.Action.Value, pick.Link.ToString())))];
+            if (fresh.Count > 0)
             {
-                await _store.SeedAsync(_shipped.All, cancellationToken);
+                await _store.SeedAsync(fresh, cancellationToken);
             }
 
             IReadOnlyList<Offer> shown = await _store.ShownAsync(cancellationToken);

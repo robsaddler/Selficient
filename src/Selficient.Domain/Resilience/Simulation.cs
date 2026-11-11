@@ -437,6 +437,13 @@ public static class OutageBoard
                 }
             }
 
+            // Context: in a wide outage the sewers stop with the power, so water in a cistern is no way to
+            // flush. Only something that needs no sewer, a bag in the bowl, meets sanitation on those days.
+            if (need == NeedId.Sanitation && _scenario.SewersStopWithThePower && !provision.WorksWithoutSewers && _scenario.Availability(Utility.Electricity, day) < 1m)
+            {
+                return false;
+            }
+
             // Context: a boil notice makes tap water depend on cooking; formula depends on boiled water too.
             if (need == NeedId.DrinkingWater && provider.Id == "mains-tap" && _scenario.BoilWaterNotice && StateOf(NeedId.Cooking, day).State != CellState.Held)
             {

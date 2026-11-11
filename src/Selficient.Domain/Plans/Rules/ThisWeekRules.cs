@@ -68,10 +68,26 @@ public sealed class BaselineChecklistRule : IPlanRule
         yield return Action(
             "radio-dab-fm-with-crank",
             Tier.ThisWeek,
-            "A DAB and FM radio that runs on AA cells, with a wind-up handle",
-            "Local radio carries emergency information when the internet is down. The cells are the real backup; the handle is the bonus.",
-            MoneyRange.Pounds(80m, 150m),
-            Mitigates(RiskKind.CommsLoss));
+            "A radio with FM that runs on AA cells, with a wind-up handle",
+            "When the whole grid is down, the emergency broadcasts go out on BBC Radio 2 and Radio 4, and FM is what still reaches almost everywhere. In Lancaster in 2015 it was the one source of news that worked. Write the two frequencies for your area on the back. The cells are the real backup; the handle is the bonus.",
+            MoneyRange.Pounds(36m, 150m),
+            Mitigates(RiskKind.CommsLoss, RiskKind.RegionalDisruption));
+
+        yield return Action(
+            "no-flush-toilet-kit",
+            Tier.ThisWeek,
+            $"Toilet liners and gelling powder for {People(people)} for three days",
+            "In a wide power cut the sewers stop as well, and the official advice is not to flush at all, even with stored water. These are bags that line the bowl of the toilet you already have, with a powder that sets the contents solid. Tie each one off and put it in the outside bin. Without them the advice is a bin bag, which works and is as unpleasant as it sounds.",
+            MoneyRange.Pounds(10m, 34m),
+            Mitigates(RiskKind.RegionalDisruption, RiskKind.WaterInterruption));
+
+        yield return Action(
+            "landline-battery-backup",
+            Tier.ThisWeek,
+            "A battery backup for the router, so the broadband and the house phone work in a power cut",
+            "The copper phone network is being switched off, with 31 January 2027 as the date, and a digital line dies with the router the moment the power does. Ask your phone company first: it has to give a backup that lasts at least an hour, free, to anyone who relies on the landline. Otherwise a small backup unit keeps the router and the phone going for a few hours of a local cut.",
+            MoneyRange.Pounds(0m, 62m),
+            Mitigates(RiskKind.CommsLoss, RiskKind.StormPowerCut));
 
         yield return Action(
             "safety-kit",

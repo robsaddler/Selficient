@@ -43,12 +43,12 @@ public sealed class SqlServerCatalogueStoreTests : IAsyncLifetime
     [Fact]
     public async Task Seeding_fills_an_empty_store_and_the_shown_offers_are_the_live_and_failing_ones()
     {
-        (await _store.CountAsync(CancellationToken.None)).ShouldBe(0);
+        (await _store.AllAsync(CancellationToken.None)).ShouldBeEmpty();
         await Should.ThrowAsync<ArgumentNullException>(() => _store.SeedAsync(null!, CancellationToken.None));
 
         SqlServerCatalogueStore store = await SeededAsync();
 
-        (await store.CountAsync(CancellationToken.None)).ShouldBe(3);
+        (await store.AllAsync(CancellationToken.None)).Count.ShouldBe(3);
         IReadOnlyList<Offer> shown = await store.ShownAsync(CancellationToken.None);
         shown.Select(o => o.Name).ShouldBe(["Petzl Tikkina", "Ledlenser MH3", "Water carrier 10 l"], "by action, then price");
         Offer first = shown[0];
@@ -186,9 +186,9 @@ public sealed class SqlServerCatalogueStoreTests : IAsyncLifetime
     [Fact]
     public async Task Many_calls_at_once_all_succeed()
     {
-        int[] counts = await Task.WhenAll(Enumerable.Range(0, 16).Select(_ => Task.Run(() => _store.CountAsync(CancellationToken.None))));
+        IReadOnlyList<Offer>[] reads = await Task.WhenAll(Enumerable.Range(0, 16).Select(_ => Task.Run(() => _store.AllAsync(CancellationToken.None))));
 
-        counts.ShouldAllBe(c => c == 0);
+        reads.ShouldAllBe(read => read.Count == 0);
     }
 
     public ValueTask DisposeAsync()

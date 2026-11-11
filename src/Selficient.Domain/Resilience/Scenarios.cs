@@ -96,6 +96,45 @@ public static class Scenarios
         Heatwave: false,
         ConfinedToHome: false);
 
+    /// <summary>
+    /// The whole grid goes down, which planners call a Black Sky event. Unlike a storm it is everywhere
+    /// at once, so the things a local cut leaves standing go too: water pressure falls within a day
+    /// because the pumps are electric, the sewers stop, the masts and exchanges run out of battery
+    /// together, and nothing can be bought. Three days dark is the planning figure: the BBC reported in
+    /// November 2026 that the National Energy System Operator's latest advice to broadcasters is that
+    /// power would probably be back in two to three days, where five to seven had been assumed. The
+    /// Chief Medical Officers' broadcast scripts of December 2025 are the source for the water and the
+    /// toilets.
+    /// </summary>
+    public static Scenario Blackout { get; } = new(
+        "blackout",
+        "The whole grid goes down",
+        "A failure of the national grid rather than a line down in your street. The power is off everywhere for three days and comes back unevenly. The tap runs for a few hours and then stops, because the pumps are electric, and the toilet must not be flushed, because the sewers are not working. Phones and the internet go within a day, the cash machines and the forecourts are off, and the shops that open take cash for what is on the shelf. The emergency broadcasts are on BBC Radio 2 and Radio 4.",
+        Season.Winter,
+        [Horizon.OneDay, Horizon.ThreeDays, Horizon.OneWeek],
+        [
+            new(Utility.Electricity, 1, 3, 0m),
+            new(Utility.Electricity, 4, 5, 0.8m),
+            new(Utility.MainsWater, 1, 1, 0.5m),
+            new(Utility.MainsWater, 2, 4, 0m),
+            new(Utility.MobileNetwork, 1, 1, 0.5m),
+            new(Utility.MobileNetwork, 2, 4, 0m),
+            new(Utility.FixedInternet, 1, 1, 0.5m),
+            new(Utility.FixedInternet, 2, 4, 0m),
+            new(Utility.Cash, 1, 4, 0m),
+            new(Utility.Shops, 1, 3, 0.2m),
+            new(Utility.Shops, 4, End, 0.6m),
+            new(Utility.Fuel, 1, 4, 0m),
+            new(Utility.Deliveries, 1, 4, 0m),
+            new(Utility.Pharmacy, 1, 3, 0.3m),
+            new(Utility.Roads, 1, 3, 0.7m),
+        ],
+        RiskKind.RegionalDisruption,
+        BoilWaterNotice: true,
+        Heatwave: false,
+        ConfinedToHome: false,
+        SewersStopWithThePower: true);
+
     /// <summary>Months of shortages: a long supply-chain or fuel crisis, a war footing. Shops rationed, fuel scarce, planned cuts from the second week, pharmacies substituting.</summary>
     public static Scenario Shortages { get; } = new(
         "shortages",
@@ -149,7 +188,7 @@ public static class Scenarios
         ConfinedToHome: true);
 
     /// <summary>Every scenario, in the order they are offered before ranking.</summary>
-    public static IReadOnlyList<Scenario> All { get; } = [Storm, WaterCut, Snow, Regional, Shortages, Heatwave, StayAtHome];
+    public static IReadOnlyList<Scenario> All { get; } = [Storm, Blackout, WaterCut, Snow, Regional, Shortages, Heatwave, StayAtHome];
 
     /// <summary>Looks a scenario up by id, or null.</summary>
     public static Scenario? Find(string id) => All.FirstOrDefault(scenario => scenario.Id == id);

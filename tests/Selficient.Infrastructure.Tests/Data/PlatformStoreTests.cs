@@ -85,7 +85,6 @@ public sealed class PlatformStoreTests : IAsyncLifetime
         ICatalogueStore store = Substitute.For<ICatalogueStore>();
         IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
         shipped.All.Returns([]);
-        store.CountAsync(Arg.Any<CancellationToken>()).Returns(1);
         store.ShownAsync(Arg.Any<CancellationToken>()).Returns([]);
         using StoredCatalogue catalogue = new(store, shipped);
         IBasemapTiles present = Substitute.For<IBasemapTiles>();

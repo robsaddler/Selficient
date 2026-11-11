@@ -61,6 +61,12 @@ Scenario "Snow closes the road"      Roads off 3 .. 7 days, Deliveries off, Shop
 Scenario "A heatwave"                Electricity degraded (evening cuts), MainsWater restricted, health demand up
 Scenario "You must stay at home"     Shops unreachable for the household for 2 .. 4 weeks; everything else up
 Scenario "A fortnight of regional disruption"  Electricity off 3 days then intermittent, Shops degraded, Fuel off, Cash off
+Scenario "The whole grid goes down"  (added 11 Nov 2026) Electricity off 3 days then uneven for 2; MainsWater half on day 1,
+                                     off days 2 .. 4, back under a boil notice; sewers stop with the power, so no flushing
+                                     at all, even with stored water; Mobile and FixedInternet gone from day 2; Cash, Fuel
+                                     and Deliveries off; Shops a fifth open for cash. Three days is the planning figure
+                                     (BBC, 7 Nov 2026, reporting the system operator's advice to broadcasters); the water
+                                     and the toilets are the Chief Medical Officers' broadcast scripts of December 2025.
 ```
 
 Scenarios are data (`content/scenarios.json`), validated at startup like the kit catalogue, and ordered for a household by the existing risk ranking (flood scenario hidden for a house at 232 m, as now). A household can also adjust a scenario's horizon with the board's duration control: the horizons are 1 day, 3 days, 1 week, 2 weeks, 1 month, 3 months, 6 months, and a scenario declares which of them make sense for it.

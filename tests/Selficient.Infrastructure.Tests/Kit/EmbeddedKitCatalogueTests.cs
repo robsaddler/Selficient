@@ -29,6 +29,20 @@ public sealed class EmbeddedKitCatalogueTests
     }
 
     [Fact]
+    public void The_no_flush_kit_and_the_router_backup_have_picks_inside_the_cost_the_plan_quotes()
+    {
+        EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(new AffiliateOptions());
+
+        IReadOnlyList<KitPick> liners = catalogue.PicksFor(ActionId.From("no-flush-toilet-kit"));
+        IReadOnlyList<KitPick> backups = catalogue.PicksFor(ActionId.From("landline-battery-backup"));
+
+        liners.Select(p => p.Name).ShouldBe(["Portable toilet bags with absorbent gel powder, pack of 30", "CarpLife Bivvy Loo refill pack: 12 liners, 12 powder sachets and 40 wipes", "CarpLife Bivvy Loo absorbent powder, 1 kg"]);
+        liners.ShouldAllBe(p => p.Price.Pence >= 1000 &&p.Price.Pence <= 3400);
+        backups.Count.ShouldBe(2);
+        backups.ShouldAllBe(p => p.Price.Pence <= 6200);
+    }
+
+    [Fact]
     public void No_pick_links_to_a_bare_homepage()
     {
         EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(new AffiliateOptions { AmazonTag = "selficient-21" });

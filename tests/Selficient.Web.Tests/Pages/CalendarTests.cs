@@ -63,7 +63,8 @@ public sealed class CalendarTests : IDisposable
         UpkeepView view = new(dwelling);
 
         view.CalendarHref.ShouldBe("/plan/calendar.ics?decking=true&garden=true");
-        view.Reminders.Count.ShouldBe(8);
+        view.Reminders.Count.ShouldBe(9);
+        UpkeepView.When(view.Reminders.Single(r => r.Id == "stored-cells-check")).ShouldBe("At the clock changes, March and October");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "water-rotation")).ShouldBe("At the clock changes, March and October");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "alarm-tests")).ShouldBe("Monthly");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "battery-top-up")).ShouldBe("Every three months");

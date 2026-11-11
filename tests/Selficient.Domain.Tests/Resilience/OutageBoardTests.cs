@@ -17,6 +17,8 @@ public sealed class OutageBoardTests
 
     private static Board Storm(ResilienceProfile profile, params string[] held) => OutageBoard.Simulate(profile, held.ToHashSet(StringComparer.Ordinal), Scenarios.Storm, Season.Winter);
 
+    private static Board Blackout(ResilienceProfile profile, params string[] held) => OutageBoard.Simulate(profile, held.ToHashSet(StringComparer.Ordinal), Scenarios.Blackout, Season.Winter);
+
     private static BoardRow Row(Board board, NeedId need) => board.Row(need.ToString())!;
 
     [Fact]
@@ -90,7 +92,9 @@ public sealed class OutageBoardTests
 
         high.DaysReady.ShouldBe(0.5m);
         Row(high, NeedId.DrinkingWater).Days[0].ShouldBe(new DayState(CellState.Rationed, "kettle-water", "mains-tap"));
-        Row(high, NeedId.Sanitation).Days[0].State.ShouldBe(CellState.Lost);
+        Row(high, NeedId.Sanitation).Days[0].ShouldBe(new DayState(CellState.Reduced, "bin-bags", "mains-tap"), "nothing to flush with, so it is a bag and the outside bin");
+        Row(Storm(fifth, "no-flush-toilet-kit"), NeedId.Sanitation).Days[2].ShouldBe(new DayState(CellState.Held, "no-flush-toilet-kit", "mains-tap"), "three days of liners");
+        Row(Storm(fifth, "no-flush-toilet-kit"), NeedId.Sanitation).Days[3].ShouldBe(new DayState(CellState.Reduced, "bin-bags", "mains-tap"), "and bin bags once they are gone");
         Row(low, NeedId.DrinkingWater).Days[0].State.ShouldBe(CellState.Held, "the ground floor is gravity fed");
         Row(high, NeedId.Mobility).Needed.ShouldBeFalse("no car, no row that matters");
         Row(high, NeedId.Warmth).Days[0].ShouldBe(new DayState(CellState.Reduced, "blankets", "electric-heating"));
@@ -222,10 +226,52 @@ public sealed class OutageBoardTests
         Board filterAlone = OutageBoard.Simulate(Rob(), new HashSet<string> { "gravity-water-filter" }, Scenarios.WaterCut, Season.Winter);
 
         Row(without, NeedId.Sanitation).Cells[2].State.ShouldBe(CellState.Held, "two hundred litres and the rain flush the loo until the mains return on day four");
-        Row(OutageBoard.Simulate(Rob(), new HashSet<string>(), Scenarios.WaterCut, Season.Winter), NeedId.Sanitation).Days[0].State.ShouldBe(CellState.Lost, "without the butt there is nothing to flush with");
+        Row(OutageBoard.Simulate(Rob(), new HashSet<string>(), Scenarios.WaterCut, Season.Winter), NeedId.Sanitation).Days[0].ShouldBe(new DayState(CellState.Reduced, "bin-bags", "mains-tap"), "without the butt there is nothing to flush with, and a bin bag is what is left");
+        Row(OutageBoard.Simulate(Rob(), new HashSet<string> { "no-flush-toilet-kit" }, Scenarios.WaterCut, Season.Winter), NeedId.Sanitation).Cells.ShouldAllBe(cell => cell.State == CellState.Held, "the liners last the three days the mains are off");
         Row(without, NeedId.DrinkingWater).Days[1].State.ShouldBe(CellState.Lost);
         Row(filtered, NeedId.DrinkingWater).Days[1].ShouldBe(new DayState(CellState.Held, "gravity-water-filter", "mains-tap"));
         Row(filterAlone, NeedId.DrinkingWater).Days[1].State.ShouldBe(CellState.Lost, "a filter with nothing to filter");
+    }
+
+    [Fact]
+    public void When_the_whole_grid_goes_down_the_water_follows_the_power_and_the_shelf_is_three_days()
+    {
+        Board nothing = Blackout(Rob());
+        Board shelf = Blackout(Rob(), ThisWeek);
+        Board withCansAndLiners = Blackout(Rob(), [.. ThisWeek, "no-flush-toilet-kit", "water-cans"]);
+
+        nothing.DaysReady.ShouldBe(0.5m);
+        nothing.DaysSimulated.ShouldBe(7);
+        Row(nothing, NeedId.DrinkingWater).Days[0].ShouldBe(new DayState(CellState.Rationed, "kettle-water", "mains-tap"), "the tap runs for a few hours while the towers drain");
+        Row(nothing, NeedId.DrinkingWater).Days[4].ShouldBe(new DayState(CellState.Lost, null, "mains-tap"), "the water is back on the fifth day under a boil notice, and an electric hob on rolling power cannot be relied on to boil it");
+        Row(nothing, NeedId.DrinkingWater).Days[5].ShouldBe(new DayState(CellState.Held, "mains-tap", null));
+        shelf.DaysReady.ShouldBe(3m, "three days of bottled water is three days");
+        Row(shelf, NeedId.DrinkingWater).FirstRationedDay.ShouldBe(4);
+        Row(shelf, NeedId.Information).Cells.ShouldAllBe(cell => cell.State == CellState.Held, "the radio is the one source of news that needs nothing from anyone");
+        Row(shelf, NeedId.Contact).Days[1].State.ShouldBe(CellState.Lost, "every mast runs out of battery together");
+        Row(shelf, NeedId.Cash).Days[3].ShouldBe(new DayState(CellState.Held, "cash-in-small-notes", "cash-machines"));
+        withCansAndLiners.DaysReady.ShouldBe(7m, "stored water carries the two days the bottles do not");
+    }
+
+    [Fact]
+    public void When_the_sewers_stop_with_the_power_stored_water_cannot_flush_and_only_a_bag_will_do()
+    {
+        Board nothing = Blackout(Rob());
+        Board storedWater = Blackout(Rob(), "water-cans", "bath-liner");
+        Board liners = Blackout(Rob(), "no-flush-toilet-kit");
+        Board storm = Storm(Rob(), "no-flush-toilet-kit");
+
+        Row(nothing, NeedId.Sanitation).Days[0].ShouldBe(new DayState(CellState.Reduced, "bin-bags", "mains-tap"), "the tap still runs on the first day, and must not be used to flush");
+        Row(storedWater, NeedId.DrinkingWater).Cells.ShouldAllBe(cell => cell.State == CellState.Held, "a hundred litres in cans is drinking water for the week");
+        Row(storedWater, NeedId.Sanitation).Days[1].ShouldBe(new DayState(CellState.Reduced, "bin-bags", "mains-tap"), "four hundred and eighty litres in the house and nowhere for a flush to go");
+        Row(liners, NeedId.Sanitation).Days[0].ShouldBe(new DayState(CellState.Held, "no-flush-toilet-kit", "mains-tap"));
+        Row(liners, NeedId.Sanitation).Days[2].State.ShouldBe(CellState.Held);
+        Row(liners, NeedId.Sanitation).Days[3].ShouldBe(new DayState(CellState.Reduced, "bin-bags", "mains-tap"), "three days of liners, then bin bags");
+        Row(nothing, NeedId.Sanitation).Days[4].State.ShouldBe(CellState.Reduced, "the sewers wait for steady power, not rolling power");
+        Row(nothing, NeedId.Sanitation).Days[5].ShouldBe(new DayState(CellState.Held, "mains-tap", null));
+        Row(storm, NeedId.Sanitation).Cells.ShouldAllBe(cell => cell.State == CellState.Held, "a line down in the street leaves the sewers running");
+        Row(storm, NeedId.Sanitation).Days[0].CarriedBy.ShouldBe("mains-tap", "and the liners stay in the cupboard while the toilet flushes");
+        Scenarios.All.Where(scenario => scenario.SewersStopWithThePower).ShouldBe([Scenarios.Blackout]);
     }
 
     [Fact]

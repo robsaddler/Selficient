@@ -47,7 +47,6 @@ public sealed class ProposalsStoreTests : IAsyncLifetime
         proposed[0].Note.ShouldBe("Suggested by a reader.");
         (await _store.ShownAsync(CancellationToken.None)).Select(o => o.Id).ShouldBe([1L], "a proposal is never shown");
         (await _store.AllAsync(CancellationToken.None)).Select(o => o.Id).ShouldBe([1L, 2L]);
-        (await _store.CountAsync(CancellationToken.None)).ShouldBe(2);
         await Should.ThrowAsync<ArgumentNullException>(() => _store.ProposeAsync(ActionId.From("headtorches"), null!, "x", Today, CancellationToken.None));
         await Should.ThrowAsync<ArgumentException>(() => _store.ProposeAsync(ActionId.From("headtorches"), link, " ", Today, CancellationToken.None));
     }

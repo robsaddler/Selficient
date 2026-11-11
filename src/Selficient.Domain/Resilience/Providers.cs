@@ -16,6 +16,7 @@ public static class Providers
     private const string Nesta = "Nesta and ukelectricityprices.co.uk on heat pump daily use";
     private const string Vendors = "EcoFlow, Bluetti, Jackery and Anker specifications, 2026";
     private const string Ofcom = "Ofcom resilience guidance on mast and exchange batteries";
+    private const string Cmo = "UK Chief Medical Officers, water and sanitation advice for a national power outage, December 2025";
     private const string Rhs = "Royal Horticultural Society yields; a 250 square metre plot feeds a family a third of its vegetables";
 
     private static readonly IReadOnlyList<Utility> Nothing = [];
@@ -94,7 +95,12 @@ public static class Providers
         Fixture("router", "The router", "Ten watts, and a line that only works while the exchange has power or battery.", [All_(NeedId.Internet)], [Utility.FixedInternet], new Load(300m, 300m, 15m), Cse),
         Fixture("laptop-and-screen", "The laptop and a screen", "About four hundred watt-hours a working day, and the internet to go with it.", [new Provision(NeedId.WorkingFromHome, 0m, RequiresHeld: NeedId.Internet)], Nothing, new Load(400m, 400m, 80m), Cse),
 
-        // Sanitation is water; the tap, the cans, the liner and the butt are above.
+        // Sanitation is water while the sewers run: the tap, the cans, the liner and the butt are above. When
+        // they do not, it is a bag: the bin bags every house has, which is the Chief Medical Officers' own
+        // advice and counts as partial, and the kit made for the job, which counts in full. The kit is tried
+        // first, so the board names it while it lasts and the bin bags only after it has run out.
+        new("no-flush-toilet-kit", "Toilet liners and gelling powder", "Bags that line the bowl of the toilet you already have, with a powder that sets the contents solid and holds the smell: three days for everyone, tied off and put in the outside bin.", [new Provision(NeedId.Sanitation, 0m, WorksWithoutSewers: true)], Nothing, null, new Stock(36m, PerPerson: true), null, null, Placement.Anywhere, Cmo),
+        new("bin-bags", "Bin bags and the outside bin", "The official advice when the toilet cannot be flushed: collect it in a plastic bag, seal it, and put it in the outside bin. It works, and nobody would call it comfortable.", [new Provision(NeedId.Sanitation, 0m, Partial: true, WorksWithoutSewers: true)], Nothing, null, null, null, null, Placement.Anywhere, Cmo),
 
         // The car.
         new("petrol-car", "The car and what is in its tank", "Half a tank is about a week of local driving, and a 12-volt socket that charges phones.", [All_(NeedId.Mobility)], [Utility.Roads], null, new Stock(7m), null, null, Placement.NeedsCar, "Plan action"),

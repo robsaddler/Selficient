@@ -136,7 +136,6 @@ public sealed class TipsAndDealsTests
         ICatalogueStore store = Substitute.For<ICatalogueStore>();
         IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
         shipped.All.Returns([]);
-        store.CountAsync(Arg.Any<CancellationToken>()).Returns(1);
         Offer torch = new(1, ActionId.From("headtorches"), "Petzl Tikkina", "Amazon", Money.FromPence(2200), new DateOnly(2026, 10, 29), new Uri("https://www.amazon.co.uk/s?k=Petzl"), "", OfferStatus.Live, 0);
         Offer torchDearer = torch with { Id = 2, Name = "Ledlenser MH3", Price = Money.FromPence(2600) };
         Offer water = new(3, ActionId.From("water-bottled-three-days"), "Still water", "Tesco", Money.FromPence(300), new DateOnly(2026, 10, 29), new Uri("https://www.tesco.com/search?query=water"), "", OfferStatus.Live, 0);

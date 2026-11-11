@@ -152,7 +152,7 @@ public sealed class CatalogueTests
         KitPick seed = KitPick.Create("headtorches", "Petzl Tikkina headtorch", "Amazon", 22m, new DateOnly(2026, 10, 29), new Uri("https://www.amazon.co.uk/s?k=Petzl"), null).Value;
         shipped.All.Returns([seed]);
         shipped.PicksFor(ActionId.From("headtorches")).Returns([seed]);
-        store.CountAsync(Arg.Any<CancellationToken>()).Returns(0, 1);
+        store.AllAsync(Arg.Any<CancellationToken>()).Returns([], [AnOffer(1) with { Link = seed.Link }]);
         store.ShownAsync(Arg.Any<CancellationToken>()).Returns([AnOffer(2, "Ledlenser MH3 headtorch") with { Price = Money.FromPence(2600) }, AnOffer(1)]);
         using StoredCatalogue catalogue = new(store, shipped);
 
@@ -176,6 +176,30 @@ public sealed class CatalogueTests
     }
 
     [Fact]
+    public async Task A_release_that_ships_new_picks_adds_only_those_to_a_store_seeded_before_it()
+    {
+        ICatalogueStore store = Substitute.For<ICatalogueStore>();
+        IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
+        KitPick old = KitPick.Create("headtorches", "Petzl Tikkina headtorch", "Amazon", 22m, new DateOnly(2026, 10, 29), new Uri("https://www.amazon.co.uk/s?k=Petzl"), null).Value;
+        KitPick hiddenByAnOperator = KitPick.Create("headtorches", "Ledlenser MH3 headtorch", "Amazon", 26m, new DateOnly(2026, 10, 29), new Uri("https://www.amazon.co.uk/s?k=Ledlenser"), null).Value;
+        KitPick sameLinkNewAction = KitPick.Create("no-flush-toilet-kit", "Portable toilet bags", "Amazon", 10.99m, new DateOnly(2026, 11, 11), old.Link, null).Value;
+        KitPick liners = KitPick.Create("no-flush-toilet-kit", "CarpLife Bivvy Loo refill pack", "Amazon", 14.99m, new DateOnly(2026, 11, 11), new Uri("https://www.amazon.co.uk/s?k=CarpLife"), null).Value;
+        shipped.All.Returns([old, hiddenByAnOperator, sameLinkNewAction, liners]);
+        store.AllAsync(Arg.Any<CancellationToken>()).Returns([
+            AnOffer(1) with { Link = old.Link },
+            AnOffer(2, "Ledlenser MH3 headtorch", OfferStatus.Hidden, 2) with { Link = hiddenByAnOperator.Link },
+        ]);
+        store.ShownAsync(Arg.Any<CancellationToken>()).Returns([AnOffer(1) with { Link = old.Link }]);
+        using StoredCatalogue catalogue = new(store, shipped);
+
+        await catalogue.ReloadAsync(CancellationToken.None);
+
+        await store.Received(1).SeedAsync(
+            Arg.Is<IReadOnlyList<KitPick>>(picks => picks.Count == 2 && picks[0] == sameLinkNewAction && picks[1] == liners),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task The_operations_verify_reload_and_know_when_the_night_is_due()
     {
         ICatalogueStore store = Substitute.For<ICatalogueStore>();
@@ -183,7 +207,6 @@ public sealed class CatalogueTests
         IOfferJudge judge = Substitute.For<IOfferJudge>();
         IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
         shipped.All.Returns([]);
-        store.CountAsync(Arg.Any<CancellationToken>()).Returns(1);
         store.ShownAsync(Arg.Any<CancellationToken>()).Returns([]);
         ManualClock clock = new(new DateTimeOffset(2026, 10, 31, 3, 0, 0, TimeSpan.Zero));
         using StoredCatalogue catalogue = new(store, shipped);

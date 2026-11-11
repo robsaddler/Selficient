@@ -1,4 +1,5 @@
 using Selficient.Domain.Households;
+using Selficient.Domain.Measures;
 using Selficient.Domain.Plans;
 using Selficient.Domain.Plans.Rules;
 using Selficient.Domain.Risks;
@@ -19,7 +20,21 @@ public sealed class RulesTests
     {
         List<PlanAction> actions = Run(new BaselineChecklistRule(), Profiles.RobsHouse());
 
-        actions.Count.ShouldBe(10);
+        actions.Count.ShouldBe(12);
+        PlanAction liners = actions.Single(a => a.Id.Value == "no-flush-toilet-kit");
+        liners.Title.ShouldBe("Toilet liners and gelling powder for 4 people for three days");
+        liners.Why.ShouldContain("the official advice is not to flush at all, even with stored water");
+        liners.Cost.ShouldBe(MoneyRange.Pounds(10m, 34m));
+        liners.Mitigates.ShouldBe([RiskKind.RegionalDisruption, RiskKind.WaterInterruption], ignoreOrder: true);
+        PlanAction backup = actions.Single(a => a.Id.Value == "landline-battery-backup");
+        backup.Title.ShouldBe("A battery backup for the router, so the broadband and the house phone work in a power cut");
+        backup.Why.ShouldContain("31 January 2027");
+        backup.Why.ShouldContain("it has to give a backup that lasts at least an hour, free, to anyone who relies on the landline");
+        backup.Cost.ShouldBe(MoneyRange.Pounds(0m, 62m));
+        PlanAction radio = actions.Single(a => a.Id.Value == "radio-dab-fm-with-crank");
+        radio.Title.ShouldBe("A radio with FM that runs on AA cells, with a wind-up handle");
+        radio.Why.ShouldContain("BBC Radio 2 and Radio 4");
+        radio.Mitigates.ShouldContain(RiskKind.RegionalDisruption);
         PlanAction water = actions.Single(a => a.Id.Value == "water-bottled-three-days");
         water.Title.ShouldBe("36 litres of sealed bottled water");
         water.Why.ShouldStartWith("Three days of drinking water for 4 people. That is 18 of the big two-litre bottles");

@@ -42,6 +42,7 @@ public static class UpkeepSchedule
             new("water-rotation", "Refill the stored water", "Empty, rinse and refill the water cans, add a purifying tablet, and swap the bottled water. Tied to the clock changes so it is never forgotten.", Cadence.OnDates, [(3, 29), (10, 25)]),
             new("alarm-tests", "Test the smoke and carbon monoxide alarms", "Press the test button on each alarm and check that the plug-in power-failure torches light when unplugged.", Cadence.Monthly),
             new("battery-top-up", "Top up the power banks and the power station", "Charge them to between half and three-quarters full, and check the stove cartridges and candles.", Cadence.Quarterly),
+            new("stored-cells-check", "Check the cells in the radio and the torches", "Open the radio and every torch that sits in a drawer and look for leaked cells, because a leaked cell ruins the thing it was meant to power. Store the spare cells beside each one, not inside it, and switch the radio on to hear that it works.", Cadence.OnDates, [(3, 29), (10, 25)]),
             new("first-aid-check", "Check the first-aid kit and medicines", "Replace anything used or out of date, and make sure there are two weeks of any prescription.", Cadence.OnDates, [(3, 29), (10, 25)]),
             new("winter-car", "Keep the car above half a tank from now until March", "Fuel pumps need electricity too, and a charged car is a charger and a way off the hill.", Cadence.OnDates, [(11, 1)]),
             new("annual-review", "Review the plan, the prices and the insurance limits", "Once a year, walk through the plan, check that the cash limit on the contents policy still matches what is in the box, and look at the tree after the winter storms.", Cadence.Yearly),
@@ -61,8 +62,8 @@ public static class UpkeepSchedule
     }
 
     /// <summary>
-    /// The UK clock changes: the last Sunday of March and of October. The water rotation and the
-    /// first-aid check follow these rather than fixed dates.
+    /// The UK clock changes: the last Sunday of March and of October. The water rotation, the
+    /// first-aid check and the check of stored cells follow these rather than fixed dates.
     /// </summary>
     public static DateOnly LastSundayOf(int year, int month)
     {
@@ -75,7 +76,7 @@ public static class UpkeepSchedule
     public static bool FollowsClockChanges(Reminder reminder)
     {
         ArgumentNullException.ThrowIfNull(reminder);
-        return reminder.Id is "water-rotation" or "first-aid-check";
+        return reminder.Id is "water-rotation" or "first-aid-check" or "stored-cells-check";
     }
 
     /// <summary>The next occurrence of each reminder on or after <paramref name="from"/>, for the calendar.</summary>
