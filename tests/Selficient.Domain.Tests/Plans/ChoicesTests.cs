@@ -61,5 +61,6 @@ public sealed class ChoicesTests
         Should.Throw<ArgumentNullException>(() => new PlanChoices(Ids(), Ids(), null!));
         Should.Throw<ArgumentNullException>(() => ChoiceTally.Of(null!, PlanChoices.None));
         Should.Throw<ArgumentNullException>(() => ChoiceTally.Of([], null!));
+        Should.Throw<ArgumentNullException>(() => ChoiceTally.Of([], PlanChoices.None, null!));
     }
 }

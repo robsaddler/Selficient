@@ -141,6 +141,88 @@ public sealed class Journeys
     }
 
     [Fact]
+    public async Task Ten_days_of_tins_are_counted_as_ten_days_across_both_food_rows()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        ILocator shelf = page.Locator("[data-action-row=\"food-no-cook-three-days\"]");
+        ILocator month = page.Locator("[data-action-row=\"food-one-month\"]");
+        ILocator shelfBox = page.Locator("#amount-food-no-cook-three-days");
+        ILocator monthBox = page.Locator("#amount-food-one-month");
+        ILocator whole = page.Locator(".plan__tally");
+
+        // The question is out of sight until the action is held, then offers what the plan asks for.
+        await Expect(shelfBox).ToBeHiddenAsync();
+        await shelf.Locator("[data-choice=\"have\"]").CheckAsync();
+        await Expect(shelfBox).ToBeVisibleAsync();
+        await Expect(shelfBox).ToHaveValueAsync("3");
+        await Expect(shelf.GetByText("days of food for the 4 of you")).ToBeVisibleAsync();
+        await Expect(shelf.GetByText("The plan suggests 3.")).ToBeVisibleAsync();
+
+        // Ten days: the shelf is held, the month is a third met and costed for the rest, and both rows show the one figure.
+        await shelfBox.FillAsync("10");
+        await shelfBox.PressAsync("Tab");
+        await Expect(shelf.Locator("[data-progress-for]")).ToHaveTextAsync("You have 10 days of food.");
+        await Expect(month.Locator("[data-progress-for]")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^You have 10 of 30 days of food\\. The rest would cost £[0-9.,]+ to £[0-9.,]+\\.$"));
+        await Expect(monthBox).ToBeVisibleAsync();
+        await Expect(monthBox).ToHaveValueAsync("10");
+        await Expect(shelf.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await Expect(month.Locator("[data-choice=\"have\"]")).Not.ToBeCheckedAsync();
+        await Expect(whole.Locator("[data-tally-kind=\"have\"] [data-tally-figure]")).ToContainTextAsync("1 of ");
+
+        // A month from either box holds both rows.
+        await monthBox.FillAsync("30");
+        await monthBox.PressAsync("Tab");
+        await Expect(month.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await Expect(shelfBox).ToHaveValueAsync("30");
+        await Expect(month.Locator("[data-progress-for]")).ToHaveTextAsync("You have 30 days of food.");
+        await Expect(whole.Locator("[data-tally-kind=\"have\"] [data-tally-figure]")).ToContainTextAsync("2 of ");
+
+        // Taking "Have it" off the month drops the figure to the shelf below it; off the shelf, the figure goes.
+        await month.Locator("[data-choice=\"have\"]").UncheckAsync();
+        await Expect(shelfBox).ToHaveValueAsync("3");
+        await Expect(shelf.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await Expect(month.Locator("[data-progress-for]")).ToContainTextAsync("You have 3 of 30 days of food.");
+        await shelf.Locator("[data-choice=\"have\"]").UncheckAsync();
+        await Expect(shelfBox).ToBeHiddenAsync();
+        await Expect(monthBox).ToBeHiddenAsync();
+        await Expect(month.Locator("[data-progress-for]")).ToBeHiddenAsync();
+
+        // A figure too big to be true is held to what the plan can count, and nonsense clears it.
+        await shelf.Locator("[data-choice=\"have\"]").CheckAsync();
+        await shelfBox.FillAsync("99999");
+        await shelfBox.PressAsync("Tab");
+        await Expect(month.Locator("[data-progress-for]")).ToHaveTextAsync("You have 365 days of food.");
+        await shelfBox.FillAsync("10");
+        await shelfBox.PressAsync("Tab");
+        await Expect(month.Locator("[data-progress-for]")).ToContainTextAsync("You have 10 of 30 days of food.");
+
+        // It survives a reload, clearing what is held clears the count, and Undo brings both back.
+        await page.ReloadAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(shelfBox).ToHaveValueAsync("10");
+        await Expect(month.Locator("[data-progress-for]")).ToContainTextAsync("You have 10 of 30 days of food.");
+        await whole.GetByRole(AriaRole.Button, new() { Name = "Clear what you have: The whole plan" }).ClickAsync();
+        await Expect(shelfBox).ToBeHiddenAsync();
+        await Expect(month.Locator("[data-progress-for]")).ToBeHiddenAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Undo", Exact = true }).ClickAsync();
+        await Expect(shelfBox).ToHaveValueAsync("10");
+        await Expect(shelf.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await ShouldNotScrollSidewaysAsync(page);
+
+        IDownload download = await page.RunAndWaitForDownloadAsync(() => page.GetByRole(AriaRole.Button, new() { Name = "Export as a file" }).ClickAsync());
+        string path = Path.Combine(Path.GetTempPath(), $"selficient-e2e-{Guid.NewGuid():N}.json");
+        await download.SaveAsAsync(path);
+        string json = await File.ReadAllTextAsync(path);
+        File.Delete(path);
+        json.ShouldContain("\"food-days\": 10");
+
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Export_then_start_again_then_import_brings_the_plan_back()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();

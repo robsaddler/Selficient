@@ -57,6 +57,18 @@
               <span>Not for me</span>
             </label>
           </div>
+          @if (Model.Amounts.TryGetValue(id, out var amount))
+          {
+            @* The household's own figure for this stock. Out of sight until the action is held or a
+               figure has been given, then filled in by the script from what this browser keeps. *@
+            <div class="amount" data-amount="@amount.StockId" data-amount-target="@amount.Target" hidden>
+              <label for="amount-@id">@Selficient.Web.Pages.Plan.AmountCopy.Question</label>
+              <input id="amount-@id" class="input input--short" type="number" inputmode="numeric" min="0" max="@amount.Max" step="1" autocomplete="off" data-amount-input>
+              <span class="amount__unit">@amount.Unit</span>
+              <span class="amount__hint">@amount.Suggests</span>
+            </div>
+            <p class="action__progress" data-progress-for="@id" hidden></p>
+          }
           @if (picks.Count > 0)
           {
             <details class="picks">

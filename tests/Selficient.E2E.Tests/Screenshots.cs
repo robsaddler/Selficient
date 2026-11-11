@@ -68,6 +68,10 @@ public sealed class Screenshots
                 await page.Locator("[data-action-row=\"power-banks\"] [data-choice=\"plan\"]").CheckAsync();
                 await page.Locator("[data-action-row=\"radio-dab-fm-with-crank\"] [data-choice=\"skip\"]").CheckAsync();
                 await Assertions.Expect(page.Locator(".plan__tally [data-tally-kind=\"skip\"] [data-tally-figure]")).ToHaveTextAsync("1");
+                // And a household's own count, so the capture shows the box and a month part met.
+                await page.Locator("#amount-water-bottled-three-days").FillAsync("48");
+                await page.Locator("#amount-water-bottled-three-days").PressAsync("Tab");
+                await Assertions.Expect(page.Locator("[data-progress-for=\"water-bottled-three-days\"]")).ToHaveTextAsync("You have 48 litres of bottled water.");
                 await SettleAsync(page);
                 await page.ScreenshotAsync(new() { Path = Target($"plan-{size}-{theme}.png"), FullPage = true });
             }

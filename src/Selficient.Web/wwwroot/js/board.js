@@ -125,6 +125,11 @@ async function redraw(doc, slot, echo, choice) {
   for (const [id, choice] of Object.entries(choices)) {
     body.append(fields[choice], id);
   }
+  // The household's own figures for the stocks it counted, which decide those stocks whatever is ticked.
+  const amounts = await store.getAmounts().catch(() => /** @type {Record<string, number>} */ ({}));
+  for (const [id, amount] of Object.entries(amounts)) {
+    body.append("Amounts[" + id + "]", String(amount));
+  }
   const dependencies = await store.getDependencies().catch(() => []);
   dependencies.forEach((dependency, i) => {
     body.append(`Form.Dependencies[${i}].Name`, dependency.name);
@@ -152,6 +157,7 @@ async function redraw(doc, slot, echo, choice) {
   updateTiers(doc, slot);
   updateTallies(doc, slot);
   placeTurns(doc, slot);
+  placeProgress(doc, slot);
 }
 
 /**
@@ -347,6 +353,28 @@ function placeTurns(doc, slot) {
       note.textContent = item.textContent ?? "";
       // Under the choice and above the picks, where the row's grid puts it.
       choice.after(note);
+    }
+  }
+}
+
+/**
+ * Each action the household put a figure towards says how far the figure goes.
+ * @param {Document} doc
+ * @param {HTMLElement} slot
+ */
+function placeProgress(doc, slot) {
+  /** @type {Map<string, string>} */
+  const said = new Map();
+  for (const item of slot.querySelectorAll("[data-board-progress] li")) {
+    if (item instanceof HTMLElement && item.dataset.progressAction) {
+      said.set(item.dataset.progressAction, item.textContent ?? "");
+    }
+  }
+  for (const line of doc.querySelectorAll("[data-progress-for]")) {
+    if (line instanceof HTMLElement) {
+      const sentence = said.get(line.dataset.progressFor ?? "") ?? "";
+      line.textContent = sentence;
+      line.hidden = sentence === "";
     }
   }
 }

@@ -26,6 +26,13 @@
       <li data-tier="@tier.Tier" data-days="@tier.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(tier.DaysReady, tier.Excludes)</li>
     }
   </ul>
+  @* How far the household's own figures take it towards each action it counted; the script puts each under its action. *@
+  <ul hidden data-board-progress>
+    @foreach (var counted in set.Progress)
+    {
+      <li data-progress-action="@counted.Counted.ActionId">@Selficient.Web.Pages.Plan.AmountCopy.Progress(counted)</li>
+    }
+  </ul>
   @* The counts for the whole plan and for each stretch; the script copies each onto the tally of the same scope. *@
   <div hidden data-board-tallies>
     @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForPlan(set))

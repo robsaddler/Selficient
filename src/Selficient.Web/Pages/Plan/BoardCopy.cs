@@ -39,7 +39,6 @@ public static class BoardCopy
             return "Not something this house needs in this scenario.";
         }
 
-        DayState first = row.Days[0];
         int heldDays = 0;
         while (heldDays < row.Days.Count && row.Days[heldDays].State == CellState.Held)
         {
@@ -48,11 +47,11 @@ public static class BoardCopy
 
         if (heldDays == row.Days.Count)
         {
-            return $"Held for the whole stretch by {Name(first.CarriedBy)}.";
+            return $"Held for the whole stretch by {Name(Mainstay(row, heldDays))}.";
         }
 
         DayState turn = row.Days[heldDays];
-        string carried = heldDays > 0 ? $"Held for {Days(heldDays)} by {Name(first.CarriedBy)}, then " : string.Empty;
+        string carried = heldDays > 0 ? $"Held for {Days(heldDays)} by {Name(Mainstay(row, heldDays))}, then " : string.Empty;
         string then = turn.State switch
         {
             CellState.Reduced => $"held in a reduced way by {Name(turn.CarriedBy)}",
@@ -63,6 +62,10 @@ public static class BoardCopy
         string sentence = $"{carried}{then}{because}.";
         return char.ToUpperInvariant(sentence[0]) + sentence[1..];
     }
+
+    // What carried the need for most of the days it was held, the earliest on a tie: ten days of tins, not the half day in the fridge before them.
+    private static string? Mainstay(BoardRow row, int heldDays) =>
+        row.Days.Take(heldDays).GroupBy(static day => day.CarriedBy).OrderByDescending(static days => days.Count()).First().Key;
 
     /// <summary>A provider's name in lower case for the middle of a sentence, or the engine's own prose for a dependency.</summary>
     public static string Name(string? providerId)

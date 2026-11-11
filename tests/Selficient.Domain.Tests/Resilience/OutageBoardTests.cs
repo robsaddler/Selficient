@@ -376,7 +376,7 @@ public sealed class OutageBoardTests
         HashSet<string> none = [];
 
         Should.Throw<ArgumentNullException>(() => OutageBoard.Simulate(null!, none, Scenarios.Storm, Season.Winter));
-        Should.Throw<ArgumentNullException>(() => OutageBoard.Simulate(rob, null!, Scenarios.Storm, Season.Winter));
+        Should.Throw<ArgumentNullException>(() => OutageBoard.Simulate(rob, (IReadOnlySet<string>)null!, Scenarios.Storm, Season.Winter));
         Should.Throw<ArgumentNullException>(() => OutageBoard.Simulate(rob, none, null!, Season.Winter));
         Should.Throw<ArgumentNullException>(() => OutageBoard.Simulate(null!, none, Scenarios.Storm, Season.Winter, Horizon.OneDay));
         Should.Throw<ArgumentNullException>(() => OutageBoard.Simulate(rob, null!, Scenarios.Storm, Season.Winter, Horizon.OneDay));

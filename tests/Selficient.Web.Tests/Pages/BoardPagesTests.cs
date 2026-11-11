@@ -169,6 +169,88 @@ public sealed class BoardPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Ten_days_of_tins_count_as_ten_days_on_the_board_the_rows_and_the_tally()
+    {
+        using HttpClient client = _factory.CreateClient();
+        Dictionary<string, string> snow = RobsHouse();
+        snow["Form.Scenario"] = "snow";
+
+        string ticked = await Post(client, "/plan/board", snow, "Ticks=food-no-cook-three-days", "Ticks=cash-in-small-notes");
+        string counted = await Post(client, "/plan/board", snow, "Ticks=cash-in-small-notes", "Ticks=food-one-month", "Amounts[food-days]=10");
+        string page = await Post(client, "/plan", RobsHouse());
+
+        ticked.ShouldContain("data-days-ready=\"3\"");
+        ticked.ShouldContain("<ul hidden data-board-progress>");
+        ticked.ShouldNotContain("data-progress-action", customMessage: "no figure was given, so nothing is said about one");
+        counted.ShouldContain("data-days-ready=\"7\"", customMessage: "the tins now outlast the three days a tick stood for, and the figure runs to where the next need gives");
+        counted.ShouldContain("by the food you have stored", customMessage: "the board names the shelf the household counted");
+        counted.ShouldContain("<li data-progress-action=\"food-no-cook-three-days\">You have 10 days of food.</li>");
+        counted.ShouldContain("<li data-progress-action=\"food-one-month\">You have 10 of 30 days of food. The rest would cost £93.33 to £160.</li>", customMessage: "two thirds of a month for four people, though the month was ticked");
+        counted.ShouldContain("data-turns-action=\"food-one-month\"", customMessage: "the month is not held, so its row still says what topping up would do");
+        page.ShouldContain("data-amount=\"food-days\" data-amount-target=\"3\" hidden");
+        page.ShouldContain("data-amount=\"food-days\" data-amount-target=\"30\" hidden");
+        page.ShouldContain("data-amount=\"bottled-water-litres\" data-amount-target=\"36\" hidden");
+        page.ShouldContain("data-amount=\"cash-pounds\" data-amount-target=\"400\" hidden");
+        page.ShouldContain("<label for=\"amount-food-one-month\">How much do you have?</label>");
+        page.ShouldContain("max=\"365\" step=\"1\" autocomplete=\"off\" data-amount-input>");
+        page.ShouldContain("<span class=\"amount__unit\">days of food for the 4 of you</span>");
+        page.ShouldContain("<span class=\"amount__hint\">The plan suggests 30.</span>");
+        page.ShouldContain("data-progress-for=\"food-one-month\" hidden");
+        page.ShouldNotContain("data-amount-target=\"0\"");
+        Regex.Count(page, "data-amount-input").ShouldBe(6, "food twice, bottled water, cash, the cans, and the stove a house with an electric hob is offered");
+    }
+
+    [Fact]
+    public async Task A_figure_for_something_unmeasured_or_out_of_range_is_refused_with_a_sentence()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        using HttpResponseMessage unknown = await PostRaw(client, "/plan/board", RobsHouse(), "Amounts[headtorches]=4");
+        using HttpResponseMessage hostile = await PostRaw(client, "/plan/board", RobsHouse(), "Amounts[<script>]=4");
+        using HttpResponseMessage negative = await PostRaw(client, "/plan/board", RobsHouse(), "Amounts[food-days]=-3");
+        using HttpResponseMessage huge = await PostRaw(client, "/plan/board", RobsHouse(), "Amounts[food-days]=100000");
+        using HttpResponseMessage words = await PostRaw(client, "/plan/board", RobsHouse(), "Amounts[food-days]=lots");
+        using HttpResponseMessage page = await PostRaw(client, "/plan", RobsHouse(), "Amounts[headtorches]=4");
+
+        unknown.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await unknown.Content.ReadAsStringAsync()).ShouldBe("One of the amounts is for something the plan does not measure.");
+        hostile.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await hostile.Content.ReadAsStringAsync()).ShouldBe("One of the amounts is for something the plan does not measure.");
+        negative.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await negative.Content.ReadAsStringAsync()).ShouldBe("One of the amounts is below zero or more than the plan can count.");
+        huge.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await huge.Content.ReadAsStringAsync()).ShouldBe("One of the amounts is below zero or more than the plan can count.");
+        words.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await words.Content.ReadAsStringAsync()).ShouldNotContain("<");
+        (await page.Content.ReadAsStringAsync()).ShouldNotContain("id=\"plan-heading\"", customMessage: "the plan page builds nothing from it either");
+    }
+
+    [Fact]
+    public void The_words_around_a_figure_are_whole_and_say_what_is_counted()
+    {
+        Selficient.Domain.Measures.MoneyRange month = Selficient.Domain.Measures.MoneyRange.Pounds(140m, 240m);
+        Selficient.Domain.Measures.MoneyRange free = Selficient.Domain.Measures.MoneyRange.Free;
+
+        AmountCopy.Question.ShouldBe("How much do you have?");
+        AmountCopy.Unit(MeasuredStocks.FoodDays, 4).ShouldBe("days of food for the 4 of you");
+        AmountCopy.Unit(MeasuredStocks.FoodDays, 1).ShouldBe("days of food for you");
+        AmountCopy.Unit(MeasuredStocks.BottledWaterLitres, 1).ShouldBe("litres of sealed bottled water");
+        AmountCopy.Unit(MeasuredStocks.WaterCansLitres, 4).ShouldBe("litres of water in cans");
+        AmountCopy.Unit(MeasuredStocks.CashPounds, 4).ShouldBe("pounds in notes and coins");
+        AmountCopy.Unit(MeasuredStocks.StoveCartridges, 4).ShouldBe("cartridges for the stove");
+        AmountCopy.Suggests(36m).ShouldBe("The plan suggests 36.");
+        AmountCopy.Progress(new CountedAction(new Progress("food-one-month", MeasuredStocks.FoodDays, 45m, 30m, 0m), free)).ShouldBe("You have 45 days of food.");
+        AmountCopy.Progress(new CountedAction(new Progress("food-one-month", MeasuredStocks.FoodDays, 10m, 30m, 2m / 3m), month.Share(2m / 3m))).ShouldBe("You have 10 of 30 days of food. The rest would cost £93.33 to £160.");
+        AmountCopy.Progress(new CountedAction(new Progress("food-one-month", MeasuredStocks.FoodDays, 0m, 30m, 1m), month)).ShouldBe("You have none of the 30 days of food.");
+        AmountCopy.Progress(new CountedAction(new Progress("cash-in-small-notes", MeasuredStocks.CashPounds, 200m, 400m, 1m), free)).ShouldBe("You have 200 of 400 pounds in cash.");
+        AmountCopy.Progress(new CountedAction(new Progress("butane-cartridge-stove", MeasuredStocks.StoveCartridges, 4m, 10m, 1m), month)).ShouldBe("You have 4 of 10 cartridges.", "a stove part stocked is not costed by the cartridge");
+        AmountCopy.Progress(new CountedAction(new Progress("water-cans", MeasuredStocks.WaterCansLitres, 50m, 100m, 0.5m), free)).ShouldBe("You have 50 of 100 litres in cans.", "nothing to cost when the rest is free");
+        Should.Throw<ArgumentNullException>(() => AmountCopy.Progress(null!));
+        Should.Throw<ArgumentNullException>(() => AmountView.For(null!, ResilienceProfile.FromProfile(Profiles.Flat())));
+        Should.Throw<ArgumentNullException>(() => AmountView.For([], null!));
+    }
+
+    [Fact]
     public void The_tally_says_whole_things_about_every_count()
     {
         Selficient.Domain.Measures.MoneyRange some = Selficient.Domain.Measures.MoneyRange.Pounds(40m, 90m);

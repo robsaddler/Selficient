@@ -1,6 +1,7 @@
 using Selficient.Application.Composition;
 using Selficient.Application.Resilience;
 using Selficient.Domain.Households;
+using Selficient.Domain.Measures;
 using Selficient.Domain.Plans;
 using Selficient.Domain.Resilience;
 using Selficient.Domain.Risks;
@@ -12,6 +13,10 @@ public sealed class BoardComposerTests
 {
     private static readonly RiskAssessmentPipeline Risks = new(ApplicationServiceCollectionExtensions.Assessors());
     private static readonly PlanBuilder Builder = new(ApplicationServiceCollectionExtensions.Rules());
+
+    // The undecided sum with the month costed at two thirds: the same sum, less a third of the month.
+    private static MoneyRange ExpectedUndecided(MoneyRange whole, MoneyRange month) =>
+        new(Money.FromPence(whole.From.Pence - month.From.Pence + month.Share(20m / 30m).From.Pence), Money.FromPence(whole.To.Pence - month.To.Pence + month.Share(20m / 30m).To.Pence));
 
     private static Plan PlanFor(HouseholdProfile profile) => Builder.Build(profile, Risks.Run(profile)).Value;
 
@@ -152,6 +157,34 @@ public sealed class BoardComposerTests
         without.Tally.Undecided.ShouldBe(plan.Actions.Count() - 3);
         without.DaysReady.ShouldBe(all.DaysReady, "ruling something out takes nothing from the house");
         without.PlannedDaysReady.ShouldBe(all.DaysReady);
+    }
+
+    [Fact]
+    public void A_counted_shelf_moves_the_figure_and_costs_only_what_is_missing()
+    {
+        HouseholdProfile rob = Profiles.RobsHouse();
+        Plan plan = PlanFor(rob);
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob);
+        HashSet<string> cash = ["cash-in-small-notes"];
+        Dictionary<string, int> tenDays = new() { [MeasuredStocks.FoodDays] = 10 };
+        PlanAction month = plan.Actions.Single(action => action.Id.Value == "food-one-month");
+
+        BoardSet ticked = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string> { "cash-in-small-notes", "food-no-cook-three-days" }, plan, "snow", null));
+        BoardSet counted = BoardComposer.Compose(new BoardRequest(profile, cash, plan, "snow", null, null, null, null, tenDays));
+        BoardSet planned = BoardComposer.Compose(new BoardRequest(profile, cash, plan, "snow", null, "power-banks", new HashSet<string> { "food-one-month" }, null, tenDays));
+        BoardSet whole = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string> { "cash-in-small-notes", "food-one-month" }, plan, "snow", null));
+
+        ticked.Progress.ShouldBeEmpty("no figure, nothing to report");
+        counted.DaysReady.ShouldBeGreaterThan(ticked.DaysReady, "ten days of tins outlast the three the tick stood for");
+        counted.Progress.Select(action => action.Counted.ActionId).ShouldBe(["food-no-cook-three-days", "food-one-month"]);
+        counted.Progress[1].Rest.ShouldBe(month.Cost.Share(20m / 30m));
+        counted.Tally.Have.ShouldBe(2, "the cash and the three-day shelf the count reaches");
+        counted.Tally.UndecidedCost.ShouldBe(ExpectedUndecided(ticked.Tally.UndecidedCost, month.Cost), "the month is costed at the two thirds still to buy");
+        counted.Turns.ShouldContain(turn => turn.Action.Value == "food-one-month");
+        planned.Tally.PlannedCost.ShouldBe(month.Cost.Share(20m / 30m));
+        planned.PlannedDaysReady.ShouldBe(whole.PlannedDaysReady, "planning the month tops the shelf up to a month; it does not stack a month on ten days");
+        planned.Sheet.ShouldNotBeSameAs(planned.Current, "another source is still drawn beside a counted house");
+        counted.Tiers[^1].DaysReady.ShouldBe(ticked.Tiers[^1].DaysReady, "with everything in place the shelf is the plan's month either way");
     }
 
     [Fact]

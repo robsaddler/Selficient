@@ -55,6 +55,11 @@ public readonly record struct MoneyRange(Money From, Money To)
         return new MoneyRange(Money.FromPounds(from).Value, Money.FromPounds(to).Value);
     }
 
+    /// <summary>A share of the range, for the part of a purchase still to make. Rounded to the penny.</summary>
+    public MoneyRange Share(decimal fraction) => fraction is < 0m or > 1m
+        ? throw new ArgumentOutOfRangeException(nameof(fraction), "A share of a cost is between nothing and all of it.")
+        : new(Money.FromPence((long)Math.Round(From.Pence * fraction, MidpointRounding.AwayFromZero)), Money.FromPence((long)Math.Round(To.Pence * fraction, MidpointRounding.AwayFromZero)));
+
     /// <summary>The sum of two ranges.</summary>
     public MoneyRange Add(MoneyRange other) => new(From + other.From, To + other.To);
 

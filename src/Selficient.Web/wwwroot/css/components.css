@@ -366,6 +366,50 @@ progress.tier-progress {
   cursor: pointer;
 }
 
+/* The household's own figure for an action's stock: a short question, a number and what it counts,
+   under the choice. Out of sight until the action is held or a figure has been given. */
+.amount {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-block-start: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-s);
+  background: var(--c-ground);
+  font-size: var(--text-s);
+
+  &[hidden] {
+    display: none;
+  }
+
+  & label {
+    font-weight: 600;
+  }
+
+  /* Wide enough for four figures; the three classes outrank the short input rule further down this sheet. */
+  & .input.input--short {
+    inline-size: 6rem;
+  }
+
+  & .amount__hint {
+    color: var(--c-ink-muted);
+  }
+}
+
+.action__progress {
+  grid-column: 2 / -1;
+  font-size: var(--text-s);
+  font-weight: 600;
+  color: var(--c-pine);
+}
+
+.action:has([data-choice="skip"]:checked) > .amount,
+.action:has([data-choice="skip"]:checked) > .action__progress {
+  display: none;
+}
+
 /* The tally: how many of a stretch, or of the whole plan, the household has, plans, has not decided
    and has ruled out, with what the planned and the undecided would cost and a way to clear each. */
 .tally {

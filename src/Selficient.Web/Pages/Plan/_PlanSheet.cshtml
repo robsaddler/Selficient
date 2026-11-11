@@ -57,7 +57,7 @@
   </p>
   @foreach (var tier in planned.Plan.Tiers)
   {
-    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier]))
+    @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier], planned.Plan.Profile))
   }
   <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
   @if (planned.Plan.Profile.Dwelling.HasOwnRoof)

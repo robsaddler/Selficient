@@ -27,6 +27,21 @@ Each action on the plan takes one of three choices: the household has it, plans 
 | 10 | A button with nothing to act on, or the fragment's hidden copy of a button, doing something | A button marked `aria-disabled` returns before reading the store; the click handler ignores anything inside the fragment's hidden tallies | the E2E journey (asserts the attribute after the count empties) |
 | 11 | A ruled-out safety action (the carbon monoxide alarm) silently dropping out of the advice | Ruling out hides the row's detail and stops the row arguing, but the action stays on the plan, in its place, counted under "Not for me" in the tally, and each stretch's sentence says "except what is not for you" | `What_is_ruled_out_is_not_suggested_again_and_is_left_out_of_where_a_stretch_leads`, `The_copy_helpers_say_whole_sentences` |
 
+## Addendum, the same day: the household's own figures
+
+A household can type how much it has of five stocks (days of food, litres of bottled water, litres in cans, pounds in cash, stove cartridges). The figures live in a fourth IndexedDB store and are posted as `Amounts[stock-id]=n`. A figure sets the stock the engine draws down, and decides which plan actions are held: ten days of food holds the three-day shelf and a third of the month, whatever is ticked.
+
+| # | Case | Control | Test |
+|---|---|---|---|
+| 12 | A figure for something the plan does not measure, a key with markup in it, a negative, a number in the millions, or words | `MeasuredStocks.Check` refuses an unknown id and anything outside the stock's own range with a sentence and a 400 before the engine is reached; a value that is not a whole number fails binding with a 400; the key is never echoed | `A_figure_for_something_unmeasured_or_out_of_range_is_refused_with_a_sentence`, `Figures_from_a_browser_are_checked_before_anything_uses_them` |
+| 13 | A huge figure used to make the simulation long | A stock's size does not change the number of days simulated, which is the scenario's; each figure is capped (a year of food, 2,000 litres, £10,000, 200 cartridges) and there are five stocks | the same tests; load run in `docs/benchmarks.md` |
+| 14 | A ticked month of food posted beside a count of three days, to be credited with both | The count is the truth for every action it counts towards: `Possessions` takes the ticked actions of a counted stock out of play and puts the one counted provider in | `Ten_days_of_tins_hold_the_three_day_shelf_and_a_third_of_the_month_whatever_was_ticked`, `Ten_days_of_tins_count_as_ten_days_on_the_board_the_rows_and_the_tally` (the month is posted as ticked) |
+| 15 | "What would this action do" stacking a month on a ten-day shelf, promising forty days | Adding an action to a counted stock raises the count to what the action asks and never past it | `Adding_an_action_tops_a_counted_shelf_up_to_what_it_asks_and_never_stacks_another_on_it`, `A_counted_shelf_moves_the_figure_and_costs_only_what_is_missing` |
+| 16 | The counted-food provider ticked directly (`Ticks=stored-food`) to get a shelf for nothing | Its own stock is zero; only a checked figure gives it one | `Figures_from_a_browser_are_checked_before_anything_uses_them` |
+| 17 | An unnamed dictionary on the page model reading every form field as a figure | The property is bound by name, so a post with no figures binds nothing. Found by the suite: without the name every plan post was refused | every plan page test |
+| 18 | A tampered store or an imported file with hostile figures | `isAmounts` keeps at most twenty kebab-case ids with whole numbers from nothing to ten thousand, on read and on import; the server re-checks each against its own stock | the E2E journey (reload, export), case 12's tests |
+| 19 | A household over-stating what it has, and the board believing it | It is their figure and their board; the unit says what is being counted and for whom ("days of food for the 4 of you"), the plan's own figure sits beside the box, and nothing typed here leaves the browser except to be simulated | `The_words_around_a_figure_are_whole_and_say_what_is_counted` |
+
 ## Outcomes (adversarial pass, 11 Nov 2026)
 
 - Every case has a passing test; every gated assembly at 100% lines and branches.

@@ -46,7 +46,27 @@ export async function initPlanPage(doc) {
     }
     // A choice made by hand settles whatever a button did before it; the way back is withdrawn.
     hideUndo(doc);
-    void store.setChoice(box.value, box.checked ? box.dataset.choice : null).then(() => recompute(doc));
+    const row = box.closest("[data-action-row]");
+    const counted = row?.querySelector("[data-amount]");
+    if (counted instanceof HTMLElement) {
+      void chooseCounted(doc, counted, box.value, box.checked ? box.dataset.choice : null);
+    } else {
+      void store.setChoice(box.value, box.checked ? box.dataset.choice : null).then(() => recompute(doc));
+    }
+  });
+
+  // A figure typed into "How much do you have?": the count decides which of its actions are held.
+  doc.addEventListener("change", (event) => {
+    const input = event.target;
+    const counted = input instanceof HTMLInputElement && input.hasAttribute("data-amount-input") ? input.closest("[data-amount]") : null;
+    if (!(input instanceof HTMLInputElement) || !(counted instanceof HTMLElement) || !counted.dataset.amount) {
+      return;
+    }
+    hideUndo(doc);
+    const typed = Number.parseInt(input.value, 10);
+    const most = Number.parseInt(input.max, 10);
+    const amount = Number.isInteger(typed) && typed >= 0 ? Math.min(typed, most) : null;
+    void setFigure(doc, counted.dataset.amount, amount).then(() => settle(doc));
   });
 
   doc.addEventListener("click", (event) => {
@@ -138,17 +158,101 @@ function choiceBoxes(row) {
 }
 
 /**
- * Puts what the store holds onto the page: each action's three boxes, one at most ticked.
+ * Puts what the store holds onto the page: each action's three boxes, one at most ticked, and the
+ * household's own figure in every box that counts one. A figure's box shows once the action is
+ * held or a figure has been given, and an action held with no figure shows what the plan asks for.
  * @param {Document} doc
  */
 async function applyChoices(doc) {
   const choices = await store.getChoices().catch(() => /** @type {Record<string, string>} */ ({}));
+  const amounts = await store.getAmounts().catch(() => /** @type {Record<string, number>} */ ({}));
   for (const row of doc.querySelectorAll("[data-action-row]")) {
     const id = row.getAttribute("data-action-row") ?? "";
     for (const box of choiceBoxes(row)) {
       box.checked = choices[id] === box.dataset.choice;
     }
+    const counted = row.querySelector("[data-amount]");
+    const input = counted?.querySelector("[data-amount-input]");
+    if (!(counted instanceof HTMLElement) || !(input instanceof HTMLInputElement)) {
+      continue;
+    }
+    const figure = amounts[counted.dataset.amount ?? ""];
+    const held = choices[id] === "have";
+    counted.hidden = figure === undefined && !held;
+    // Never under the fingers of someone typing in it.
+    if (doc.activeElement !== input) {
+      input.value = figure !== undefined ? String(figure) : held ? counted.dataset.amountTarget ?? "" : "";
+    }
   }
+}
+
+/**
+ * The actions on the page that one counted stock decides, with what each asks for.
+ * @param {Document} doc
+ * @param {string} stock
+ * @returns {{ id: string, target: number }[]}
+ */
+function countedActions(doc, stock) {
+  /** @type {{ id: string, target: number }[]} */
+  const actions = [];
+  for (const counted of doc.querySelectorAll("[data-amount]")) {
+    const id = counted.closest("[data-action-row]")?.getAttribute("data-action-row");
+    if (counted instanceof HTMLElement && counted.dataset.amount === stock && id) {
+      actions.push({ id, target: Number(counted.dataset.amountTarget) });
+    }
+  }
+  return actions;
+}
+
+/**
+ * Sets or clears a household's figure, and brings the choices on its actions into line with it:
+ * every action the figure reaches is held, and none it falls short of is. With the figure cleared,
+ * none of its actions is held.
+ * @param {Document} doc
+ * @param {string} stock
+ * @param {number | null} amount
+ */
+async function setFigure(doc, stock, amount) {
+  const choices = await store.getChoices().catch(() => /** @type {Record<string, string>} */ ({}));
+  /** @type {Record<string, import("selficient/plan-store.js").Choice | null>} */
+  const changes = {};
+  for (const action of countedActions(doc, stock)) {
+    const reached = amount !== null && amount >= action.target;
+    if (reached && choices[action.id] !== "have") {
+      changes[action.id] = "have";
+    } else if (!reached && choices[action.id] === "have") {
+      changes[action.id] = null;
+    }
+  }
+  await store.setAmounts({ [stock]: amount });
+  await store.setChoices(changes);
+}
+
+/**
+ * A choice on an action whose stock the household can count. "Have it" raises the figure to what
+ * the action asks, if it is short of it. Taking "Have it" away, or planning or ruling out an action
+ * the figure already reaches, lowers the figure to the next action down, or clears it.
+ * @param {Document} doc
+ * @param {HTMLElement} counted
+ * @param {string} id
+ * @param {import("selficient/plan-store.js").Choice | null} choice
+ */
+async function chooseCounted(doc, counted, id, choice) {
+  const stock = counted.dataset.amount ?? "";
+  const target = Number(counted.dataset.amountTarget);
+  const amounts = await store.getAmounts().catch(() => /** @type {Record<string, number>} */ ({}));
+  const choices = await store.getChoices().catch(() => /** @type {Record<string, string>} */ ({}));
+  const figure = amounts[stock];
+  if (choice === "have") {
+    await setFigure(doc, stock, Math.max(figure ?? 0, target));
+  } else {
+    if (choices[id] === "have" || (figure !== undefined && figure >= target)) {
+      const below = countedActions(doc, stock).map((action) => action.target).filter((other) => other < target);
+      await setFigure(doc, stock, below.length > 0 ? Math.max(...below) : null);
+    }
+    await store.setChoice(id, choice);
+  }
+  await settle(doc);
 }
 
 /**
@@ -169,8 +273,9 @@ function recompute(doc) {
 }
 
 /**
- * What the last button changed, as it was before, so one press of Undo puts it back.
- * @type {Record<string, import("selficient/plan-store.js").Choice | null> | null}
+ * What the last button changed, as it was before, so one press of Undo puts it back: the choices,
+ * and any figures that were cleared with them.
+ * @type {{ choices: Record<string, import("selficient/plan-store.js").Choice | null>, amounts: Record<string, number | null> } | null}
  */
 let undoable = null;
 
@@ -206,8 +311,32 @@ async function applyBulk(doc, button) {
   if (Object.keys(changes).length === 0) {
     return;
   }
+  // Clearing what is held clears the count behind it, or the count would tick the action again.
+  /** @type {Record<string, number | null>} */
+  const figures = {};
+  /** @type {Record<string, number | null>} */
+  const figuresBefore = {};
+  if (kind === "have") {
+    const amounts = await store.getAmounts().catch(() => /** @type {Record<string, number>} */ ({}));
+    for (const id of Object.keys(changes)) {
+      const counted = doc.querySelector('[data-action-row="' + CSS.escape(id) + '"] [data-amount]');
+      const stock = counted instanceof HTMLElement ? counted.dataset.amount ?? "" : "";
+      if (stock && amounts[stock] !== undefined) {
+        figures[stock] = null;
+        figuresBefore[stock] = amounts[stock];
+        // Its other actions go with it, wherever on the plan they sit.
+        for (const action of countedActions(doc, stock)) {
+          if (choices[action.id] === "have" && !(action.id in changes)) {
+            before[action.id] = "have";
+            changes[action.id] = null;
+          }
+        }
+      }
+    }
+  }
+  await store.setAmounts(figures);
   await store.setChoices(changes);
-  undoable = before;
+  undoable = { choices: before, amounts: figuresBefore };
   await settle(doc);
   const bar = doc.querySelector("[data-undo]");
   const said = doc.querySelector("[data-undo-said]");
@@ -224,7 +353,8 @@ async function undo(doc) {
   const before = undoable;
   hideUndo(doc);
   if (before) {
-    await store.setChoices(before);
+    await store.setAmounts(before.amounts);
+    await store.setChoices(before.choices);
     await settle(doc);
   }
 }

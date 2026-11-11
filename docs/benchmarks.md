@@ -85,6 +85,10 @@ The first run of the day scored 63 to 70 on performance and 95 on accessibility.
 | 11 Nov 2026, eight scenarios | Board fragment POST | 100/s | 6.4 ms | 46.9 ms | 60.8 ms | 150 ms | 0 of 2,000 |
 | 11 Nov 2026, three choices and the tallies | Plan POST | 200/s | | 53.3 ms | 66.5 ms | 150 ms | 0 of 4,000 |
 | 11 Nov 2026, three choices and the tallies | Board fragment POST | 100/s | | 47.0 ms | 58.6 ms | 150 ms | 0 of 2,000 |
+| 11 Nov 2026, the household's own figures | Plan POST | 200/s | | 58.4 ms | 63.4 ms | 150 ms | 0 of 4,000 |
+| 11 Nov 2026, the household's own figures | Board fragment POST | 100/s | | 51.8 ms | 55.7 ms | 150 ms | 0 of 2,000 |
+
+Every simulation now goes through what the household has (`Possessions`), which copies a set for each what-if. A household that has counted nothing hands the engine the set it was given. One run of the first cut read 89 ms at the p95 with every other scenario doubled too, on a machine that was also serving a demo; the run above was taken after.
 
 The three choices add two tick boxes to every action and five tallies to the page and to the fragment, and no simulation unless something is planned (then one); the same evening's run put both posts within two milliseconds of the run before it.
 

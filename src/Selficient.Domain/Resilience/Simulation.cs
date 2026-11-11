@@ -86,9 +86,21 @@ public static class OutageBoard
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(held);
         ArgumentNullException.ThrowIfNull(scenario);
-        Run run = new(profile, held, scenario, season, (int)upTo);
+        Run run = new(profile, held, NoFigures, scenario, season, (int)upTo);
         return run.Execute();
     }
+
+    /// <summary>Simulates the scenario to its longest horizon for a household that has put its own figures on some of its stocks.</summary>
+    public static Board Simulate(ResilienceProfile profile, Possessions possessions, Scenario scenario, Season season)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(possessions);
+        ArgumentNullException.ThrowIfNull(scenario);
+        Run run = new(profile, possessions.Held, possessions.Stock, scenario, season, (int)scenario.LongestHorizon);
+        return run.Execute();
+    }
+
+    private static readonly Dictionary<string, decimal> NoFigures = [];
 
     private sealed class Run
     {
@@ -110,7 +122,7 @@ public static class OutageBoard
         private readonly List<DayState[]> _dependencies = [];
         private decimal _electricity;
 
-        public Run(ResilienceProfile profile, IReadOnlySet<string> held, Scenario scenario, Season season, int days)
+        public Run(ResilienceProfile profile, IReadOnlySet<string> held, IReadOnlyDictionary<string, decimal> figures, Scenario scenario, Season season, int days)
         {
             _profile = profile;
             _scenario = scenario;
@@ -131,9 +143,12 @@ public static class OutageBoard
             {
                 if (provider.Stock is { } stock)
                 {
-                    _stock[provider.Id] = provider.Id == "medicine-stock"
-                        ? profile.MedicineDaysInStock
-                        : stock.Quantity * (stock.PerPerson ? profile.Household.Size.Count : 1);
+                    // The household's own figure where it gave one, already in the stock's unit; the plan's otherwise.
+                    _stock[provider.Id] = figures.TryGetValue(provider.Id, out decimal counted)
+                        ? counted
+                        : provider.Id == "medicine-stock"
+                            ? profile.MedicineDaysInStock
+                            : stock.Quantity * (stock.PerPerson ? profile.Household.Size.Count : 1);
                 }
                 else if (provider.Flow is not null)
                 {

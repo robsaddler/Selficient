@@ -1,3 +1,4 @@
+using Selficient.Domain.Measures;
 using Selficient.Domain.Plans;
 using Selficient.Domain.Resilience;
 using Selficient.Domain.Risks;
@@ -23,6 +24,9 @@ public sealed record ActionTurn(ActionId Action, IReadOnlyList<NeedShift> Shifts
 /// </summary>
 public sealed record TierOutcome(Tier Tier, string Title, decimal DaysReady, ChoiceTally Tally, bool Excludes);
 
+/// <summary>A plan action the household put its own figure towards: how far the figure goes, and what the rest of the action would cost.</summary>
+public sealed record CountedAction(Progress Counted, MoneyRange Rest);
+
 /// <summary>Everything the Board page draws for one household and one chosen scenario.</summary>
 public sealed record BoardSet(
     Scenario Scenario,
@@ -35,7 +39,8 @@ public sealed record BoardSet(
     IReadOnlyList<ActionTurn> Turns,
     IReadOnlyList<TierOutcome> Tiers,
     decimal PlannedDaysReady,
-    ChoiceTally Tally)
+    ChoiceTally Tally,
+    IReadOnlyList<CountedAction> Progress)
 {
     /// <summary>The id of the "nothing extra" source.</summary>
     public const string HouseSource = "house";
@@ -47,7 +52,8 @@ public sealed record BoardSet(
 /// <summary>
 /// What the composer needs: the household as the engine sees it, what it holds, the plan, and the
 /// choice of scenario and season. Planned and Skipped are the actions the household means to get
-/// and the ones it has ruled out; neither moves the figure for today.
+/// and the ones it has ruled out; neither moves the figure for today. Amounts are the household's
+/// own figures for the stocks it counted, already checked, which do.
 /// </summary>
 public sealed record BoardRequest(
     ResilienceProfile Profile,
@@ -57,7 +63,8 @@ public sealed record BoardRequest(
     Season? Season,
     string? SourceId = null,
     IReadOnlySet<string>? Planned = null,
-    IReadOnlySet<string>? Skipped = null);
+    IReadOnlySet<string>? Skipped = null,
+    IReadOnlyDictionary<string, int>? Amounts = null);
 
 /// <summary>
 /// Composes the set for a page. Pure: it only runs the engine, several times, and arranges the
@@ -84,53 +91,65 @@ public static class BoardComposer
         Scenario scenario = Scenarios.Find(request.ScenarioId ?? string.Empty) ?? Scenarios.Storm;
         Season season = request.Season ?? scenario.DefaultSeason;
 
+        // What the house has: the actions held, with the household's own figures deciding the stocks it counted.
+        Possessions has = Possessions.Of(request.Profile, request.Held, request.Amounts);
+
         List<ScenarioCard> cards = [];
         foreach (Scenario candidate in Ranked(request.Plan.Risks))
         {
-            Board board = OutageBoard.Simulate(request.Profile, request.Held, candidate, candidate.DefaultSeason);
+            Board board = OutageBoard.Simulate(request.Profile, has, candidate, candidate.DefaultSeason);
             cards.Add(new ScenarioCard(candidate.Id, candidate.Name, board.DaysReady, candidate.Id == scenario.Id));
         }
 
         List<SourceOption> sources = [new SourceOption(BoardSet.HouseSource, "What is in the house", "Nothing bought yet beyond what the plan says you have ticked.")];
         foreach ((string id, Placement where, string name, string sentence) in Candidates)
         {
-            if (request.Profile.CanHave(where) && !request.Held.Contains(id))
+            if (request.Profile.CanHave(where) && !has.Have.Contains(id))
             {
                 sources.Add(new SourceOption(id, name, sentence));
             }
         }
 
         // The house in the chosen season is the figure; the sheet is that, or the house with one more source.
-        Board current = OutageBoard.Simulate(request.Profile, request.Held, scenario, season);
+        Board current = OutageBoard.Simulate(request.Profile, has, scenario, season);
         string sourceId = request.SourceId is { } chosen && sources.Any(source => source.Id == chosen) ? chosen : BoardSet.HouseSource;
         Board sheet = current;
         if (sourceId != BoardSet.HouseSource)
         {
-            HashSet<string> held = new(request.Held, StringComparer.Ordinal) { sourceId };
-            sheet = OutageBoard.Simulate(request.Profile, held, scenario, season);
+            sheet = OutageBoard.Simulate(request.Profile, With(has, sourceId), scenario, season);
         }
-        PlanChoices choices = new(request.Held, request.Planned ?? PlanChoices.None.Planned, request.Skipped ?? PlanChoices.None.Skipped);
+
+        PlanChoices choices = new(has.Have, request.Planned ?? PlanChoices.None.Planned, request.Skipped ?? PlanChoices.None.Skipped);
 
         // Where the plan takes the house: what it has, with what it means to get. One more run, and only when something is planned.
         decimal plannedDays = current.DaysReady;
         if (choices.Planned.Count > 0)
         {
-            HashSet<string> intended = new(request.Held, StringComparer.Ordinal);
-            intended.UnionWith(choices.Planned);
+            Possessions intended = has.Copy();
+            foreach (string planned in choices.Planned)
+            {
+                intended.Add(planned);
+            }
+
             plannedDays = OutageBoard.Simulate(request.Profile, intended, scenario, season).DaysReady;
         }
 
         List<ActionTurn> turns = [];
+        List<CountedAction> progress = [];
         foreach (PlanAction action in request.Plan.Actions)
         {
+            if (has.ProgressOn(action.Id.Value) is { } counted)
+            {
+                progress.Add(new CountedAction(counted, action.Cost.Share(counted.CostRemaining)));
+            }
+
             // An action the household ruled out is not suggested again under its own row.
-            if (request.Held.Contains(action.Id.Value) || choices.Skipped.Contains(action.Id.Value) || Providers.Find(action.Id.Value) is null)
+            if (has.Have.Contains(action.Id.Value) || choices.Skipped.Contains(action.Id.Value) || Providers.Find(action.Id.Value) is null)
             {
                 continue;
             }
 
-            HashSet<string> with = new(request.Held, StringComparer.Ordinal) { action.Id.Value };
-            Board improved = OutageBoard.Simulate(request.Profile, with, scenario, season);
+            Board improved = OutageBoard.Simulate(request.Profile, With(has, action.Id.Value), scenario, season);
             IReadOnlyList<NeedShift> shifts = Shifts(current, improved);
             if (shifts.Count > 0)
             {
@@ -138,9 +157,13 @@ public static class BoardComposer
             }
         }
 
+        // An action part met by the household's own figure costs the share of it still to buy.
+        Dictionary<string, decimal> shares = progress.ToDictionary(static action => action.Counted.ActionId, static action => action.Counted.CostRemaining, StringComparer.Ordinal);
+        decimal Remaining(string actionId) => shares.GetValueOrDefault(actionId, 1m);
+
         // Each tier's destination is cumulative: this month assumes this week is done, as the plan does.
         List<TierOutcome> tiers = [];
-        HashSet<string> sofar = new(request.Held, StringComparer.Ordinal);
+        Possessions sofar = has.Copy();
         bool excludes = false;
         foreach (PlanTier tier in request.Plan.Tiers)
         {
@@ -159,10 +182,17 @@ public static class BoardComposer
             }
 
             decimal days = OutageBoard.Simulate(request.Profile, sofar, scenario, season).DaysReady;
-            tiers.Add(new TierOutcome(tier.Tier, tier.Title, days,ChoiceTally.Of(tier.Actions, choices), excludes));
+            tiers.Add(new TierOutcome(tier.Tier, tier.Title, days, ChoiceTally.Of(tier.Actions, choices, Remaining), excludes));
         }
 
-        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices));
+        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices, Remaining), progress);
+    }
+
+    private static Possessions With(Possessions has, string actionId)
+    {
+        Possessions with = has.Copy();
+        with.Add(actionId);
+        return with;
     }
 
     /// <summary>Scenarios in the order the risk assessors rank them for this house, then the rest in catalogue order.</summary>

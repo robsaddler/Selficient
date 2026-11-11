@@ -8,7 +8,7 @@
  */
 
 const DB_NAME = "selficient";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const CHANNEL = "selficient-plan";
 const LOCK = "selficient-plan-write";
 
@@ -16,7 +16,8 @@ const LOCK = "selficient-plan-write";
 /** @typedef {{ lat: number, lng: number }} House */
 /** @typedef {{ name: string, kind: "PoweredDevice" | "Medicine" | "Supply", watts: number, hoursPerDay: number, daysOfStock: number, mustStayCold: boolean }} Dependency */
 /** @typedef {"have" | "plan" | "skip"} Choice */
-/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], house?: House | null, dependencies?: Dependency[] }} Snapshot */
+/** @typedef {Record<string, number>} Amounts */
+/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], amounts?: Amounts, house?: House | null, dependencies?: Dependency[] }} Snapshot */
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
@@ -37,6 +38,10 @@ function open() {
       // Version 3 (M13): the things only this household relies on.
       if (!db.objectStoreNames.contains("dependencies")) {
         db.createObjectStore("dependencies");
+      }
+      // Version 4: the household's own figures for the stocks it counted (ten days of tins).
+      if (!db.objectStoreNames.contains("amounts")) {
+        db.createObjectStore("amounts");
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -59,7 +64,7 @@ function done(request) {
 
 /**
  * @template T
- * @param {"profile" | "ticks" | "house" | "dependencies"} store
+ * @param {"profile" | "ticks" | "house" | "dependencies" | "amounts"} store
  * @param {IDBTransactionMode} mode
  * @param {(store: IDBObjectStore) => IDBRequest<T> | Promise<T>} work
  * @returns {Promise<T>}
@@ -198,6 +203,37 @@ export async function setTick(actionId, ticked) {
 }
 
 /**
+ * The household's own figures, by the id of the stock each counts. A stock that is not here has
+ * no figure. Anything that is not an id with a whole number in range is left out.
+ * @returns {Promise<Amounts>}
+ */
+export async function getAmounts() {
+  const value = await withStore("amounts", "readonly", (s) => s.get("all"));
+  return isAmounts(value) ? { ...value } : {};
+}
+
+/**
+ * Sets or clears several figures at once, as one write.
+ * @param {Record<string, number | null>} changes null takes the figure away
+ */
+export async function setAmounts(changes) {
+  await serialised(async () => {
+    const amounts = await getAmounts();
+    for (const [id, amount] of Object.entries(changes)) {
+      if (amount === null) {
+        delete amounts[id];
+      } else {
+        amounts[id] = amount;
+      }
+    }
+    if (isAmounts(amounts)) {
+      await withStore("amounts", "readwrite", (s) => s.put(amounts, "all"));
+    }
+  });
+  announce();
+}
+
+/**
  * @param {unknown} value
  * @returns {Choice | null}
  */
@@ -238,6 +274,7 @@ export async function clearAll() {
     await withStore("ticks", "readwrite", (s) => s.clear());
     await withStore("house", "readwrite", (s) => s.clear());
     await withStore("dependencies", "readwrite", (s) => s.clear());
+    await withStore("amounts", "readwrite", (s) => s.clear());
   });
   announce();
 }
@@ -261,7 +298,7 @@ export async function saveDependencies(dependencies) {
 export async function snapshot() {
   const choices = await getChoices();
   const of = (/** @type {Choice} */ kind) => Object.keys(choices).filter((id) => choices[id] === kind);
-  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), house: await getHouse(), dependencies: await getDependencies() };
+  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), amounts: await getAmounts(), house: await getHouse(), dependencies: await getDependencies() };
 }
 
 /**
@@ -293,6 +330,7 @@ export async function restore(data) {
       await withStore("house", "readwrite", (s) => s.put({ lat: house.lat, lng: house.lng }, "pin"));
     }
     await withStore("dependencies", "readwrite", (s) => s.put((data.dependencies ?? []).slice(0, 12), "list"));
+    await withStore("amounts", "readwrite", (s) => s.put(data.amounts ?? {}, "all"));
   });
   announce();
 }
@@ -345,14 +383,29 @@ export function isSnapshot(value) {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const { profile, ticks, planned, skipped, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
+  const { profile, ticks, planned, skipped, amounts, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, amounts?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
   const profileOk = profile === null || isProfile(profile);
   const ids = (/** @type {unknown} */ list) => Array.isArray(list) && list.length <= 200 && list.every((t) => typeof t === "string" && ID.test(t));
   // The two newer lists are optional, so a file exported before they existed still opens.
   const ticksOk = ids(ticks) && (planned === undefined || ids(planned)) && (skipped === undefined || ids(skipped));
   const houseOk = house === undefined || house === null || isHouse(house);
   const dependenciesOk = dependencies === undefined || (Array.isArray(dependencies) && dependencies.length <= 12 && dependencies.every(isDependency));
-  return profileOk && ticksOk && houseOk && dependenciesOk;
+  const amountsOk = amounts === undefined || isAmounts(amounts);
+  return profileOk && ticksOk && houseOk && dependenciesOk && amountsOk;
+}
+
+/**
+ * Figures a household put on its stocks: at most twenty, each a kebab-case id with a whole number
+ * from nothing to ten thousand. The server holds each to its own stock's range as well.
+ * @param {unknown} value
+ * @returns {value is Amounts}
+ */
+export function isAmounts(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const entries = Object.entries(value);
+  return entries.length <= 20 && entries.every(([id, amount]) => ID.test(id) && Number.isInteger(amount) && amount >= 0 && amount <= 10000);
 }
 
 const KINDS = ["PoweredDevice", "Medicine", "Supply"];

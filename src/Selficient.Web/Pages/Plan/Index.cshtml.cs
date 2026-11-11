@@ -25,7 +25,7 @@ public enum PlanView
 }
 
 /// <summary>What the browser posted about the plan's actions: the ones held, the ones planned and the ones ruled out, unchecked.</summary>
-internal sealed record PostedChoices(IReadOnlyList<string> Have, IReadOnlyList<string> PlanTo, IReadOnlyList<string> NotForMe);
+internal sealed record PostedChoices(IReadOnlyList<string> Have, IReadOnlyList<string> PlanTo, IReadOnlyList<string> NotForMe, IReadOnlyDictionary<string, int> Amounts);
 
 /// <summary>
 /// The plan page. GET shows the empty state (the browser re-posts a stored profile if it has one);
@@ -79,6 +79,11 @@ public sealed class IndexModel : PageModel
     [BindProperty]
     public List<string> NotForMe { get; init; } = [];
 
+    /// <summary>The household's own figures for the stocks it counted, by the stock's id.</summary>
+    // Named, so that a post with no figures binds nothing: an unnamed dictionary falls back to the empty prefix and tries to read every field on the form as a figure.
+    [BindProperty(Name = nameof(Amounts))]
+    public Dictionary<string, int> Amounts { get; init; } = [];
+
     /// <summary>The plan, once built.</summary>
     public PlannedHousehold? Planned { get; private set; }
 
@@ -117,7 +122,7 @@ public sealed class IndexModel : PageModel
             return Page();
         }
 
-        Result<BoardSet> board = Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe), result.Value);
+        Result<BoardSet> board = Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe, Amounts), result.Value);
         if (board.IsFailure)
         {
             ShowForm = true;
@@ -148,8 +153,15 @@ public sealed class IndexModel : PageModel
             return Result.Failure<BoardSet>(new Fault("plan.ticks", "One of the ticks is not a plan action."));
         }
 
+        // A figure for something the plan does not measure, or outside what it can count, stops here with a sentence.
+        Result<IReadOnlyDictionary<string, int>> amounts = Selficient.Domain.Resilience.MeasuredStocks.Check(posted.Amounts);
+        if (amounts.IsFailure)
+        {
+            return Result.Failure<BoardSet>(amounts.Error);
+        }
+
         return form.ToResilienceProfile(planned.Plan.Profile)
-            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source, intended, declined)));
+            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source, intended, declined, amounts.Value)));
     }
 
     /// <summary>Copies a posted list into a set, or says no at the first id that is not shaped like one.</summary>

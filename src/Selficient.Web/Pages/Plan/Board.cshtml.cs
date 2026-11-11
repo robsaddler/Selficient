@@ -41,6 +41,11 @@ public sealed class BoardModel : PageModel
     [BindProperty]
     public List<string> NotForMe { get; init; } = [];
 
+    /// <summary>The household's own figures for the stocks it counted, by the stock's id.</summary>
+    // Named, so that a post with no figures binds nothing: an unnamed dictionary falls back to the empty prefix and tries to read every field on the form as a figure.
+    [BindProperty(Name = nameof(Amounts))]
+    public Dictionary<string, int> Amounts { get; init; } = [];
+
     /// <summary>There is nothing to see here; the plan page is where the board lives.</summary>
     public IActionResult OnGet() => RedirectToPage("/Plan/Index");
 
@@ -59,7 +64,7 @@ public sealed class BoardModel : PageModel
             return Refused(planned.Error.Message);
         }
 
-        Result<BoardSet> board = IndexModel.Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe), planned.Value);
+        Result<BoardSet> board = IndexModel.Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe, Amounts), planned.Value);
         if (board.IsFailure)
         {
             return Refused(board.Error.Message);

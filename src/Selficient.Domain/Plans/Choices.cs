@@ -44,10 +44,17 @@ public sealed class PlanChoices
 public sealed record ChoiceTally(int Actions, int Have, int Planned, MoneyRange PlannedCost, int Undecided, MoneyRange UndecidedCost, int Skipped)
 {
     /// <summary>Counts the actions.</summary>
-    public static ChoiceTally Of(IEnumerable<PlanAction> actions, PlanChoices choices)
+    public static ChoiceTally Of(IEnumerable<PlanAction> actions, PlanChoices choices) => Of(actions, choices, static _ => 1m);
+
+    /// <summary>
+    /// Counts the actions, costing each one not yet held at the share of it still to buy: a month of
+    /// food with ten days on the shelf costs two thirds of a month.
+    /// </summary>
+    public static ChoiceTally Of(IEnumerable<PlanAction> actions, PlanChoices choices, Func<string, decimal> remaining)
     {
         ArgumentNullException.ThrowIfNull(actions);
         ArgumentNullException.ThrowIfNull(choices);
+        ArgumentNullException.ThrowIfNull(remaining);
         int all = 0;
         int have = 0;
         int planned = 0;
@@ -66,7 +73,7 @@ public sealed record ChoiceTally(int Actions, int Have, int Planned, MoneyRange 
             else if (choices.Planned.Contains(id))
             {
                 planned++;
-                plannedCost += action.Cost;
+                plannedCost += action.Cost.Share(remaining(id));
             }
             else if (choices.Skipped.Contains(id))
             {
@@ -75,7 +82,7 @@ public sealed record ChoiceTally(int Actions, int Have, int Planned, MoneyRange 
             else
             {
                 undecided++;
-                undecidedCost += action.Cost;
+                undecidedCost += action.Cost.Share(remaining(id));
             }
         }
 
