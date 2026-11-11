@@ -24,6 +24,9 @@ public enum PlanView
     Plan,
 }
 
+/// <summary>What the browser posted about the plan's actions: the ones held, the ones planned and the ones ruled out, unchecked.</summary>
+internal sealed record PostedChoices(IReadOnlyList<string> Have, IReadOnlyList<string> PlanTo, IReadOnlyList<string> NotForMe);
+
 /// <summary>
 /// The plan page. GET shows the empty state (the browser re-posts a stored profile if it has one);
 /// POST validates the form, runs the journey and renders the plan. Nothing is stored server-side.
@@ -68,6 +71,14 @@ public sealed class IndexModel : PageModel
     [BindProperty]
     public List<string> Ticks { get; init; } = [];
 
+    /// <summary>The actions the household plans to get or do.</summary>
+    [BindProperty]
+    public List<string> PlanTo { get; init; } = [];
+
+    /// <summary>The actions the household has ruled out.</summary>
+    [BindProperty]
+    public List<string> NotForMe { get; init; } = [];
+
     /// <summary>The plan, once built.</summary>
     public PlannedHousehold? Planned { get; private set; }
 
@@ -106,7 +117,7 @@ public sealed class IndexModel : PageModel
             return Page();
         }
 
-        Result<BoardSet> board = Compose(Form, Ticks, result.Value);
+        Result<BoardSet> board = Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe), result.Value);
         if (board.IsFailure)
         {
             ShowForm = true;
@@ -121,26 +132,40 @@ public sealed class IndexModel : PageModel
     }
 
     /// <summary>The boards for a planned household, or the sentence that stops them: a bad dependency, or too many ticks.</summary>
-    internal static Result<BoardSet> Compose(PlanForm form, IReadOnlyList<string> ticks, PlannedHousehold planned)
+    internal static Result<BoardSet> Compose(PlanForm form, PostedChoices posted, PlannedHousehold planned)
     {
-        if (ticks.Count > MaxTicks)
+        // An action is in one list, so the three together are bounded by what one list was.
+        if (posted.Have.Count + posted.PlanTo.Count + posted.NotForMe.Count > MaxTicks)
         {
             return Result.Failure<BoardSet>(new Fault("plan.ticks", "That is more ticks than the plan has actions."));
         }
 
         HashSet<string> held = new(StringComparer.Ordinal);
-        foreach (string tick in ticks)
+        HashSet<string> intended = new(StringComparer.Ordinal);
+        HashSet<string> declined = new(StringComparer.Ordinal);
+        if (!Gather(posted.Have, held) || !Gather(posted.PlanTo, intended) || !Gather(posted.NotForMe, declined))
         {
-            if (!ActionId.IsValid(tick))
-            {
-                return Result.Failure<BoardSet>(new Fault("plan.ticks", "One of the ticks is not a plan action."));
-            }
-
-            held.Add(tick);
+            return Result.Failure<BoardSet>(new Fault("plan.ticks", "One of the ticks is not a plan action."));
         }
 
         return form.ToResilienceProfile(planned.Plan.Profile)
-            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source)));
+            .Map(profile => BoardComposer.Compose(new BoardRequest(profile, held, planned.Plan, form.Scenario, form.Season, form.Source, intended, declined)));
+    }
+
+    /// <summary>Copies a posted list into a set, or says no at the first id that is not shaped like one.</summary>
+    private static bool Gather(IReadOnlyList<string> ids, HashSet<string> into)
+    {
+        foreach (string id in ids)
+        {
+            if (!ActionId.IsValid(id))
+            {
+                return false;
+            }
+
+            into.Add(id);
+        }
+
+        return true;
     }
 
     internal static IReadOnlyList<(string Field, string Value)> Echo(PlanForm form) =>

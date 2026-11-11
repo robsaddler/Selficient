@@ -15,7 +15,7 @@
     <h3>@tier.Title</h3>
     <span class="data">@MoneyFormat.Range(tier.Cost)</span>
     <span class="sheet__chevron" aria-hidden="true"></span>
-    <span class="sheet__outcome" data-tier-outcome="@tier.Tier">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(Model.Outcome)</span>
+    <span class="sheet__outcome" data-tier-outcome="@tier.Tier">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(Model.Outcome, Model.Reached.Excludes)</span>
   </summary>
   @if (tier.Actions.Count == 0)
   {
@@ -23,23 +23,40 @@
   }
   else
   {
-    <progress class="tier-progress" value="0" max="@tier.Actions.Count" data-tier-progress aria-label="Actions done in this stretch">0 of @tier.Actions.Count</progress>
+    <progress class="tier-progress" value="0" max="@tier.Actions.Count" data-tier-progress aria-label="Actions you have in this stretch">0 of @tier.Actions.Count</progress>
+    @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForTier(Model.Reached))
     <ul class="actions">
       @foreach (var action in tier.Actions)
       {
         var picks = Model.Picks[action.Id];
-        <li class="action">
-          <label>
-            <input type="checkbox" name="tick" value="@action.Id.Value"
-                   data-action-id="@action.Id.Value"
-                   data-water="@action.Provides.WaterLitres.ToString(culture)"
-                   data-food="@action.Provides.FoodDays.ToString(culture)"
-                   data-light="@action.Provides.LightHours.ToString(culture)">
-            <svg class="action__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForAction(action.Id.Value)"/></svg>
-            <span class="action__title">@action.Title</span>
-            <span class="action__why">@action.Why</span>
-            <span class="data">@MoneyFormat.Range(action.Cost)</span>
-          </label>
+        var id = action.Id.Value;
+        @* One choice an action: have it, plan to, or not for me. Each is a tick box so pressing the
+           chosen one again clears it and the action is back to not decided; the script keeps them to
+           one at a time and remembers it. The first keeps the attribute the rest of the page finds an
+           action by. *@
+        <li class="action" data-action-row="@id">
+          <svg class="action__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForAction(id)"/></svg>
+          <span class="action__title" id="action-@id">@action.Title</span>
+          <span class="action__why">@action.Why</span>
+          <span class="action__cost data">@MoneyFormat.Range(action.Cost)</span>
+          <div class="choice" role="group" aria-labelledby="action-@id">
+            <label class="choice__pill" data-choice-pill="have">
+              <input type="checkbox" class="choice__input" name="tick" value="@id" data-choice="have"
+                     data-action-id="@id"
+                     data-water="@action.Provides.WaterLitres.ToString(culture)"
+                     data-food="@action.Provides.FoodDays.ToString(culture)"
+                     data-light="@action.Provides.LightHours.ToString(culture)">
+              <span>Have it</span>
+            </label>
+            <label class="choice__pill" data-choice-pill="plan">
+              <input type="checkbox" class="choice__input" name="plan" value="@id" data-choice="plan">
+              <span>Plan to</span>
+            </label>
+            <label class="choice__pill" data-choice-pill="skip">
+              <input type="checkbox" class="choice__input" name="skip" value="@id" data-choice="skip">
+              <span>Not for me</span>
+            </label>
+          </div>
           @if (picks.Count > 0)
           {
             <details class="picks">

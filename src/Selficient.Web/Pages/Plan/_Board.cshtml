@@ -23,9 +23,17 @@
   <ul hidden data-board-tiers>
     @foreach (var tier in set.Tiers)
     {
-      <li data-tier="@tier.Tier" data-days="@tier.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(tier.DaysReady)</li>
+      <li data-tier="@tier.Tier" data-days="@tier.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)">@Selficient.Web.Pages.Plan.BoardCopy.TierOutcome(tier.DaysReady, tier.Excludes)</li>
     }
   </ul>
+  @* The counts for the whole plan and for each stretch; the script copies each onto the tally of the same scope. *@
+  <div hidden data-board-tallies>
+    @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForPlan(set))
+    @foreach (var tier in set.Tiers)
+    {
+      @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForTier(tier))
+    }
+  </div>
 
   <div class="board__switches">
     <fieldset class="seg" data-board-sources>

@@ -103,7 +103,11 @@ public static class BoardCopy
     }
 
     /// <summary>What a tier buys, as the tier header says it.</summary>
-    public static string TierOutcome(decimal? days) => days is { } d ? $"With everything up to here ticked, the house stands for {DaysReady(d)}." : string.Empty;
+    public static string TierOutcome(decimal? days, bool excludes = false) => days is not { } d
+        ? string.Empty
+        : excludes
+            ? $"With everything up to here except what is not for you, the house stands for {DaysReady(d)}."
+            : $"With everything up to here ticked, the house stands for {DaysReady(d)}.";
 
     private static readonly Dictionary<Rung, (string Name, string What, string Mark)> Rungs = new()
     {

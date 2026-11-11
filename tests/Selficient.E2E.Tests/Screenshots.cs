@@ -63,6 +63,11 @@ public sealed class Screenshots
                 await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
                 await page.Locator("[data-action-id=\"water-bottled-three-days\"]").CheckAsync();
                 await page.Locator("[data-action-id=\"headtorches\"]").CheckAsync();
+                // One of each choice, so the capture shows the three states and a tally that counts them.
+                await page.Locator("[data-action-row=\"food-no-cook-three-days\"] [data-choice=\"plan\"]").CheckAsync();
+                await page.Locator("[data-action-row=\"power-banks\"] [data-choice=\"plan\"]").CheckAsync();
+                await page.Locator("[data-action-row=\"radio-dab-fm-with-crank\"] [data-choice=\"skip\"]").CheckAsync();
+                await Assertions.Expect(page.Locator(".plan__tally [data-tally-kind=\"skip\"] [data-tally-figure]")).ToHaveTextAsync("1");
                 await SettleAsync(page);
                 await page.ScreenshotAsync(new() { Path = Target($"plan-{size}-{theme}.png"), FullPage = true });
             }

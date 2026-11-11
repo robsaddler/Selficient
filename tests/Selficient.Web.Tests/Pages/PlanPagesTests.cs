@@ -82,7 +82,7 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("<days-ready value=\"1\"", customMessage: "the board's storm figure: the fridge and the shops feed one day");
         html.ShouldContain("A storm takes the power out: what holds, what goes, and when");
         html.ShouldContain("<summary>Clear my plan from this browser</summary>");
-        html.ShouldContain("This removes your answers, your ticks, the pin on the map and what you rely on from this browser. Export a file first if you want them back. Your theme choice stays.");
+        html.ShouldContain("This removes your answers, what you said about each action, the pin on the map and what you rely on from this browser. Export a file first if you want them back. Your theme choice stays.");
         html.ShouldContain("data-clear-plan>Clear it</button>");
         // The page in job order: the verdict, the plan, the board, what you rely on, the risks, the map, upkeep, the tools.
         int[] order = new[] { "id=\"plan-heading\"", "data-verdict", "id=\"actions-heading\"", "id=\"board-heading\"", "id=\"rely-heading\"", "id=\"risks-heading\"", "id=\"map-heading\"", "id=\"tools-heading\"" }.Select(marker => html.IndexOf(marker, StringComparison.Ordinal)).ToArray();
@@ -93,6 +93,16 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("data-scenario-card");
         html.ShouldContain("data-people=\"4\"");
         html.ShouldContain("data-action-id=\"water-bottled-three-days\"");
+        html.ShouldContain("data-action-row=\"water-bottled-three-days\"");
+        html.ShouldContain("name=\"plan\" value=\"water-bottled-three-days\" data-choice=\"plan\"", customMessage: "each action can be planned");
+        html.ShouldContain("name=\"skip\" value=\"water-bottled-three-days\" data-choice=\"skip\"", customMessage: "or ruled out");
+        html.ShouldContain("<span>Have it</span>");
+        html.ShouldContain("<span>Plan to</span>");
+        html.ShouldContain("<span>Not for me</span>");
+        html.ShouldContain("Where your plan stands");
+        html.ShouldContain("Say which of these you have, which you plan to get and which are not for you.");
+        html.ShouldContain("Today the house stands for 1 day. Mark an action as planned and this line says where your plan takes it.");
+        html.ShouldContain("data-undo hidden", customMessage: "the way back waits out of sight until a button is pressed");
         html.ShouldContain("data-action-id=\"arborist-survey\"");
         html.ShouldContain("data-action-id=\"rooftop-solar-and-battery\"");
         html.ShouldContain("Within a year");

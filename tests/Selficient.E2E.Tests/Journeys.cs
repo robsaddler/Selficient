@@ -58,6 +58,89 @@ public sealed class Journeys
     }
 
     [Fact]
+    public async Task Planning_counts_the_cost_ruling_out_quietens_the_row_and_a_cleared_stretch_comes_back()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        ILocator water = page.Locator("[data-action-row=\"water-bottled-three-days\"]");
+        ILocator radio = page.Locator("[data-action-row=\"radio-dab-fm-with-crank\"]");
+        ILocator whole = page.Locator(".plan__tally");
+        ILocator week = page.Locator("[data-tier=\"ThisWeek\"] > .tally");
+
+        // Plan to: counted, costed, and today's figure stays where it was.
+        await water.Locator("[data-choice=\"plan\"]").CheckAsync();
+        await page.Locator("[data-action-row=\"food-no-cook-three-days\"] [data-choice=\"plan\"]").CheckAsync();
+        await page.Locator("[data-action-row=\"cash-in-small-notes\"] [data-choice=\"plan\"]").CheckAsync();
+        await Expect(whole.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("3, ");
+        await Expect(whole.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("still to spend");
+        await Expect(week.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("3, ");
+        await Expect(whole.Locator("[data-tally-standing]")).ToContainTextAsync("Today the house stands for 1 day. With everything you plan to get, it stands for");
+        (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe("1", "meaning to buy something does not move the figure");
+        await Expect(whole.Locator("[data-tally-kind=\"plan\"] button")).ToHaveAttributeAsync("aria-disabled", "false");
+
+        // One at most: having it lifts the plan.
+        await water.Locator("[data-choice=\"have\"]").CheckAsync();
+        await Expect(water.Locator("[data-choice=\"plan\"]")).Not.ToBeCheckedAsync();
+        await Expect(whole.Locator("[data-tally-kind=\"have\"] [data-tally-figure]")).ToContainTextAsync("1 of ");
+        await Expect(whole.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("2, ");
+
+        // Not for me: the row keeps its name and its choice and drops the rest, and the board stops suggesting it.
+        await Expect(page.Locator("[data-turns-for=\"radio-dab-fm-with-crank\"]")).ToBeVisibleAsync();
+        await radio.Locator("[data-choice=\"skip\"]").CheckAsync();
+        await Expect(radio.Locator(".action__why")).ToBeHiddenAsync();
+        await Expect(radio.Locator(".action__title")).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-turns-for=\"radio-dab-fm-with-crank\"]")).ToHaveCountAsync(0);
+        await Expect(week.Locator("[data-tally-kind=\"skip\"] [data-tally-figure]")).ToHaveTextAsync("1");
+        await Expect(page.Locator("[data-tier-outcome=\"ThisWeek\"]")).ToContainTextAsync("except what is not for you");
+        // Pressing the pressed pill clears it: back to not decided.
+        await radio.Locator("[data-choice=\"skip\"]").UncheckAsync();
+        await Expect(week.Locator("[data-tally-kind=\"skip\"] [data-tally-figure]")).ToHaveTextAsync("None");
+        await Expect(radio.Locator(".action__why")).ToBeVisibleAsync();
+
+        // Plan everything not decided in this stretch, then take it back.
+        await week.GetByRole(AriaRole.Button, new() { Name = "Plan all of these not yet decided: This week" }).ClickAsync();
+        await Expect(page.Locator("[data-undo]")).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-undo-said]")).ToHaveTextAsync("Everything not decided in this stretch is now planned.");
+        await Expect(week.Locator("[data-tally-kind=\"none\"] [data-tally-figure]")).ToHaveTextAsync("None");
+        await Expect(radio.Locator("[data-choice=\"plan\"]")).ToBeCheckedAsync();
+        await Expect(week.Locator("[data-tally-kind=\"none\"] button")).ToHaveAttributeAsync("aria-disabled", "true");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Undo", Exact = true }).ClickAsync();
+        await Expect(page.Locator("[data-undo]")).ToBeHiddenAsync();
+        await Expect(radio.Locator("[data-choice=\"plan\"]")).Not.ToBeCheckedAsync();
+        await Expect(week.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("2, ");
+
+        // Clear what is planned in the stretch; what the house has is left alone.
+        await week.GetByRole(AriaRole.Button, new() { Name = "Clear what you plan to get: This week" }).ClickAsync();
+        await Expect(page.Locator("[data-undo-said]")).ToHaveTextAsync("What you planned in this stretch is back to not decided.");
+        await Expect(week.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToHaveTextAsync("None yet");
+        await Expect(water.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Undo", Exact = true }).ClickAsync();
+        await Expect(week.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("2, ");
+        await ShouldNotScrollSidewaysAsync(page);
+
+        // All of it survives a reload, and an export carries the three lists.
+        await page.ReloadAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(water.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+        await Expect(page.Locator("[data-action-row=\"cash-in-small-notes\"] [data-choice=\"plan\"]")).ToBeCheckedAsync();
+        await Expect(whole.Locator("[data-tally-kind=\"plan\"] [data-tally-figure]")).ToContainTextAsync("2, ");
+        await radio.Locator("[data-choice=\"skip\"]").CheckAsync();
+        IDownload download = await page.RunAndWaitForDownloadAsync(() => page.GetByRole(AriaRole.Button, new() { Name = "Export as a file" }).ClickAsync());
+        string path = Path.Combine(Path.GetTempPath(), $"selficient-e2e-{Guid.NewGuid():N}.json");
+        await download.SaveAsAsync(path);
+        string json = await File.ReadAllTextAsync(path);
+        File.Delete(path);
+        System.Text.RegularExpressions.Regex.IsMatch(json, "\"ticks\": \\[\\s*\"water-bottled-three-days\"\\s*\\]").ShouldBeTrue(json);
+        System.Text.RegularExpressions.Regex.IsMatch(json, "\"skipped\": \\[\\s*\"radio-dab-fm-with-crank\"\\s*\\]").ShouldBeTrue(json);
+        json.ShouldContain("\"planned\": [");
+        json.ShouldContain("cash-in-small-notes");
+
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Export_then_start_again_then_import_brings_the_plan_back()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();
@@ -69,7 +152,7 @@ public sealed class Journeys
         string path = Path.Combine(Path.GetTempPath(), $"selficient-e2e-{Guid.NewGuid():N}.json");
         await download.SaveAsAsync(path);
         string json = await File.ReadAllTextAsync(path);
-        json.ShouldContain("\"selficient\": 2");
+        json.ShouldContain("\"selficient\": 3");
         json.ShouldContain("headtorches");
 
         await page.EvaluateAsync("() => indexedDB.deleteDatabase('selficient')");

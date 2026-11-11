@@ -119,6 +119,96 @@ public sealed class BoardPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task What_is_planned_and_ruled_out_is_checked_as_ticks_are_and_counted_together()
+    {
+        using HttpClient client = _factory.CreateClient();
+        string[] spread = [.. Enumerable.Range(0, 67).SelectMany(i => new[] { $"Ticks=have-{i}", $"PlanTo=plan-{i}", $"NotForMe=skip-{i}" })];
+
+        using HttpResponseMessage hostilePlan = await PostRaw(client, "/plan/board", RobsHouse(), "PlanTo=<script>");
+        using HttpResponseMessage hostileSkip = await PostRaw(client, "/plan/board", RobsHouse(), "NotForMe=../etc");
+        using HttpResponseMessage tooMany = await PostRaw(client, "/plan/board", RobsHouse(), spread);
+        using HttpResponseMessage unknown = await PostRaw(client, "/plan/board", RobsHouse(), "PlanTo=not-a-real-action", "NotForMe=nor-this");
+        using HttpResponseMessage page = await PostRaw(client, "/plan", RobsHouse(), "PlanTo=<script>");
+
+        hostilePlan.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await hostilePlan.Content.ReadAsStringAsync()).ShouldBe("One of the ticks is not a plan action.");
+        hostileSkip.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await hostileSkip.Content.ReadAsStringAsync()).ShouldBe("One of the ticks is not a plan action.");
+        tooMany.StatusCode.ShouldBe(HttpStatusCode.BadRequest, "201 ids across the three lists is over the cap one list had");
+        (await tooMany.Content.ReadAsStringAsync()).ShouldBe("That is more ticks than the plan has actions.");
+        unknown.StatusCode.ShouldBe(HttpStatusCode.OK, "a well-formed id the plan does not have changes nothing");
+        string html = await unknown.Content.ReadAsStringAsync();
+        html.ShouldNotContain("not-a-real-action", customMessage: "an id is never echoed");
+        (await page.Content.ReadAsStringAsync()).ShouldNotContain("id=\"plan-heading\"", customMessage: "the plan page refuses the same post and builds nothing from it");
+    }
+
+    [Fact]
+    public async Task The_fragment_carries_the_tallies_and_where_the_plan_takes_the_house()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string bare = await Post(client, "/plan/board", RobsHouse());
+        string chosen = await Post(client, "/plan/board", RobsHouse(), "Ticks=headtorches", "PlanTo=water-bottled-three-days", "PlanTo=food-no-cook-three-days", "PlanTo=cash-in-small-notes", "NotForMe=radio-dab-fm-with-crank", "NotForMe=headtorches");
+
+        bare.ShouldContain("<div hidden data-board-tallies>");
+        bare.ShouldContain("data-tally=\"plan\"");
+        bare.ShouldContain("data-tally=\"ThisWeek\"");
+        bare.ShouldContain("Today the house stands for 1 day. Mark an action as planned and this line says where your plan takes it.");
+        bare.ShouldContain("aria-label=\"Clear what you have: The whole plan\" aria-disabled=\"true\"", customMessage: "nothing to clear, so the button says so and stays put");
+        bare.ShouldContain("aria-label=\"Plan all of these not yet decided: This week\" aria-disabled=\"false\"");
+        chosen.ShouldContain("data-days-ready=\"1\"", customMessage: "planning to buy tins does not move today's figure");
+        chosen.ShouldMatch("Today the house stands for 1 day\\. With everything you plan to get, it stands for [0-9.]+ days\\.");
+        chosen.ShouldContain("data-said=\"What you planned in this stretch is back to not decided.\"");
+        chosen.ShouldContain("data-said=\"Everything not decided across the whole plan is now planned.\"");
+        chosen.ShouldContain("aria-label=\"Clear what you plan to get: This week\" aria-disabled=\"false\"");
+        chosen.ShouldContain("aria-label=\"Clear what is not for you: This week\" aria-disabled=\"false\"");
+        chosen.ShouldContain("still to spend</strong>");
+        chosen.ShouldNotContain("data-turns-action=\"radio-dab-fm-with-crank\"", customMessage: "ruled out, so not suggested");
+        chosen.ShouldContain("With everything up to here except what is not for you, the house stands for");
+        Regex.Count(chosen, "data-tally-figure>1</strong>").ShouldBe(2, "the radio is the one thing ruled out, in this week and in the plan; the headtorches are held, which wins");
+    }
+
+    [Fact]
+    public void The_tally_says_whole_things_about_every_count()
+    {
+        Selficient.Domain.Measures.MoneyRange some = Selficient.Domain.Measures.MoneyRange.Pounds(40m, 90m);
+        Selficient.Domain.Measures.MoneyRange free = Selficient.Domain.Measures.MoneyRange.Free;
+        Selficient.Domain.Plans.ChoiceTally busy = new(12, 2, 3, some, 5, some, 2);
+        Selficient.Domain.Plans.ChoiceTally idle = new(4, 0, 0, free, 0, free, 0);
+        Selficient.Domain.Plans.ChoiceTally costless = new(4, 0, 2, free, 2, free, 0);
+
+        TallyCopy.HaveCount(busy).ShouldBe("2 of 12");
+        TallyCopy.PlannedCount(busy).ShouldBe("3, £40 to £90 still to spend");
+        TallyCopy.PlannedCount(idle).ShouldBe("None yet");
+        TallyCopy.PlannedCount(costless).ShouldBe("2, nothing to spend");
+        TallyCopy.UndecidedCount(busy).ShouldBe("5, £40 to £90");
+        TallyCopy.UndecidedCount(idle).ShouldBe("None");
+        TallyCopy.UndecidedCount(costless).ShouldBe("2, nothing to spend");
+        TallyCopy.SkippedCount(busy).ShouldBe("2");
+        TallyCopy.SkippedCount(idle).ShouldBe("None");
+        TallyCopy.Standing(0.5m, 0.5m, 0).ShouldBe("Today the house stands for half a day. Mark an action as planned and this line says where your plan takes it.");
+        TallyCopy.Standing(1m, 7m, 4).ShouldBe("Today the house stands for 1 day. With everything you plan to get, it stands for 7 days.");
+        TallyCopy.Label(TallyCopy.Have, "This week").ShouldBe("Clear what you have: This week");
+        TallyCopy.Label(TallyCopy.Plan, "This week").ShouldBe("Clear what you plan to get: This week");
+        TallyCopy.Label(TallyCopy.Skip, "The whole plan").ShouldBe("Clear what is not for you: The whole plan");
+        TallyCopy.Label(TallyCopy.PlanAll, "This month").ShouldBe("Plan all of these not yet decided: This month");
+        TallyCopy.Said(TallyCopy.Have, false).ShouldBe("What you had in this stretch is back to not decided.");
+        TallyCopy.Said(TallyCopy.Plan, true).ShouldBe("What you planned across the whole plan is back to not decided.");
+        TallyCopy.Said(TallyCopy.Skip, false).ShouldBe("What you ruled out in this stretch is back to not decided.");
+        TallyCopy.Said(TallyCopy.PlanAll, true).ShouldBe("Everything not decided across the whole plan is now planned.");
+        TallyCopy.Flag(true).ShouldBe("true");
+        TallyCopy.Flag(false).ShouldBe("false");
+        Should.Throw<ArgumentNullException>(() => TallyCopy.HaveCount(null!));
+        Should.Throw<ArgumentNullException>(() => TallyCopy.PlannedCount(null!));
+        Should.Throw<ArgumentNullException>(() => TallyCopy.UndecidedCount(null!));
+        Should.Throw<ArgumentNullException>(() => TallyCopy.SkippedCount(null!));
+        Should.Throw<ArgumentNullException>(() => TallyView.ForPlan(null!));
+        Should.Throw<ArgumentNullException>(() => TallyView.ForTier(null!));
+        TallyView.ForTier(new TierOutcome(Selficient.Domain.Plans.Tier.ThisMonth, "This month", 3m, busy, false)).ShouldBe(new TallyView("ThisMonth", "This month", busy, ""));
+        TallyView.ForTier(new TierOutcome(Selficient.Domain.Plans.Tier.ThisMonth, "This month", 3m, busy, false)).WholePlan.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task The_fragment_refuses_what_the_plan_page_would_and_redirects_a_get()
     {
         using HttpClient client = _factory.CreateClient();
@@ -185,6 +275,8 @@ public sealed class BoardPagesTests : IDisposable
         BoardCopy.Unit(0.5m).ShouldBe("days");
         BoardCopy.TierOutcome(4m).ShouldBe("With everything up to here ticked, the house stands for 4 days.");
         BoardCopy.TierOutcome(null).ShouldBe("");
+        BoardCopy.TierOutcome(null, true).ShouldBe("");
+        BoardCopy.TierOutcome(4m, true).ShouldBe("With everything up to here except what is not for you, the house stands for 4 days.");
         BoardCopy.Turns([new Selficient.Application.Resilience.NeedShift("Food", 1m, 7m, true)]).ShouldBe("With this: food from 1 day to 7 days.");
         BoardCopy.Turns([new Selficient.Application.Resilience.NeedShift("Warmth", 30m, 30m, true), new("Light", 0.5m, 30m, true), new("Cash", 1m, 3m, true), new("Food", 1m, 3m, true)]).ShouldBe("With this: warmth eased, though not for longer, light from half a day to 30 days, cash from 1 day to 3 days, and 1 more.");
         Should.Throw<ArgumentNullException>(() => BoardCopy.Turns(null!));

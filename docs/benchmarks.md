@@ -83,6 +83,10 @@ The first run of the day scored 63 to 70 on performance and 95 on accessibility.
 | 31 Oct 2026 | Deals GET | 50/s | 0.7 ms | 2.7 ms | 6.3 ms | 100 ms | 0 of 1,000 |
 | 11 Nov 2026, eight scenarios | Plan POST | 200/s | 7.4 ms | 51.7 ms | 67.4 ms | 150 ms | 0 of 4,000 |
 | 11 Nov 2026, eight scenarios | Board fragment POST | 100/s | 6.4 ms | 46.9 ms | 60.8 ms | 150 ms | 0 of 2,000 |
+| 11 Nov 2026, three choices and the tallies | Plan POST | 200/s | | 53.3 ms | 66.5 ms | 150 ms | 0 of 4,000 |
+| 11 Nov 2026, three choices and the tallies | Board fragment POST | 100/s | | 47.0 ms | 58.6 ms | 150 ms | 0 of 2,000 |
+
+The three choices add two tick boxes to every action and five tallies to the page and to the fragment, and no simulation unless something is planned (then one); the same evening's run put both posts within two milliseconds of the run before it.
 
 The eighth scenario (the whole grid going down) adds one card, and so one seven-day simulation, to every plan page; one run on 11 Nov 2026 put the plan POST about a millisecond higher at the median and five at the p95, and the other five scenarios where they were.
 

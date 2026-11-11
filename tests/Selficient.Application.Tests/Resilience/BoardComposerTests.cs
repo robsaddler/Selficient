@@ -99,6 +99,62 @@ public sealed class BoardComposerTests
     }
 
     [Fact]
+    public void What_is_planned_moves_the_figure_for_the_plan_and_never_the_figure_for_today()
+    {
+        HouseholdProfile rob = Profiles.RobsHouse();
+        Plan plan = PlanFor(rob);
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob);
+        HashSet<string> shelf = ["water-bottled-three-days", "food-no-cook-three-days", "cash-in-small-notes"];
+
+        BoardSet bare = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), plan, null, null));
+        BoardSet planned = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), plan, null, null, null, shelf, new HashSet<string>()));
+        BoardSet bought = BoardComposer.Compose(new BoardRequest(profile, shelf, plan, null, null, null, shelf));
+
+        bare.PlannedDaysReady.ShouldBe(bare.DaysReady, "with nothing planned the plan takes the house nowhere new");
+        bare.Tally.Have.ShouldBe(0);
+        bare.Tally.Planned.ShouldBe(0);
+        bare.Tally.Skipped.ShouldBe(0);
+        bare.Tally.Undecided.ShouldBe(plan.Actions.Count());
+        bare.Tally.UndecidedCost.ShouldBe(plan.Cost, "nothing decided is the whole plan still to weigh");
+        planned.DaysReady.ShouldBe(bare.DaysReady, "meaning to buy tins feeds nobody today");
+        planned.PlannedDaysReady.ShouldBe(bought.DaysReady, "the plan's figure is the one the house reaches when the planned things are in it");
+        planned.PlannedDaysReady.ShouldBeGreaterThan(planned.DaysReady);
+        planned.Tally.Planned.ShouldBe(3);
+        planned.Tally.PlannedCost.ShouldBe(shelf.Select(id => plan.Actions.Single(a => a.Id.Value == id).Cost).Aggregate((sum, cost) => sum + cost));
+        planned.Turns.ShouldContain(turn => turn.Action.Value == "food-no-cook-three-days", "a planned action is not yet in the house, so its row still says what it would do");
+        bought.Tally.Have.ShouldBe(3);
+        bought.Tally.Planned.ShouldBe(0, "what is in the house is no longer something to plan");
+        bought.PlannedDaysReady.ShouldBe(bought.DaysReady);
+        planned.Tiers.Sum(tier => tier.Tally.Actions).ShouldBe(plan.Actions.Count(), "the stretches' tallies add up to the plan's");
+        planned.Tiers[0].Tally.Planned.ShouldBe(3);
+        planned.Tiers[0].Title.ShouldBe("This week");
+    }
+
+    [Fact]
+    public void What_is_ruled_out_is_not_suggested_again_and_is_left_out_of_where_a_stretch_leads()
+    {
+        HouseholdProfile rob = Profiles.RobsHouse();
+        Plan plan = PlanFor(rob);
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob);
+        HashSet<string> none = [];
+        HashSet<string> ruledOut = ["food-no-cook-three-days", "food-one-month", "arborist-survey"];
+
+        BoardSet all = BoardComposer.Compose(new BoardRequest(profile, none, plan, null, null));
+        BoardSet without = BoardComposer.Compose(new BoardRequest(profile, none, plan, null, null, null, null, ruledOut));
+
+        all.Turns.ShouldContain(turn => turn.Action.Value == "food-no-cook-three-days");
+        without.Turns.ShouldNotContain(turn => turn.Action.Value == "food-no-cook-three-days", "the household said no; the row does not argue");
+        without.Turns.ShouldNotContain(turn => turn.Action.Value == "food-one-month");
+        all.Tiers.ShouldAllBe(tier => !tier.Excludes);
+        without.Tiers.ShouldAllBe(tier => tier.Excludes, "the first stretch leaves the tins out and every later one inherits that");
+        without.Tiers[^1].DaysReady.ShouldBeLessThan(all.Tiers[^1].DaysReady, "a plan with no food store does not reach where the whole plan does");
+        without.Tally.Skipped.ShouldBe(3);
+        without.Tally.Undecided.ShouldBe(plan.Actions.Count() - 3);
+        without.DaysReady.ShouldBe(all.DaysReady, "ruling something out takes nothing from the house");
+        without.PlannedDaysReady.ShouldBe(all.DaysReady);
+    }
+
+    [Fact]
     public void Scenarios_rank_by_the_risks_and_the_rest_follow()
     {
         HouseholdProfile rob = Profiles.RobsHouse();

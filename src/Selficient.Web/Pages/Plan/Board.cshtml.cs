@@ -33,6 +33,14 @@ public sealed class BoardModel : PageModel
     [BindProperty]
     public List<string> Ticks { get; init; } = [];
 
+    /// <summary>The actions the household plans to get or do.</summary>
+    [BindProperty]
+    public List<string> PlanTo { get; init; } = [];
+
+    /// <summary>The actions the household has ruled out.</summary>
+    [BindProperty]
+    public List<string> NotForMe { get; init; } = [];
+
     /// <summary>There is nothing to see here; the plan page is where the board lives.</summary>
     public IActionResult OnGet() => RedirectToPage("/Plan/Index");
 
@@ -51,7 +59,7 @@ public sealed class BoardModel : PageModel
             return Refused(planned.Error.Message);
         }
 
-        Result<BoardSet> board = IndexModel.Compose(Form, Ticks, planned.Value);
+        Result<BoardSet> board = IndexModel.Compose(Form, new PostedChoices(Ticks, PlanTo, NotForMe), planned.Value);
         if (board.IsFailure)
         {
             return Refused(board.Error.Message);

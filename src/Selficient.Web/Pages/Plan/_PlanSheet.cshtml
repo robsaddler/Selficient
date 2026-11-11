@@ -10,7 +10,7 @@
     var risks = planned.Plan.Risks.Ranked;
     var topRisks = risks.Take(3).ToList();
     var moreRisks = risks.Skip(3).ToList();
-    var outcomes = Model.Board.Tiers.ToDictionary(tier => tier.Tier, tier => tier.DaysReady);
+    var outcomes = Model.Board.Tiers.ToDictionary(tier => tier.Tier);
 }
 
 @*
@@ -30,7 +30,7 @@
       <span class="days-ready__figure">@days.ToString("0.#", culture)</span>
       <span class="days-ready__unit">@Selficient.Web.Pages.Plan.BoardCopy.Unit(days)</span>
     </days-ready>
-    <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
+    <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Say what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
     @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(Model.Board.Current))
     <p class="hero__share"><button type="button" class="button button--quiet" data-share hidden>Share this figure</button> <span class="share__status" role="status" data-share-status hidden></span></p>
   </div>
@@ -45,7 +45,16 @@
 
 <section class="plan" aria-labelledby="actions-heading">
   <h2 id="actions-heading">Your plan, in order</h2>
-  <p class="plan__lede">Tick what you already have. Each action says what it changes on the board, and each stretch says where it takes the house.</p>
+  <p class="plan__lede">Say which of these you have, which you plan to get and which are not for you. Each action says what it changes on the board, and each stretch says where it takes the house.</p>
+  <div class="plan__tally">
+    <h3 class="plan__tally-heading">Where your plan stands</h3>
+    @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForPlan(Model.Board))
+  </div>
+  <p class="undo" role="status" data-undo hidden>
+    <span data-undo-said></span>
+    <button type="button" class="button button--small" data-undo-button>Undo</button>
+    <button type="button" class="button button--small button--quiet" data-undo-dismiss>Dismiss</button>
+  </p>
   @foreach (var tier in planned.Plan.Tiers)
   {
     @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier]))
@@ -156,7 +165,7 @@
 
 <section class="plan-tools" aria-labelledby="tools-heading">
   <h2 id="tools-heading">Keep it safe</h2>
-  <p>Your plan and your ticks are stored only in this browser. Export a copy to keep or to move to another device.</p>
+  <p>Your plan and what you said about each action are stored only in this browser. Export a copy to keep or to move to another device.</p>
   <p class="cluster">
     <button type="button" class="button" data-export-plan>Export as a file</button>
     <label class="button">Import a file<input type="file" accept="application/json" data-import-plan class="sr-only"></label>
@@ -164,7 +173,7 @@
   </p>
   <details class="clear" data-clear>
     <summary>Clear my plan from this browser</summary>
-    <p>This removes your answers, your ticks, the pin on the map and what you rely on from this browser. Export a file first if you want them back. Your theme choice stays.</p>
+    <p>This removes your answers, what you said about each action, the pin on the map and what you rely on from this browser. Export a file first if you want them back. Your theme choice stays.</p>
     <p><button type="button" class="button button--danger" data-clear-plan>Clear it</button></p>
   </details>
 </section>

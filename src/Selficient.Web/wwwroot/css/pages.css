@@ -881,7 +881,6 @@
 }
 
 .action__turns {
-  grid-column: 2 / -1;
   font-size: var(--text-s);
   color: var(--c-pine);
 }

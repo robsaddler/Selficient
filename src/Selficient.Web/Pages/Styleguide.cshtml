@@ -66,20 +66,26 @@
       </header>
       <ul class="actions">
         <li class="action">
-          <label>
-            <input type="checkbox" name="demo-1">
-            <span class="action__title">36 litres of bottled water</span>
-            <span class="action__why">Three days of drinking water for four people. That is six of the big bottles.</span>
-            <span class="data">£15</span>
-          </label>
+          <svg class="action__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForAction("water-bottled-three-days")"/></svg>
+          <span class="action__title" id="demo-water">36 litres of bottled water</span>
+          <span class="action__why">Three days of drinking water for four people. That is six of the big bottles.</span>
+          <span class="action__cost data">£15</span>
+          <div class="choice" role="group" aria-labelledby="demo-water">
+            <label class="choice__pill" data-choice-pill="have"><input type="checkbox" class="choice__input" name="demo-1" data-choice="have"><span>Have it</span></label>
+            <label class="choice__pill" data-choice-pill="plan"><input type="checkbox" class="choice__input" name="demo-1" data-choice="plan" checked><span>Plan to</span></label>
+            <label class="choice__pill" data-choice-pill="skip"><input type="checkbox" class="choice__input" name="demo-1" data-choice="skip"><span>Not for me</span></label>
+          </div>
         </li>
         <li class="action">
-          <label>
-            <input type="checkbox" name="demo-2" checked>
-            <span class="action__title">Four plug-in power-failure torches</span>
-            <span class="action__why">They charge in the socket and switch on the instant the power drops, so nobody is on a dark stair.</span>
-            <span class="data">£80</span>
-          </label>
+          <svg class="action__mark" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForAction("power-failure-lights")"/></svg>
+          <span class="action__title" id="demo-torches">Four plug-in power-failure torches</span>
+          <span class="action__why">They charge in the socket and switch on the instant the power drops, so nobody is on a dark stair.</span>
+          <span class="action__cost data">£80</span>
+          <div class="choice" role="group" aria-labelledby="demo-torches">
+            <label class="choice__pill" data-choice-pill="have"><input type="checkbox" class="choice__input" name="demo-2" data-choice="have" checked><span>Have it</span></label>
+            <label class="choice__pill" data-choice-pill="plan"><input type="checkbox" class="choice__input" name="demo-2" data-choice="plan"><span>Plan to</span></label>
+            <label class="choice__pill" data-choice-pill="skip"><input type="checkbox" class="choice__input" name="demo-2" data-choice="skip"><span>Not for me</span></label>
+          </div>
         </li>
       </ul>
     </article>

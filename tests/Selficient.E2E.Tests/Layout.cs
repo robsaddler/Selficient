@@ -206,4 +206,35 @@ public sealed class Layout
         widths[0].ShouldBeLessThan(widths[1], "the subset carries the weight axis, so light is narrower than heavy");
         widths[0].ShouldBeLessThan(widths[2], "the subset carries the width axis, so seventy-five per cent is narrower than full");
     }
+
+    [Theory]
+    [InlineData(390, true)]
+    [InlineData(1440, false)]
+    [InlineData(2000, false)]
+    public async Task The_tallies_stand_in_even_rows_and_every_pill_is_big_enough_to_press(int width, bool mobile)
+    {
+        // Four tiles laid three and one read as a fault, which is how the first cut drew them in a
+        // stretch at 1440. Whatever the width, every row of a tally holds the same number of tiles.
+        await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile, theme: "light");
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await Journeys.FillRobsHouseAsync(page);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        foreach (string tally in new[] { ".plan__tally .tally", "[data-tier=\"ThisWeek\"] > .tally", "[data-tier=\"ThisMonth\"] > .tally" })
+        {
+            double[] tops = await page.EvalOnSelectorAllAsync<double[]>($"{tally} .tally__item", "items => items.map(item => Math.round(item.getBoundingClientRect().top))");
+            int[] perRow = [.. tops.GroupBy(top => top).Select(row => row.Count())];
+
+            tops.Length.ShouldBe(4, customMessage: $"{tally} has a tile for each of the four counts");
+            perRow.Distinct().Count().ShouldBe(1, customMessage: $"{tally} at {width} px lays its tiles {string.Join(" and ", perRow)} to a row");
+        }
+
+        double[] heights = await page.EvalOnSelectorAllAsync<double[]>("[data-tier=\"ThisWeek\"] .choice__pill", "pills => pills.map(pill => pill.getBoundingClientRect().height)");
+        double[] boxes = await page.EvalOnSelectorAllAsync<double[]>("[data-tier=\"ThisWeek\"] .choice__pill", "pills => pills.map(pill => pill.getBoundingClientRect().width - pill.querySelector('input').getBoundingClientRect().width)");
+
+        heights.ShouldAllBe(height => height >= 36, "a pill is a target for a thumb");
+        boxes.ShouldAllBe(difference => Math.Abs(difference) <= 4.5, "the tick box fills its pill inside the border, so a press anywhere on the pill lands on it");
+    }
 }

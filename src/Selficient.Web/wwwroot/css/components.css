@@ -209,59 +209,310 @@ progress.tier-progress {
   margin-block-start: var(--space-4);
 }
 
-.action label {
+/* An action: its mark, what it is and why, what it costs, and the household's choice about it.
+   Everything hangs off one grid on the row, so the choice, the board's line and the picks all start
+   under the title. */
+.action {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "box mark title price"
-    "box mark why price";
+    "mark title price"
+    "mark why price"
+    ". choice choice";
   column-gap: var(--space-3);
+  row-gap: var(--space-1);
   align-items: start;
-  cursor: pointer;
 
-  & input {
-    grid-area: box;
-    inline-size: 1.5rem;
-    block-size: 1.5rem;
-    margin-block-start: 0.1rem;
+  & + & {
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--c-contour);
   }
 
-  & .action__mark {
+  & > .action__mark {
     grid-area: mark;
     inline-size: 2rem;
     block-size: 2rem;
     color: var(--c-ink-muted);
   }
 
-  & .action__title {
+  & > .action__title {
     grid-area: title;
     font-weight: 600;
   }
 
-  & .action__why {
+  & > .action__why {
     grid-area: why;
     color: var(--c-ink-muted);
     font-size: var(--text-s);
   }
 
-  & .data {
+  & > .action__cost {
     grid-area: price;
   }
 
-  &:has(input:checked) .action__title {
+  & > .choice {
+    grid-area: choice;
+    margin-block-start: var(--space-2);
+  }
+
+  & > .action__turns,
+  & > .picks {
+    grid-column: 2 / -1;
+  }
+
+  /* Have it: done, and said so the way the page always has. */
+  &:has([data-choice="have"]:checked) > .action__title {
     color: var(--c-pine);
     text-decoration: line-through;
     text-decoration-color: var(--c-contour);
   }
+
+  /* Not for me: the row stays where it was, down to its name and its choice, so it is out of the
+     way and one press from coming back. */
+  &:has([data-choice="skip"]:checked) {
+    & > .action__title {
+      font-weight: 500;
+      color: var(--c-ink-muted);
+    }
+
+    & > .action__why,
+    & > .action__cost,
+    & > .action__turns,
+    & > .picks {
+      display: none;
+    }
+  }
 }
 
 @container (max-width: 28rem) {
-  .action label {
-    grid-template-columns: auto auto 1fr;
+  .action {
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
-      "box mark title"
-      "box mark why"
-      "box mark price";
+      "mark title"
+      "mark why"
+      "mark price"
+      "choice choice";
+  }
+}
+
+/* The choice: three pills, one at most pressed. Each is a tick box that fills its pill, so the whole
+   pill is the target and the keyboard and a screen reader meet an ordinary control. */
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.choice__pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+  border: var(--border);
+  border-radius: 999px;
+  background: var(--c-paper);
+  font-size: var(--text-s);
+  font-weight: 500;
+
+  &:hover {
+    border-color: var(--c-pine);
+  }
+
+  &:has(.choice__input:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* The pressed pill carries a tick as well as a colour, so the state never rests on colour alone. */
+  &:has(.choice__input:checked)::before {
+    content: "";
+    inline-size: 0.35rem;
+    block-size: 0.65rem;
+    margin-block-end: 0.15rem;
+    border-inline-end: 2px solid currentcolor;
+    border-block-end: 2px solid currentcolor;
+    rotate: 45deg;
+  }
+
+  &:has(.choice__input:checked) {
+    font-weight: 600;
+  }
+
+  &[data-choice-pill="have"]:has(.choice__input:checked) {
+    background: var(--c-pine-tint);
+    border-color: var(--c-pine);
+  }
+
+  &[data-choice-pill="plan"]:has(.choice__input:checked) {
+    background: var(--c-lantern-tint);
+    border-color: var(--c-lantern);
+  }
+
+  &[data-choice-pill="skip"]:has(.choice__input:checked) {
+    background: var(--c-ground);
+    border-color: var(--c-ink-muted);
+  }
+}
+
+.choice__input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The tally: how many of a stretch, or of the whole plan, the household has, plans, has not decided
+   and has ruled out, with what the planned and the undecided would cost and a way to clear each. */
+.tally {
+  margin-block-start: var(--space-4);
+}
+
+.tally__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tally__item {
+  /* Stacked where the tile is narrow: a long button beside a label squeezed the label to a letter a
+     line on a phone. Wider, the label and its button share the first line (below). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "label"
+    "figure"
+    "button";
+  align-content: start;
+  justify-items: start;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+
+  & > .tally__label {
+    grid-area: label;
+  }
+
+  & > .tally__figure {
+    grid-area: figure;
+  }
+
+  & > .tally__button {
+    grid-area: button;
+  }
+  border-radius: var(--radius-s);
+  background: var(--c-ground);
+  border-inline-start: 4px solid var(--c-contour);
+
+  &[data-tally-kind="have"] {
+    border-inline-start-color: var(--c-pine);
+  }
+
+  &[data-tally-kind="plan"] {
+    border-inline-start-color: var(--c-lantern);
+  }
+
+  & .tally__label {
+    font-size: var(--text-s);
+    color: var(--c-ink-muted);
+  }
+
+  & .tally__figure {
+    font-weight: 600;
+  }
+}
+
+.tally__button {
+  min-block-size: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--c-pine);
+  font-size: var(--text-s);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+
+  &[aria-disabled="true"] {
+    color: var(--c-ink-muted);
+    text-decoration: none;
+    cursor: default;
+  }
+}
+
+/* With room, the label and its button share the first line and the figure has the second to itself,
+   so a tile is two lines tall however long the sum is. */
+@container (min-width: 30rem) {
+  .tally__item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label button"
+      "figure figure";
+  }
+}
+
+/* Four tiles go four across where there is room and two by two where there is not, never three and
+   an orphan, which is what fitting as many as will go gives at some widths. The nearest container
+   is the stretch for a stretch's tally and the page for the plan's. */
+@container (min-width: 52rem) {
+  .tally__list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.tally__standing {
+  margin-block-start: var(--space-3);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.plan__tally {
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & .tally {
+    margin-block-start: var(--space-3);
+  }
+}
+
+.plan__tally-heading {
+  font-size: var(--text-l);
+}
+
+/* What a button beside a tally just did, with the way back. It sits at the foot of the window so it
+   is in reach wherever the press was made, and it waits: nothing here is on a timer. */
+.undo {
+  position: fixed;
+  inset-block-end: var(--space-4);
+  inset-inline: var(--gutter);
+  z-index: 30;
+  inline-size: fit-content;
+  max-inline-size: calc(100% - 2 * var(--gutter));
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--c-lantern);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  box-shadow: 0 0.25rem 1.5rem oklch(20% 0.03 230 / 0.25);
+
+  &[hidden] {
+    display: none;
   }
 }
 
@@ -571,9 +822,7 @@ progress.tier-progress {
 
 /* Kit picks */
 .picks {
-  grid-column: 1 / -1;
   margin-block-start: var(--space-2);
-  margin-inline-start: calc(1.5rem + var(--space-3));
 
   & summary {
     cursor: pointer;

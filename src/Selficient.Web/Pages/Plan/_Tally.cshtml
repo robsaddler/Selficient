@@ -1,0 +1,34 @@
+@using Selficient.Web.Pages.Plan
+@model Selficient.Web.Pages.Plan.TallyView
+@{
+    var tally = Model.Tally;
+}
+@* The counts for one stretch or for the whole plan. The board fragment carries a fresh copy of each
+   and the script swaps it in by scope, so the figures are always the server's. A button with nothing
+   to act on is marked disabled rather than removed, so the row never jumps and the keyboard keeps
+   its place when a press empties the count beside it. *@
+<div class="tally" data-tally="@Model.Scope">
+  <ul class="tally__list">
+    <li class="tally__item" data-tally-kind="@TallyCopy.Have">
+      <span class="tally__label">Have</span>
+      <strong class="tally__figure data" data-tally-figure>@TallyCopy.HaveCount(tally)</strong>
+      <button type="button" class="tally__button" data-bulk="@TallyCopy.Have" data-said="@TallyCopy.Said(TallyCopy.Have, Model.WholePlan)" aria-label="@TallyCopy.Label(TallyCopy.Have, Model.Name)" aria-disabled="@TallyCopy.Flag(tally.Have == 0)">Clear</button>
+    </li>
+    <li class="tally__item" data-tally-kind="@TallyCopy.Plan">
+      <span class="tally__label">Planning</span>
+      <strong class="tally__figure data" data-tally-figure>@TallyCopy.PlannedCount(tally)</strong>
+      <button type="button" class="tally__button" data-bulk="@TallyCopy.Plan" data-said="@TallyCopy.Said(TallyCopy.Plan, Model.WholePlan)" aria-label="@TallyCopy.Label(TallyCopy.Plan, Model.Name)" aria-disabled="@TallyCopy.Flag(tally.Planned == 0)">Clear</button>
+    </li>
+    <li class="tally__item" data-tally-kind="none">
+      <span class="tally__label">Not decided</span>
+      <strong class="tally__figure data" data-tally-figure>@TallyCopy.UndecidedCount(tally)</strong>
+      <button type="button" class="tally__button" data-bulk="@TallyCopy.PlanAll" data-said="@TallyCopy.Said(TallyCopy.PlanAll, Model.WholePlan)" aria-label="@TallyCopy.Label(TallyCopy.PlanAll, Model.Name)" aria-disabled="@TallyCopy.Flag(tally.Undecided == 0)">Plan all of these</button>
+    </li>
+    <li class="tally__item" data-tally-kind="@TallyCopy.Skip">
+      <span class="tally__label">Not for me</span>
+      <strong class="tally__figure data" data-tally-figure>@TallyCopy.SkippedCount(tally)</strong>
+      <button type="button" class="tally__button" data-bulk="@TallyCopy.Skip" data-said="@TallyCopy.Said(TallyCopy.Skip, Model.WholePlan)" aria-label="@TallyCopy.Label(TallyCopy.Skip, Model.Name)" aria-disabled="@TallyCopy.Flag(tally.Skipped == 0)">Clear</button>
+    </li>
+  </ul>
+  <p class="tally__standing" data-tally-standing>@Model.Standing</p>
+</div>

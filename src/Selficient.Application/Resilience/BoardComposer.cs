@@ -16,8 +16,12 @@ public sealed record NeedShift(string Need, decimal From, decimal To, bool Bette
 /// <summary>What one untaken plan action would do to the current board: the needs it moves and how far.</summary>
 public sealed record ActionTurn(ActionId Action, IReadOnlyList<NeedShift> Shifts);
 
-/// <summary>Where a tier takes the house: the figure with everything up to and including that tier ticked, in the chosen scenario and season.</summary>
-public sealed record TierOutcome(Tier Tier, decimal DaysReady);
+/// <summary>
+/// Where a tier takes the house: the figure with everything up to and including that tier in place,
+/// in the chosen scenario and season, leaving out what the household ruled out. Excludes says
+/// whether anything was left out, so the sentence can; the tally counts the tier's own actions.
+/// </summary>
+public sealed record TierOutcome(Tier Tier, string Title, decimal DaysReady, ChoiceTally Tally, bool Excludes);
 
 /// <summary>Everything the Board page draws for one household and one chosen scenario.</summary>
 public sealed record BoardSet(
@@ -29,7 +33,9 @@ public sealed record BoardSet(
     Board Sheet,
     Board Current,
     IReadOnlyList<ActionTurn> Turns,
-    IReadOnlyList<TierOutcome> Tiers)
+    IReadOnlyList<TierOutcome> Tiers,
+    decimal PlannedDaysReady,
+    ChoiceTally Tally)
 {
     /// <summary>The id of the "nothing extra" source.</summary>
     public const string HouseSource = "house";
@@ -38,8 +44,20 @@ public sealed record BoardSet(
     public decimal DaysReady => Current.DaysReady;
 }
 
-/// <summary>What the composer needs: the household as the engine sees it, what it holds, the plan, and the choice of scenario and season.</summary>
-public sealed record BoardRequest(ResilienceProfile Profile, IReadOnlySet<string> Held, Plan Plan, string? ScenarioId, Season? Season, string? SourceId = null);
+/// <summary>
+/// What the composer needs: the household as the engine sees it, what it holds, the plan, and the
+/// choice of scenario and season. Planned and Skipped are the actions the household means to get
+/// and the ones it has ruled out; neither moves the figure for today.
+/// </summary>
+public sealed record BoardRequest(
+    ResilienceProfile Profile,
+    IReadOnlySet<string> Held,
+    Plan Plan,
+    string? ScenarioId,
+    Season? Season,
+    string? SourceId = null,
+    IReadOnlySet<string>? Planned = null,
+    IReadOnlySet<string>? Skipped = null);
 
 /// <summary>
 /// Composes the set for a page. Pure: it only runs the engine, several times, and arranges the
@@ -91,10 +109,22 @@ public static class BoardComposer
             HashSet<string> held = new(request.Held, StringComparer.Ordinal) { sourceId };
             sheet = OutageBoard.Simulate(request.Profile, held, scenario, season);
         }
+        PlanChoices choices = new(request.Held, request.Planned ?? PlanChoices.None.Planned, request.Skipped ?? PlanChoices.None.Skipped);
+
+        // Where the plan takes the house: what it has, with what it means to get. One more run, and only when something is planned.
+        decimal plannedDays = current.DaysReady;
+        if (choices.Planned.Count > 0)
+        {
+            HashSet<string> intended = new(request.Held, StringComparer.Ordinal);
+            intended.UnionWith(choices.Planned);
+            plannedDays = OutageBoard.Simulate(request.Profile, intended, scenario, season).DaysReady;
+        }
+
         List<ActionTurn> turns = [];
         foreach (PlanAction action in request.Plan.Actions)
         {
-            if (request.Held.Contains(action.Id.Value) || Providers.Find(action.Id.Value) is null)
+            // An action the household ruled out is not suggested again under its own row.
+            if (request.Held.Contains(action.Id.Value) || choices.Skipped.Contains(action.Id.Value) || Providers.Find(action.Id.Value) is null)
             {
                 continue;
             }
@@ -111,20 +141,28 @@ public static class BoardComposer
         // Each tier's destination is cumulative: this month assumes this week is done, as the plan does.
         List<TierOutcome> tiers = [];
         HashSet<string> sofar = new(request.Held, StringComparer.Ordinal);
+        bool excludes = false;
         foreach (PlanTier tier in request.Plan.Tiers)
         {
             foreach (PlanAction action in tier.Actions)
             {
+                if (choices.Skipped.Contains(action.Id.Value))
+                {
+                    excludes = true;
+                    continue;
+                }
+
                 if (Providers.Find(action.Id.Value) is not null)
                 {
                     sofar.Add(action.Id.Value);
                 }
             }
 
-            tiers.Add(new TierOutcome(tier.Tier, OutageBoard.Simulate(request.Profile, sofar, scenario, season).DaysReady));
+            decimal days = OutageBoard.Simulate(request.Profile, sofar, scenario, season).DaysReady;
+            tiers.Add(new TierOutcome(tier.Tier, tier.Title, days,ChoiceTally.Of(tier.Actions, choices), excludes));
         }
 
-        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers);
+        return new BoardSet(scenario, season, sourceId, cards, sources, sheet, current, turns, tiers, plannedDays, ChoiceTally.Of(request.Plan.Actions, choices));
     }
 
     /// <summary>Scenarios in the order the risk assessors rank them for this house, then the rest in catalogue order.</summary>

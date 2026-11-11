@@ -30,18 +30,39 @@ export async function initPlanPage(doc) {
   }
 
   await rememberProfile(doc);
-  await applyTicks(doc);
+  await applyChoices(doc);
   recompute(doc);
 
   doc.addEventListener("change", (event) => {
     const box = event.target;
-    if (box instanceof HTMLInputElement && box.dataset.actionId) {
-      void store.setTick(box.dataset.actionId, box.checked).then(() => recompute(doc));
+    if (!(box instanceof HTMLInputElement) || !isChoice(box.dataset.choice)) {
+      return;
+    }
+    // One at most: pressing a pill lifts the other two, and pressing the pressed one clears it.
+    for (const other of choiceBoxes(box.closest("[data-action-row]"))) {
+      if (other !== box) {
+        other.checked = false;
+      }
+    }
+    // A choice made by hand settles whatever a button did before it; the way back is withdrawn.
+    hideUndo(doc);
+    void store.setChoice(box.value, box.checked ? box.dataset.choice : null).then(() => recompute(doc));
+  });
+
+  doc.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const bulk = target?.closest("[data-bulk]");
+    if (bulk instanceof HTMLButtonElement && !bulk.closest("[data-board-tallies]")) {
+      void applyBulk(doc, bulk);
+    } else if (target?.closest("[data-undo-button]")) {
+      void undo(doc);
+    } else if (target?.closest("[data-undo-dismiss]")) {
+      hideUndo(doc);
     }
   });
 
   store.onChange(() => {
-    void applyTicks(doc).then(() => recompute(doc));
+    void applyChoices(doc).then(() => recompute(doc));
   });
 
   doc.querySelector("[data-export-plan]")?.addEventListener("click", () => {
@@ -93,19 +114,46 @@ async function rememberProfile(doc) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {value is import("selficient/plan-store.js").Choice}
+ */
+function isChoice(value) {
+  return value === "have" || value === "plan" || value === "skip";
+}
+
+/**
+ * The three tick boxes of one action.
+ * @param {Element | null} row
+ * @returns {HTMLInputElement[]}
+ */
+function choiceBoxes(row) {
+  /** @type {HTMLInputElement[]} */
+  const boxes = [];
+  for (const box of row?.querySelectorAll("input[data-choice]") ?? []) {
+    if (box instanceof HTMLInputElement) {
+      boxes.push(box);
+    }
+  }
+  return boxes;
+}
+
+/**
+ * Puts what the store holds onto the page: each action's three boxes, one at most ticked.
  * @param {Document} doc
  */
-async function applyTicks(doc) {
-  const ticks = new Set(await store.getTicks().catch(() => []));
-  for (const box of doc.querySelectorAll("input[data-action-id]")) {
-    if (box instanceof HTMLInputElement && box.dataset.actionId) {
-      box.checked = ticks.has(box.dataset.actionId);
+async function applyChoices(doc) {
+  const choices = await store.getChoices().catch(() => /** @type {Record<string, string>} */ ({}));
+  for (const row of doc.querySelectorAll("[data-action-row]")) {
+    const id = row.getAttribute("data-action-row") ?? "";
+    for (const box of choiceBoxes(row)) {
+      box.checked = choices[id] === box.dataset.choice;
     }
   }
 }
 
 /**
- * The progress bar on each tier. The figure itself is the board's, drawn by the server.
+ * The progress bar on each tier counts what the household has. The tallies beside it, and the
+ * figure, are the server's, redrawn with the board.
  * @param {Document} doc
  */
 function recompute(doc) {
@@ -121,11 +169,94 @@ function recompute(doc) {
 }
 
 /**
+ * What the last button changed, as it was before, so one press of Undo puts it back.
+ * @type {Record<string, import("selficient/plan-store.js").Choice | null> | null}
+ */
+let undoable = null;
+
+/**
+ * A button beside a tally: clear everything of one kind, or plan everything not decided, in its
+ * stretch or across the plan. The change is made at once and the way back is offered, rather than
+ * asking first.
+ * @param {Document} doc
+ * @param {HTMLButtonElement} button
+ */
+async function applyBulk(doc, button) {
+  if (button.getAttribute("aria-disabled") === "true") {
+    return;
+  }
+  const kind = button.dataset.bulk;
+  const scope = button.closest("[data-tier]") ?? doc;
+  const choices = await store.getChoices().catch(() => null);
+  if (!choices) {
+    return;
+  }
+  /** @type {Record<string, import("selficient/plan-store.js").Choice | null>} */
+  const changes = {};
+  /** @type {Record<string, import("selficient/plan-store.js").Choice | null>} */
+  const before = {};
+  for (const row of scope.querySelectorAll("[data-action-row]")) {
+    const id = row.getAttribute("data-action-row") ?? "";
+    const now = choices[id] ?? null;
+    if (kind === "plan-all" ? now === null : now === kind) {
+      before[id] = now;
+      changes[id] = kind === "plan-all" ? "plan" : null;
+    }
+  }
+  if (Object.keys(changes).length === 0) {
+    return;
+  }
+  await store.setChoices(changes);
+  undoable = before;
+  await settle(doc);
+  const bar = doc.querySelector("[data-undo]");
+  const said = doc.querySelector("[data-undo-said]");
+  if (bar instanceof HTMLElement && said) {
+    said.textContent = button.dataset.said ?? "";
+    bar.hidden = false;
+  }
+}
+
+/**
+ * @param {Document} doc
+ */
+async function undo(doc) {
+  const before = undoable;
+  hideUndo(doc);
+  if (before) {
+    await store.setChoices(before);
+    await settle(doc);
+  }
+}
+
+/**
+ * @param {Document} doc
+ */
+function hideUndo(doc) {
+  undoable = null;
+  const bar = doc.querySelector("[data-undo]");
+  if (bar instanceof HTMLElement) {
+    bar.hidden = true;
+  }
+}
+
+/**
+ * After a change made by a button rather than a box: the page follows the store, and the board is
+ * told to redraw, which brings the tallies and the figure with it.
+ * @param {Document} doc
+ */
+async function settle(doc) {
+  await applyChoices(doc);
+  recompute(doc);
+  doc.dispatchEvent(new CustomEvent("selficient:choices"));
+}
+
+/**
  * @param {Document} doc
  */
 async function exportPlan(doc) {
   const data = await store.snapshot();
-  const blob = new Blob([JSON.stringify({ selficient: 2, ...data }, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify({ selficient: 3, ...data }, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = doc.createElement("a");
   link.href = url;

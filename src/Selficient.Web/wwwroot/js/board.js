@@ -47,7 +47,7 @@ export function initBoard(doc) {
     if (!(target instanceof HTMLInputElement)) {
       return;
     }
-    if (target.dataset.actionId) {
+    if (target.dataset.choice) {
       refresh();
     } else if (target.name === "board-source") {
       source = target.value;
@@ -83,6 +83,8 @@ export function initBoard(doc) {
   });
 
   store.onChange(refresh);
+  // A button beside a tally changed several actions at once; plan-page.js says so.
+  doc.addEventListener("selficient:choices", refresh);
   void renderDependencies(doc);
   // The server drew the board without the ticks or the dependencies this browser holds.
   refresh();
@@ -117,9 +119,11 @@ async function redraw(doc, slot, echo, choice) {
   if (choice.season) {
     body.set("Form.Season", choice.season);
   }
-  const ticks = await store.getTicks().catch(() => []);
-  for (const tick of ticks) {
-    body.append("Ticks", tick);
+  // What the household has moves the figure; what it plans and what it ruled out move the tallies.
+  const fields = { have: "Ticks", plan: "PlanTo", skip: "NotForMe" };
+  const choices = await store.getChoices().catch(() => /** @type {Record<string, import("selficient/plan-store.js").Choice>} */ ({}));
+  for (const [id, choice] of Object.entries(choices)) {
+    body.append(fields[choice], id);
   }
   const dependencies = await store.getDependencies().catch(() => []);
   dependencies.forEach((dependency, i) => {
@@ -146,6 +150,7 @@ async function redraw(doc, slot, echo, choice) {
   updateStrip(doc, slot);
   updateChips(doc, slot);
   updateTiers(doc, slot);
+  updateTallies(doc, slot);
   placeTurns(doc, slot);
 }
 
@@ -174,7 +179,7 @@ function updateHeadline(doc, slot) {
   const name = board.dataset.scenarioName;
   const lower = name ? `${name.charAt(0).toLowerCase()}${name.slice(1)}` : "";
   if (lede && name) {
-    lede.textContent = `In ${lower}. Tick what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.`;
+    lede.textContent = `In ${lower}. Say what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.`;
   }
   // The verdict bar is the hero's shadow: same figure, same unit, same scenario.
   const barDays = doc.querySelector("[data-verdict-days]");
@@ -224,6 +229,40 @@ function updateTiers(doc, slot) {
     const outcome = doc.querySelector(`[data-tier-outcome="${CSS.escape(item.dataset.tier)}"]`);
     if (outcome) {
       outcome.textContent = item.textContent ?? "";
+    }
+  }
+}
+
+/**
+ * The tallies on the plan follow the board: each takes its counts, its sums and the state of its
+ * buttons from the fragment's tally of the same scope. The elements stay where they are and only
+ * their text and state change, so a button that was just pressed keeps the keyboard's focus.
+ * @param {Document} doc
+ * @param {HTMLElement} slot
+ */
+function updateTallies(doc, slot) {
+  for (const fresh of slot.querySelectorAll("[data-board-tallies] [data-tally]")) {
+    const scope = fresh.getAttribute("data-tally") ?? "";
+    for (const tally of doc.querySelectorAll(`[data-tally="${CSS.escape(scope)}"]`)) {
+      if (tally.closest("[data-board-tallies]")) {
+        continue;
+      }
+      for (const item of fresh.querySelectorAll("[data-tally-kind]")) {
+        const kind = item.getAttribute("data-tally-kind") ?? "";
+        const mine = tally.querySelector(`[data-tally-kind="${CSS.escape(kind)}"]`);
+        const figure = mine?.querySelector("[data-tally-figure]");
+        const button = mine?.querySelector("button");
+        if (figure) {
+          figure.textContent = item.querySelector("[data-tally-figure]")?.textContent ?? "";
+        }
+        if (button) {
+          button.setAttribute("aria-disabled", item.querySelector("button")?.getAttribute("aria-disabled") ?? "true");
+        }
+      }
+      const standing = tally.querySelector("[data-tally-standing]");
+      if (standing) {
+        standing.textContent = fresh.querySelector("[data-tally-standing]")?.textContent ?? "";
+      }
     }
   }
 }
@@ -299,14 +338,15 @@ function placeTurns(doc, slot) {
     if (!(item instanceof HTMLElement) || !item.dataset.turnsAction) {
       continue;
     }
-    const box = doc.querySelector(`input[data-action-id="${CSS.escape(item.dataset.turnsAction)}"]`);
-    const label = box?.closest("label");
-    if (label) {
+    const row = doc.querySelector(`[data-action-row="${CSS.escape(item.dataset.turnsAction)}"]`);
+    const choice = row?.querySelector(".choice");
+    if (row && choice) {
       const note = doc.createElement("span");
       note.className = "action__turns";
       note.setAttribute("data-turns-for", item.dataset.turnsAction);
       note.textContent = item.textContent ?? "";
-      label.append(note);
+      // Under the choice and above the picks, where the row's grid puts it.
+      choice.after(note);
     }
   }
 }

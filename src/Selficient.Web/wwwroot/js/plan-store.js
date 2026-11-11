@@ -1,7 +1,9 @@
 // @ts-check
 /**
  * Where the plan lives: IndexedDB, in this browser, and nowhere else (ADR-001). One object store
- * for the profile, one for ticks, one for the pin on the map. Writes are serialised with the Web
+ * for the profile, one for what the household said about each action, one for the pin on the map.
+ * The second is still called "ticks": it began as a set of ids the household had, and a value of
+ * true from that time reads as "have". Writes are serialised with the Web
  * Locks API; other tabs hear about changes over a BroadcastChannel.
  */
 
@@ -13,7 +15,8 @@ const LOCK = "selficient-plan-write";
 /** @typedef {Record<string, string>} Profile */
 /** @typedef {{ lat: number, lng: number }} House */
 /** @typedef {{ name: string, kind: "PoweredDevice" | "Medicine" | "Supply", watts: number, hoursPerDay: number, daysOfStock: number, mustStayCold: boolean }} Dependency */
-/** @typedef {{ profile: Profile | null, ticks: string[], house?: House | null, dependencies?: Dependency[] }} Snapshot */
+/** @typedef {"have" | "plan" | "skip"} Choice */
+/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], house?: House | null, dependencies?: Dependency[] }} Snapshot */
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
@@ -104,25 +107,105 @@ export async function saveProfile(profile) {
   announce();
 }
 
-/** @returns {Promise<string[]>} */
+/**
+ * What the household said about each action it has said anything about. An action that is not
+ * here is not decided. Anything in the store that is not an action id with a known choice is left
+ * out, so a tampered store cannot put a strange value on the page or in a post.
+ * @returns {Promise<Record<string, Choice>>}
+ */
+export async function getChoices() {
+  const db = await open();
+  try {
+    const store = db.transaction("ticks", "readonly").objectStore("ticks");
+    const [keys, values] = await Promise.all([done(store.getAllKeys()), done(store.getAll())]);
+    /** @type {Record<string, Choice>} */
+    const choices = Object.create(null);
+    keys.forEach((key, i) => {
+      const choice = asChoice(values[i]);
+      if (typeof key === "string" && ID.test(key) && choice) {
+        choices[key] = choice;
+      }
+    });
+    return choices;
+  } finally {
+    db.close();
+  }
+}
+
+/** @returns {Promise<string[]>} the actions the household has */
 export async function getTicks() {
-  const keys = await withStore("ticks", "readonly", (s) => s.getAllKeys());
-  return keys.filter((k) => typeof k === "string");
+  const choices = await getChoices();
+  return Object.keys(choices).filter((id) => choices[id] === "have");
+}
+
+/**
+ * Sets or clears what the household said about several actions at once, as one write, so a
+ * button that changes a whole stretch is one change to every listener and one thing to undo.
+ * @param {Record<string, Choice | null>} changes null puts an action back to not decided
+ */
+export async function setChoices(changes) {
+  const entries = Object.entries(changes).filter(([id, choice]) => ID.test(id) && (choice === null || asChoice(choice) !== null));
+  if (entries.length === 0) {
+    return;
+  }
+  await serialised(async () => {
+    const db = await open();
+    try {
+      const transaction = db.transaction("ticks", "readwrite");
+      const store = transaction.objectStore("ticks");
+      for (const [id, choice] of entries) {
+        if (choice === null) {
+          store.delete(id);
+        } else {
+          store.put(choice, id);
+        }
+      }
+      await new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve(undefined);
+        transaction.onerror = () => reject(transaction.error ?? new Error("Local storage failed."));
+        transaction.onabort = () => reject(transaction.error ?? new Error("Local storage failed."));
+      });
+    } finally {
+      db.close();
+    }
+  });
+  announce();
 }
 
 /**
  * @param {string} actionId
+ * @param {Choice | null} choice null puts the action back to not decided
+ */
+export async function setChoice(actionId, choice) {
+  await setChoices({ [actionId]: choice });
+}
+
+/**
+ * Marks an action as one the household has, or clears that. Clearing leaves a plan or a ruling
+ * out alone: this is the photos page saying what it saw, not the household changing its mind.
+ * @param {string} actionId
  * @param {boolean} ticked
  */
 export async function setTick(actionId, ticked) {
-  await serialised(async () => {
-    if (ticked) {
-      await withStore("ticks", "readwrite", (s) => s.put(true, actionId));
-    } else {
-      await withStore("ticks", "readwrite", (s) => s.delete(actionId));
-    }
-  });
-  announce();
+  if (ticked) {
+    await setChoice(actionId, "have");
+    return;
+  }
+  const choices = await getChoices();
+  if (choices[actionId] === "have") {
+    await setChoice(actionId, null);
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Choice | null}
+ */
+function asChoice(value) {
+  if (value === true || value === "have") {
+    return "have";
+  }
+  return value === "plan" || value === "skip" ? value : null;
 }
 
 /** @returns {Promise<House | null>} */
@@ -176,12 +259,16 @@ export async function saveDependencies(dependencies) {
 
 /** @returns {Promise<Snapshot>} */
 export async function snapshot() {
-  return { profile: await getProfile(), ticks: await getTicks(), house: await getHouse(), dependencies: await getDependencies() };
+  const choices = await getChoices();
+  const of = (/** @type {Choice} */ kind) => Object.keys(choices).filter((id) => choices[id] === kind);
+  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), house: await getHouse(), dependencies: await getDependencies() };
 }
 
 /**
  * Replaces everything with an imported snapshot after checking its shape. Anything that is not a
- * flat string map, a list of kebab-case ids and an optional pin in the United Kingdom is refused.
+ * flat string map, lists of kebab-case ids and an optional pin in the United Kingdom is refused.
+ * An id in more than one list is read once: having beats planning, and planning beats ruling out,
+ * as the server reads them.
  * @param {unknown} data
  */
 export async function restore(data) {
@@ -195,8 +282,11 @@ export async function restore(data) {
     if (data.profile) {
       await withStore("profile", "readwrite", (s) => s.put(data.profile, "current"));
     }
-    for (const id of data.ticks) {
-      await withStore("ticks", "readwrite", (s) => s.put(true, id));
+    // Written weakest first, so a later list overwrites an earlier one for the same id.
+    for (const [ids, choice] of /** @type {[string[], Choice][]} */ ([[data.skipped ?? [], "skip"], [data.planned ?? [], "plan"], [data.ticks, "have"]])) {
+      for (const id of ids) {
+        await withStore("ticks", "readwrite", (s) => s.put(choice, id));
+      }
     }
     const house = data.house;
     if (house) {
@@ -255,9 +345,11 @@ export function isSnapshot(value) {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const { profile, ticks, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
+  const { profile, ticks, planned, skipped, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
   const profileOk = profile === null || isProfile(profile);
-  const ticksOk = Array.isArray(ticks) && ticks.length <= 200 && ticks.every((t) => typeof t === "string" && ID.test(t));
+  const ids = (/** @type {unknown} */ list) => Array.isArray(list) && list.length <= 200 && list.every((t) => typeof t === "string" && ID.test(t));
+  // The two newer lists are optional, so a file exported before they existed still opens.
+  const ticksOk = ids(ticks) && (planned === undefined || ids(planned)) && (skipped === undefined || ids(skipped));
   const houseOk = house === undefined || house === null || isHouse(house);
   const dependenciesOk = dependencies === undefined || (Array.isArray(dependencies) && dependencies.length <= 12 && dependencies.every(isDependency));
   return profileOk && ticksOk && houseOk && dependenciesOk;
