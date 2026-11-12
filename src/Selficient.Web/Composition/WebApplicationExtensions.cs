@@ -59,6 +59,7 @@ public static class WebApplicationExtensions
         app.MapOutEndpoint();
         app.MapSeoEndpoints();
         app.MapShareEndpoints();
+        app.MapHandoffEndpoints();
 
         return app;
     }

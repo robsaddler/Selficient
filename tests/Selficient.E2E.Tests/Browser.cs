@@ -26,7 +26,7 @@ public sealed class Browser : IAsyncLifetime
     public Task<IBrowserContext> PhoneAsync() => SizedAsync(390, 844, mobile: true, theme: "light");
 
     /// <summary>A fresh context at the given size, as a phone or a desktop, in one theme.</summary>
-    public async Task<IBrowserContext> SizedAsync(int width, int height, bool mobile, string theme)
+    public async Task<IBrowserContext> SizedAsync(int width, int height, bool mobile, string theme, string? userAgent = null)
     {
         IBrowserContext context = await _browser!.NewContextAsync(new BrowserNewContextOptions
         {
@@ -35,6 +35,8 @@ public sealed class Browser : IAsyncLifetime
             IsMobile = mobile,
             HasTouch = mobile,
             ColorScheme = theme == "dark" ? ColorScheme.Dark : ColorScheme.Light,
+            // Named when a journey depends on what the device says it is; otherwise the browser's own.
+            UserAgent = userAgent,
             Locale = "en-GB",
             TimezoneId = "Europe/London",
             BaseURL = Origin,
@@ -53,6 +55,7 @@ public sealed class Browser : IAsyncLifetime
             .WithSetting("RateLimits:BoardPerMinute", "10000")
             .WithSetting("RateLimits:AiPerMinute", "1000")
             .WithSetting("RateLimits:ApiPerMinute", "10000")
+            .WithSetting("RateLimits:HandoffPerMinute", "10000")
             // The reviewer is the one authenticated surface and had no browser coverage at all,
             // which is how its sign-in came to put the button hard against the box. The account a
             // journey signs in as is made through the store, as a real one is.

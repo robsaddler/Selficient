@@ -13,7 +13,7 @@ public static class LegalCopy
     public const string MadeBy = "Selficient is made in Blackwood, South Wales.";
 
     /// <summary>When the legal pages were last reviewed.</summary>
-    public static DateOnly Reviewed { get; } = new(2026, 10, 30);
+    public static DateOnly Reviewed { get; } = new(2026, 11, 12);
 
     /// <summary>
     /// The privacy page in four sentences, for the rail beside the prose. A legal page is a hard
@@ -46,6 +46,7 @@ public static class LegalCopy
         ("Open-Meteo", "the coordinates of your postcode's centre", "to find your height above sea level"),
         ("PVGIS, from the European Commission", "the coordinates of your postcode's centre, your roof's direction and pitch", "to find what a kilowatt of panels would make on your roof, only when you use the solar estimator"),
         ("Google Solar API", "the coordinates of your postcode's centre", "to describe the slopes of the nearest roof, only when you tick the consent box on the solar estimator and only if this site has a key for it"),
+        ("Selficient, when you send a copy to another device", "an encrypted copy of your plan that we cannot read, because the key stays in the code on your screen", "to hand it to your other device, once; it is deleted as it is collected, or after ten minutes if it never is"),
         ("Anthropic", "a photograph you choose, re-encoded with its metadata removed, or the text of your plan", "to count what is in a cupboard, read a boiler plate or fuse board, or explain your plan, only when you ask; with your own key the photograph goes from your browser to Anthropic and never reaches us"),
     ];
 }

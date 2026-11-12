@@ -1,0 +1,59 @@
+@page "/receive"
+@model Selficient.Web.Pages.ReceiveModel
+@{
+    ViewData["NoIndex"] = true;
+    ViewData["Title"] = "Receive a plan from another device";
+    ViewData["Description"] = "Where a copy of a plan sent from another device arrives.";
+}
+
+@* receive.js moves this between states. Without script, and without a link, it says what the page is for. *@
+<section class="notice receive" data-receive="nothing" aria-live="polite">
+  <p class="eyebrow">A copy from another device</p>
+
+  <div class="receive__state" data-receive-state="nothing">
+    <h1 tabindex="-1">@ReceiveCopy.Nothing.Heading</h1>
+    <p>@ReceiveCopy.Nothing.Sentence</p>
+    <p class="cluster"><a class="button button--primary" href="/plan">Open your plan</a></p>
+  </div>
+
+  <div class="receive__state" data-receive-state="reading" hidden>
+    <h1 tabindex="-1">@ReceiveCopy.Reading.Heading</h1>
+    <p>@ReceiveCopy.Reading.Sentence</p>
+  </div>
+
+  <div class="receive__state" data-receive-state="arrived" hidden>
+    <h1 tabindex="-1">@ReceiveCopy.Arrived.Heading</h1>
+    <p class="receive__summary" data-receive-summary></p>
+    <p>@ReceiveCopy.Arrived.Sentence</p>
+    <p class="cluster">
+      <button type="button" class="button button--primary" data-receive-put>@ReceiveCopy.Put</button>
+      <button type="button" class="button button--quiet" data-receive-keep>@ReceiveCopy.Decline</button>
+    </p>
+  </div>
+
+  <div class="receive__state" data-receive-state="choose" hidden>
+    <h1 tabindex="-1">@ReceiveCopy.Choose.Heading</h1>
+    <p class="receive__summary" data-receive-summary></p>
+    <p class="receive__summary" data-receive-here></p>
+    <p>@ReceiveCopy.Choose.Sentence</p>
+    <p class="cluster">
+      <button type="button" class="button button--primary" data-receive-put>@ReceiveCopy.Replace</button>
+      <button type="button" class="button" data-receive-keep>@ReceiveCopy.KeepHere</button>
+    </p>
+  </div>
+
+  <div class="receive__state" data-receive-state="later" hidden>
+    <h1 tabindex="-1">@ReceiveCopy.Later.Heading</h1>
+    <p>@ReceiveCopy.Later.Sentence</p>
+    <p class="cluster"><button type="button" class="button button--primary" data-receive-retry>Try again</button></p>
+  </div>
+
+  @foreach (var state in ReceiveCopy.Endings)
+  {
+    <div class="receive__state" data-receive-state="@state.Key" hidden>
+      <h1 tabindex="-1">@state.Heading</h1>
+      <p>@state.Sentence</p>
+      <p class="cluster"><a class="button button--primary" href="/plan">Open your plan</a></p>
+    </div>
+  }
+</section>

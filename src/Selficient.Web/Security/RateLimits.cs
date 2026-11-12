@@ -30,6 +30,10 @@ public sealed class RateLimitOptions
     /// <summary>Map tiles per IP per minute. A view is a dozen tiles and a pan a dozen more.</summary>
     [Range(1, 100_000)]
     public int TilesPerMinute { get; init; } = 600;
+
+    /// <summary>Copies of a plan left or collected per IP per minute. A household sends one; a script sends hundreds.</summary>
+    [Range(1, 10_000)]
+    public int HandoffPerMinute { get; init; } = 12;
 }
 
 /// <summary>Registers the limiter and its policies.</summary>
@@ -50,6 +54,9 @@ public static class RateLimits
     /// <summary>Policy for basemap tiles, which arrive in bursts.</summary>
     public const string TilesPolicy = "tiles";
 
+    /// <summary>Policy for leaving and collecting a copy of a plan.</summary>
+    public const string HandoffPolicy = "handoff";
+
     /// <summary>Adds the limiter. Rejections carry 429 and no body, so the status-code pages middleware renders the sentence.</summary>
     public static IServiceCollection AddSelficientRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -69,6 +76,7 @@ public static class RateLimits
             limiter.AddPolicy(BoardPolicy, BoardPartition);
             limiter.AddPolicy(TilesPolicy, TilesPartition);
             limiter.AddPolicy(AiPolicy, AiPartition);
+            limiter.AddPolicy(HandoffPolicy, HandoffPartition);
         });
 
         return services;
@@ -88,6 +96,9 @@ public static class RateLimits
         HttpMethods.IsGet(context.Request.Method)
             ? RateLimitPartition.GetNoLimiter("ai-read")
             : Window(context, static o => o.AiPerMinute);
+
+    /// <summary>The partition for the handoff policy.</summary>
+    internal static RateLimitPartition<string> HandoffPartition(HttpContext context) => Window(context, static o => o.HandoffPerMinute);
 
     /// <summary>The partition for the tiles policy.</summary>
     internal static RateLimitPartition<string> TilesPartition(HttpContext context) => Window(context, static o => o.TilesPerMinute);

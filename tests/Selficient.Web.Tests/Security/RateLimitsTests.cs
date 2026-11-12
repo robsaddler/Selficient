@@ -64,5 +64,16 @@ public sealed class RateLimitsTests
         }
 
         (await boardLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("the board has its own window, so ticking never spends the plan's");
+
+        RateLimitPartition<string> handoff = RateLimits.HandoffPartition(context);
+        handoff.PartitionKey.ShouldBe(plan.PartitionKey);
+        using RateLimiter handoffLimiter = handoff.Factory(handoff.PartitionKey);
+        for (int i = 0; i < new RateLimitOptions().HandoffPerMinute; i++)
+        {
+            (await handoffLimiter.AcquireAsync()).IsAcquired.ShouldBeTrue();
+        }
+
+        (await handoffLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("a household sends one copy; twelve a minute is already a script");
+        new RateLimitOptions().HandoffPerMinute.ShouldBe(12);
     }
 }

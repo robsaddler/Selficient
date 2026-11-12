@@ -677,6 +677,51 @@ progress.tier-progress {
   font-size: var(--text-s);
 }
 
+/* One state of a row: the same grid as the row, because a grid's gap reaches its own children only. */
+.keep__part {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* The code for the other device's camera. Dark on white in both themes: one inverted in the dark does not scan. */
+.keep__code {
+  inline-size: min(100%, 15rem);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border-radius: var(--radius-s);
+  background: #fff;
+  overflow: hidden;
+
+  & svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+.keep__says {
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+
+/* The page a copy arrives on: one state at a time, each a heading, what arrived and a way on. */
+.receive__state {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+
+  & h1:focus {
+    outline: none;
+  }
+}
+
+.receive__summary {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 4px solid var(--c-lantern);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  background: var(--c-lantern-tint);
+  font-weight: 600;
+}
+
 /* Beside a start button: the thing a visitor expects to be asked for, and is not. */
 .no-account {
   align-self: center;

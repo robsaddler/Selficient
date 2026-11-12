@@ -190,6 +190,13 @@
     <rect x="7" y="3" width="10" height="18" rx="2"/>
     <circle fill="var(--c-lantern, #E8A33D)" stroke="none" cx="12" cy="17" r="1.4"/>
   </symbol>
+  <!-- Another device: a phone beside a screen, the lantern on the one the copy goes to -->
+  <symbol id="mark-devices" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="4" width="13" height="10" rx="1.5"/>
+    <path d="M5 18h7"/>
+    <rect x="15" y="9" width="7" height="12" rx="1.5" fill="var(--c-paper, #fff)"/>
+    <circle fill="var(--c-lantern, #E8A33D)" stroke="none" cx="18.5" cy="17.5" r="1.2"/>
+  </symbol>
   <symbol id="mark-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/>
     <circle fill="var(--c-lantern, #E8A33D)" stroke="none" cx="12" cy="10" r="2.5"/>

@@ -16,6 +16,8 @@ import { initBoard, initVerdictBar } from "selficient/board.js";
 import { initLocate } from "selficient/locate.js";
 import { initShare } from "selficient/share.js";
 import { initKeep } from "selficient/keep.js";
+import { initSendCopy } from "selficient/handoff.js";
+import { initReceive } from "selficient/receive.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -31,5 +33,7 @@ initVerdictBar(document);
 initLocate(document);
 initShare(document);
 void initKeep(document);
+initSendCopy(document);
+void initReceive(document);
 void initHouseMap(document);
 initPhotos(document);

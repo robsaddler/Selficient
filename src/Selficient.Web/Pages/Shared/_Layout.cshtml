@@ -105,6 +105,29 @@
       <p data-keep-says="device" hidden>@KeepCopy.DeviceKept</p>
       <p class="keep__warning" data-keep-safari hidden>@KeepCopy.SafariWarning</p>
     </section>
+    @* Only once there is a plan to send. A copy is a copy: the sentence says so before the button and again when it has gone. *@
+    <section class="keep__row" aria-labelledby="keep-another" data-keep-another hidden>
+      <h3 id="keep-another"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-devices"/></svg>@KeepCopy.AnotherHeading</h3>
+      <div class="keep__part" data-send-state="idle">
+        <p>@KeepCopy.AnotherSentence</p>
+        <p class="cluster"><button type="button" class="button" data-send-copy>@KeepCopy.SendButton</button></p>
+      </div>
+      <div class="keep__part" data-send-state="code" hidden>
+        <div class="keep__code" data-send-code role="img" aria-label="@KeepCopy.SendCodeLabel"></div>
+        <p>@KeepCopy.SendScan</p>
+        <p class="cluster"><button type="button" class="button button--quiet" data-send-link>@KeepCopy.SendLink</button></p>
+      </div>
+      <div class="keep__part" data-send-state="sent" hidden>
+        <p>@KeepCopy.Sent</p>
+        <p class="cluster"><button type="button" class="button button--quiet" data-send-copy>@KeepCopy.SendButton again</button></p>
+      </div>
+      <div role="status">
+        @foreach (var (key, sentence) in KeepCopy.SendSays)
+        {
+          <p class="keep__says" data-send-says="@key" hidden>@sentence</p>
+        }
+      </div>
+    </section>
     <p class="cluster">
       <button type="button" class="button" data-close>Close</button>
     </p>

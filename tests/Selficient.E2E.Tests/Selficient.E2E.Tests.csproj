@@ -20,6 +20,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="Deque.AxeCore.Playwright" />
+    <!-- Reads the codes the browser draws, so the encoder is checked by something that shares no code with it. -->
+    <PackageReference Include="ZXing.Net" />
   </ItemGroup>
 
 </Project>

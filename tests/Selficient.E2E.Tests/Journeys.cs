@@ -577,6 +577,7 @@ public sealed class Journeys
     [InlineData("/privacy")]
     [InlineData("/terms")]
     [InlineData("/offline")]
+    [InlineData("/receive")]
     [InlineData("/styleguide")]
     public async Task Every_page_has_no_accessibility_violations_and_no_sideways_scroll(string path)
     {

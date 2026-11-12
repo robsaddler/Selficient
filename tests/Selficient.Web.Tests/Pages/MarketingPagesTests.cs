@@ -58,6 +58,25 @@ public sealed partial class MarketingPagesTests : IDisposable
             page.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");
         }
 
+        // The second row of the panel: sending a copy. Hidden until there is a plan to send, and every sentence it can say is on the page already.
+        landing.ShouldContain("<section class=\"keep__row\" aria-labelledby=\"keep-another\" data-keep-another hidden>");
+        landing.ShouldContain("<p>Send a copy of your plan to your phone or another computer. Changes you make afterwards will not follow it.</p>");
+        landing.ShouldContain("<button type=\"button\" class=\"button\" data-send-copy>Send a copy</button>");
+        landing.ShouldContain("<div class=\"keep__code\" data-send-code role=\"img\" aria-label=\"A code for your other device&#x27;s camera\"></div>");
+        landing.ShouldContain("<p>Point your other device&#x27;s camera at this. It works for ten minutes, once.</p>");
+        landing.ShouldContain("<button type=\"button\" class=\"button button--quiet\" data-send-link>Copy the link instead</button>");
+        landing.ShouldContain("<p>Sent. Your other device has its own copy now. Changes you make on one will not appear on the other.</p>");
+        foreach ((string key, string sentence) in KeepCopy.SendSays)
+        {
+            landing.ShouldContain($"<p class=\"keep__says\" data-send-says=\"{key}\" hidden>{System.Text.Encodings.Web.HtmlEncoder.Default.Encode(sentence)}</p>");
+            sentence.ShouldEndWith(".");
+        }
+
+        KeepCopy.SendSays.Select(s => s.Key).ShouldBe(["making", "copied", "not-copied", "expired", "offline", "busy", "full", "large", "failed"]);
+        KeepCopy.SendSays.Single(s => s.Key == "expired").Sentence.ShouldBe("That code has run out. Send a copy again.");
+        KeepCopy.SendSays.Single(s => s.Key == "offline").Sentence.ShouldBe("A copy cannot be sent without a connection. Try again when you are back online.");
+        KeepCopy.SendToPhone.ShouldBe("Send a copy to my phone");
+
         // Beside both start buttons on the landing page.
         Regex.Count(landing, "<span class=\"no-account\">No account needed</span>").ShouldBe(2);
         backOffice.ShouldNotContain("keep-chip", customMessage: "the back office is not a household's page");
@@ -183,7 +202,9 @@ public sealed partial class MarketingPagesTests : IDisposable
             privacy.ShouldContain(service);
         }
 
-        privacy.ShouldContain("Reviewed 30 October 2026.");
+        privacy.ShouldContain("Reviewed 12 November 2026.");
+        privacy.ShouldContain("<td>an encrypted copy of your plan that we cannot read, because the key stays in the code on your screen</td>");
+        privacy.ShouldContain("<td>to hand it to your other device, once; it is deleted as it is collected, or after ten minutes if it never is</td>");
         privacy.ShouldContain("never written to disk");
         terms.ShouldContain("id=\"advice\"");
         terms.ShouldContain("id=\"affiliate\"");

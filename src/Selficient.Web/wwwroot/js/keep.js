@@ -69,6 +69,11 @@ function say(chip, dialog, kept) {
       line.hidden = line.dataset.keepSays !== chip.dataset.kept;
     }
   }
+  // There is nothing to send until there is a plan.
+  const another = dialog.querySelector("[data-keep-another]");
+  if (another instanceof HTMLElement) {
+    another.hidden = !kept;
+  }
 }
 
 /**

@@ -91,6 +91,13 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<Selficient.Application.Security.IOperatorStore>(static provider => new Selficient.Infrastructure.Security.SqlOperatorStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The web layer's key ring lives in the database too; the web composition root wires it to Data Protection.
         services.AddSingleton<IKeyRingStore>(static provider => new SqlKeyRingStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        // Sending a copy to another device: ciphertext we cannot read, for ten minutes, taken once.
+        services.AddSingleton<Selficient.Application.Handoff.IHandoffStore>(static provider => new Selficient.Infrastructure.Handoff.SqlHandoffStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddSingleton(static provider => new Selficient.Application.Handoff.HandoffDesk(provider.GetRequiredService<Selficient.Application.Handoff.IHandoffStore>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IExpiring>(static provider => provider.GetRequiredService<Selficient.Application.Handoff.HandoffDesk>());
+        // The housekeeper removes whatever has run out, once a minute, and tells the run log once a day.
+        services.AddSingleton<Housekeeper>();
+        services.AddHostedService(static provider => provider.GetRequiredService<Housekeeper>());
         // The distributed cache behind HybridCache, in the same database, so a warm cache outlives the process. Tiles stay in process only.
         services.AddOptions<SqlServerCacheOptions>().Configure<IOptions<DatabaseOptions>>(static (cache, database) =>
         {

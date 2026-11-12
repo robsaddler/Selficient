@@ -9,6 +9,11 @@
   margin: 0;
 }
 
+/* A class that sets display would otherwise show an element the markup says is hidden. */
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
