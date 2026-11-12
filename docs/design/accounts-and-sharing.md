@@ -133,7 +133,7 @@ This changes a standing rule. `CLAUDE.md` says no personal data about readers on
 
 ### 5.7 Email
 
-Codes have to be sent by something. **Decision for Rob:** a transactional provider (Postmark or Amazon SES are the two worth considering; both have UK or EU regions) or SMTP from the VPS. The recommendation is a provider, because a sign-in code that lands in spam is a locked-out household, and deliverability from a fresh VPS address is poor. The key is an environment variable. Locally and in tests a fake mailer writes the code to the log and to a test hook.
+Codes have to be sent by something. **Decision for Rob:** a transactional provider (Postmark or Amazon SES are the two worth considering; both have UK or EU regions) or SMTP from the VPS. The recommendation is a provider, because a sign-in code that lands in spam is a locked-out household, and deliverability from a fresh VPS address is poor. The key is an environment variable. **Settled 12 Nov 2026 (decision 67):** the Postmark API in production, with the server token in an environment variable, and on the local machine SMTP to Papercut on localhost port 25, as GezzyMerch does it, so the real message can be read as a household would receive it. Tests use a recording sender.
 
 ## 6. Threat model headings
 
