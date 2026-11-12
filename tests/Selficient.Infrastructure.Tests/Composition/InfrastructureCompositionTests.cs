@@ -199,6 +199,13 @@ public sealed class InfrastructureCompositionTests
         provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>().IsAvailable.ShouldBeTrue();
         provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>().ShouldBeOfType<Selficient.Infrastructure.Accounts.SqlAccountStore>();
         provider.GetRequiredService<Selficient.Application.Accounts.IPlanStore>().ShouldBeOfType<Selficient.Infrastructure.Accounts.SqlPlanStore>();
+        provider.GetRequiredService<Selficient.Application.Accounts.IPasskeyStore>().ShouldBeOfType<Selficient.Infrastructure.Accounts.SqlPasskeyStore>();
+        provider.GetRequiredService<Selficient.Application.Accounts.IPasskeyCeremony>().ShouldBeOfType<Selficient.Infrastructure.Accounts.Fido2PasskeyCeremony>();
+        provider.GetRequiredService<Selficient.Application.Accounts.Passkeys>().ShouldNotBeNull();
+        Selficient.Infrastructure.Accounts.PasskeyOptions passkeys = provider.GetRequiredService<IOptions<Selficient.Infrastructure.Accounts.PasskeyOptions>>().Value;
+        passkeys.RelyingPartyId.ShouldBe("selficient.app", "a passkey is bound to the site's own address unless a server is told otherwise");
+        passkeys.RelyingPartyName.ShouldBe("Selficient");
+        passkeys.Origins.ShouldBe(["https://selficient.app"]);
         provider.GetServices<Selficient.Application.Operations.IExpiring>().Select(e => e.GetType().Name).ShouldBe(["HandoffDesk", "AccountSignIn"], "everything that expires is swept by the one housekeeper");
         provider.GetRequiredService<Selficient.Infrastructure.Data.Housekeeper>().ShouldNotBeNull();
     }

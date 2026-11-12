@@ -26,6 +26,9 @@ public static class AccountCopy
     /// <summary>The button that sends the code.</summary>
     public static string SendCode => "Send me a code";
 
+    /// <summary>The sign-in page's other way in, shown where the browser can do it.</summary>
+    public static string UsePasskey => "Use a passkey";
+
     /// <summary>The code page's heading.</summary>
     public static string CodeHeading => "Check your email";
 

@@ -45,6 +45,8 @@ public sealed partial class HouseholdAccountTests : IDisposable
         signIn.ShouldContain("<li>It keeps your plan if this device is lost.</li>");
         signIn.ShouldContain("<button type=\"submit\" class=\"button button--primary\">Send me a code</button>");
         signIn.ShouldContain("<p class=\"field__hint\">You do not need an account to use Selficient. Your plan is saved on this device either way.</p>");
+        signIn.ShouldContain("<button type=\"button\" class=\"button\" data-passkey-sign-in hidden>Use a passkey</button>", customMessage: "offered by the script only where the browser can do it");
+        signIn.ShouldContain("data-passkey-sign-in-says data-failed=\"That passkey did not sign you in. Try again, or sign in with a code sent to your email address.\" hidden>");
         signIn.ShouldContain("<meta name=\"robots\" content=\"noindex, nofollow\">");
         signIn.ShouldContain("type=\"email\"");
         signIn.ShouldContain("autocomplete=\"email\"");
@@ -426,6 +428,7 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldNotContain("/account/sign-in");
         landing.ShouldNotContain("An account would keep both in step.");
         landing.ShouldNotContain("data-sync-", customMessage: "with no accounts there is nothing to keep in step and nothing said about it");
+        landing.ShouldNotContain("data-passkey");
         landing.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");
         planPage.ShouldContain("data-kept-notice");
         planPage.ShouldNotContain("Create an account");
@@ -463,7 +466,15 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldContain("<p data-sync-status=\"synced\">Your plan is kept in your account, and every device you sign in on stays in step.</p>");
         landing.ShouldContain("<p data-sync-status=\"waiting\" hidden>Changes made on this device are waiting for a connection. They will go to your account when there is one.</p>");
         landing.ShouldContain("<p data-sync-status=\"choosing\" hidden>This device and your account each have a plan. <button type=\"button\" class=\"button button--quiet\" data-sync-choose>Choose which to keep</button></p>");
-        landing.ShouldContain("<div class=\"sync-notice\" data-sync-notice role=\"status\" hidden>");
+        landing.ShouldContain("<div class=\"foot-note\" data-sync-notice role=\"status\" hidden>");
+
+        // Passkeys: a part of the account's row that the script fills where the browser can make one, and an offer made once.
+        landing.ShouldContain("<div class=\"keep__part keep__passkeys\" data-passkeys data-remove-label=\"Remove\" data-added=\"A passkey has been added for this device.\" data-removed=\"That passkey has been removed. The emailed code still signs you in.\" data-failed=\"That passkey could not be added. Try again, or go on signing in with a code.\" hidden>");
+        landing.ShouldContain("<p data-passkey-none>Sign in with this device&#x27;s fingerprint, face or screen lock in place of a code. The emailed code still works if the device is lost.</p>");
+        landing.ShouldContain("<button type=\"button\" class=\"button button--quiet\" data-passkey-add>Add a passkey for this device</button>");
+        landing.ShouldContain("<div class=\"foot-note foot-note--asks\" data-passkey-offer role=\"region\" aria-label=\"Sign in faster next time.\" hidden>");
+        landing.ShouldContain("<p><strong>Sign in faster next time.</strong> Add a passkey and this device signs you in with your fingerprint, face or screen lock. The emailed code still works, so a lost phone is never a lost account.</p>");
+        landing.ShouldContain("<button type=\"button\" class=\"button button--quiet\" data-passkey-not-now>Not now</button>");
         foreach ((string key, string sentence) in SyncCopy.Says)
         {
             landing.ShouldContain($"<p data-sync-says=\"{key}\" hidden>{sentence}</p>");

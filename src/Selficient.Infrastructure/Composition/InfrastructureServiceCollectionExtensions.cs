@@ -106,6 +106,18 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<Selficient.Application.Accounts.IAccountStore>(static provider => new Selficient.Infrastructure.Accounts.SqlAccountStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         services.AddSingleton(static provider => new Selficient.Application.Accounts.AccountSignIn(provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>(), provider.GetRequiredService<Selficient.Application.Accounts.IEmailSender>(), provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IExpiring>(static provider => provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>());
+        // Passkeys (M25): the store, the WebAuthn ceremonies for this site's own address, and the use case over both.
+        services.AddOptions<Selficient.Infrastructure.Accounts.PasskeyOptions>()
+            .Bind(configuration.GetSection(Selficient.Infrastructure.Accounts.PasskeyOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<Selficient.Application.Accounts.IPasskeyStore>(static provider => new Selficient.Infrastructure.Accounts.SqlPasskeyStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddSingleton<Selficient.Application.Accounts.IPasskeyCeremony, Selficient.Infrastructure.Accounts.Fido2PasskeyCeremony>();
+        services.AddSingleton(static provider => new Selficient.Application.Accounts.Passkeys(
+            provider.GetRequiredService<Selficient.Application.Accounts.IPasskeyStore>(),
+            provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>(),
+            provider.GetRequiredService<Selficient.Application.Accounts.IPasskeyCeremony>(),
+            provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<Selficient.Application.Accounts.IPlanStore>(static provider => new Selficient.Infrastructure.Accounts.SqlPlanStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The housekeeper removes whatever has run out, once a minute, and tells the run log once a day.
         services.AddSingleton<Housekeeper>();

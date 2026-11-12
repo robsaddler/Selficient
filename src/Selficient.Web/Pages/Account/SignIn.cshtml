@@ -27,7 +27,10 @@
     </div>
     <div class="panel__actions">
       <button type="submit" class="button button--primary">@AccountCopy.SendCode</button>
+      @* For a household that has added a passkey. passkeys.js shows it where the browser has the means. *@
+      <button type="button" class="button" data-passkey-sign-in hidden>@AccountCopy.UsePasskey</button>
     </div>
+    <p class="callout callout--warning" role="alert" data-passkey-sign-in-says data-failed="@Selficient.Application.Accounts.Passkeys.NotSignedIn.Message" hidden></p>
     <p class="field__hint">@AccountCopy.NotNeeded</p>
   </form>
 </section>

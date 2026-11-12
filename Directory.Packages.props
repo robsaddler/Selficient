@@ -35,6 +35,10 @@
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <!-- Photos and AI (M8): SkiaSharp (MIT) re-encodes every upload; the official Anthropic SDK calls Claude. -->
     <PackageVersion Include="Anthropic" Version="13.3.0" />
+    <!-- Passkeys (M25): Fido2NetLib (MIT) runs the WebAuthn ceremonies. Its 4.0.0 references the 9.0 Cbor and Bcl.Memory packages, which have advisories; both are pinned to the framework's line. -->
+    <PackageVersion Include="Fido2" Version="4.0.0" />
+    <PackageVersion Include="System.Formats.Cbor" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Bcl.Memory" Version="10.0.15" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.154.0" />
   </ItemGroup>
   <ItemGroup Label="Later milestones (declared so versions are pinned when first referenced)">

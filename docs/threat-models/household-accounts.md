@@ -84,4 +84,33 @@
 
 ## 6. Passkeys (M25)
 
-*Written before M25's code.*
+*12 November 2026, before M25's code.*
+
+### What it is
+
+- A signed-in household may add a passkey: a WebAuthn credential that lives in the device's own authenticator (fingerprint, face, screen lock). Registration is offered once after the first sign-in by code, and from the panel. The credential is discoverable and user verification is required, so the sign-in page's "Use a passkey" needs no address typed.
+- The ceremonies are Fido2NetLib's, behind a port. The challenge and options for a ceremony in progress are kept in a cookie (`selficient.passkey`, HttpOnly, Secure, SameSite=Strict, path `/api`, five minutes), encrypted by the key ring, and removed when the ceremony ends either way.
+- We store the credential id, its public key, its signature counter, a label made from the kind of device, and two dates. No private key ever leaves the authenticator; nothing biometric reaches us at all.
+- The emailed code remains. It is the recovery path, which is why a lost phone is not a lost account.
+
+### Cases
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 31 | **A credential registered to the wrong account** | Registration needs a session, and the account is the session's; the user handle in the options is that account's number. The verified credential is stored against the session's account and no other. The registration response is verified against the options this browser was given (the cookie), so a response made for another account's challenge fails | `A_passkey_is_added_to_the_account_that_is_signed_in_and_signs_it_in_afterwards`, `A_registration_answered_for_another_challenge_is_refused` |
+| 32 | **The same credential registered twice, or to two accounts** | The credential id is unique in the table, checked in the ceremony and again by the index. The options name the account's existing credentials so the authenticator refuses to make a second for it | `A_credential_cannot_be_registered_twice` |
+| 33 | **A replayed or forged assertion** | The challenge is 32 random bytes, used once, bound to this browser by the cookie and expiring in five minutes; the origin and the relying party in the signed data must be ours; the signature is checked against the stored public key | `An_assertion_for_another_challenge_origin_or_key_is_refused` |
+| 34 | **A cloned authenticator** | The signature counter is stored and must go up when the authenticator keeps one. One that does not go up is refused | `A_signature_counter_that_goes_backwards_is_refused` |
+| 35 | **User verification skipped** (a stolen, unlocked security key) | Required in the options and checked in the response. A response without it is refused | `An_assertion_without_user_verification_is_refused` |
+| 36 | **Downgrade to the emailed code** | By design: the code is the recovery path. It is the reason the code has the stricter limits (five tries, per-address counts, bound to the asking browser). A passkey does not make an account weaker than it was without one | Section 3 |
+| 37 | **A flood of ceremonies** | Beginning or finishing a sign-in by passkey spends the sign-in policy's allowance; an account holds ten passkeys at most | `Passkey_sign_in_is_rate_limited`, `An_account_holds_ten_passkeys_and_no_more` |
+| 38 | **Removing someone else's passkey**, or the last way in | Removal names the passkey's number and the session's account in one statement. Removing every passkey leaves the emailed code, which always works | `A_household_removes_its_own_passkeys_and_nobody_elses` |
+| 39 | **Cross-site requests to the passkey endpoints** | The same header the sync write requires, and the same check of where the request came from. The ceremony cookie is SameSite=Strict | `The_passkey_endpoints_refuse_what_did_not_come_from_our_pages` |
+| 40 | **The label is a way to store markup** | It is chosen by the server from a fixed list, by the request's user agent. Nothing typed is stored | `A_passkey_is_labelled_by_the_kind_of_device_and_nothing_typed` |
+| 41 | **Passkeys left behind when the account is deleted** | The rows cascade with the account. The authenticator's own copy cannot be removed from here and opens nothing afterwards: its credential id is unknown to us | `Deleting_the_account_removes_its_passkeys` |
+| 42 | **Enumeration by passkey sign-in** | The options are the same for everyone: no credential list, because the credential is discoverable. Every refusal says one sentence | `Every_refused_passkey_sign_in_says_the_same_thing` |
+
+### Accepted
+
+- Attestation is not requested ("none"). We do not need to know the make of an authenticator, and asking would give a household a consent prompt for nothing.
+- A synced passkey (iCloud Keychain, Google Password Manager) is as safe as that account. That is the user's own choice of authenticator.

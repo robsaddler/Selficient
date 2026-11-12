@@ -62,6 +62,7 @@ public static class WebApplicationExtensions
         app.MapShareEndpoints();
         app.MapHandoffEndpoints();
         app.MapAccountEndpoints();
+        app.MapPasskeyEndpoints();
 
         return app;
     }

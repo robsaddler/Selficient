@@ -33,6 +33,7 @@
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="Anthropic" />
+    <PackageReference Include="Fido2" />
   </ItemGroup>
 
 </Project>

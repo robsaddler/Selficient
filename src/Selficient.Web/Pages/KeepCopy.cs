@@ -118,6 +118,36 @@ public static class KeepCopy
     /// <summary>The account row's link to delete the account.</summary>
     public static string DeleteAccount => "Delete my account";
 
+    /// <summary>The heading of the passkeys part of the account's row.</summary>
+    public static string PasskeysHeading => "Passkeys";
+
+    /// <summary>What a passkey is, to a household with none, and the thing that makes it safe to rely on.</summary>
+    public static string PasskeysNone => "Sign in with this device's fingerprint, face or screen lock in place of a code. The emailed code still works if the device is lost.";
+
+    /// <summary>The panel's button that adds one.</summary>
+    public static string AddPasskey => "Add a passkey for this device";
+
+    /// <summary>The words on the button beside each passkey.</summary>
+    public static string RemovePasskey => "Remove";
+
+    /// <summary>Said when one has been added.</summary>
+    public static string PasskeyAdded => "A passkey has been added for this device.";
+
+    /// <summary>Said when one has been removed, with the thing a person might worry about.</summary>
+    public static string PasskeyRemoved => "That passkey has been removed. The emailed code still signs you in.";
+
+    /// <summary>The offer made once after signing in by code: its heading.</summary>
+    public static string OfferHeading => "Sign in faster next time.";
+
+    /// <summary>The offer's sentence.</summary>
+    public static string OfferSentence => "Add a passkey and this device signs you in with your fingerprint, face or screen lock. The emailed code still works, so a lost phone is never a lost account.";
+
+    /// <summary>The offer's button.</summary>
+    public static string OfferAdd => "Add a passkey";
+
+    /// <summary>The offer's way out.</summary>
+    public static string OfferNotNow => "Not now";
+
     /// <summary>Said to a guest after a copy has gone: the one moment an account is the answer to what they just did.</summary>
     public static string SentAccount => "An account would keep both in step.";
 

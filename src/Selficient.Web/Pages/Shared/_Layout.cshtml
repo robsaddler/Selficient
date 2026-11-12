@@ -149,6 +149,14 @@
         <p data-sync-status="synced">@SyncCopy.Synced</p>
         <p data-sync-status="waiting" hidden>@SyncCopy.Waiting</p>
         <p data-sync-status="choosing" hidden>@SyncCopy.Choosing <button type="button" class="button button--quiet" data-sync-choose>@SyncCopy.Choose</button></p>
+        @* passkeys.js fills this where the browser can make a passkey: the ones this account has, each with a way to remove it, and a way to add one. *@
+        <div class="keep__part keep__passkeys" data-passkeys data-remove-label="@KeepCopy.RemovePasskey" data-added="@KeepCopy.PasskeyAdded" data-removed="@KeepCopy.PasskeyRemoved" data-failed="@Selficient.Application.Accounts.Passkeys.NotAdded.Message" hidden>
+          <h4>@KeepCopy.PasskeysHeading</h4>
+          <p data-passkey-none>@KeepCopy.PasskeysNone</p>
+          <ul class="keep__passkey-list" data-passkey-list hidden></ul>
+          <p class="cluster"><button type="button" class="button button--quiet" data-passkey-add>@KeepCopy.AddPasskey</button></p>
+          <p class="keep__says" role="status" data-passkey-says hidden></p>
+        </div>
         <p class="cluster"><a class="button button--quiet" href="/account/sign-out">@KeepCopy.SignOut</a> <a class="button button--quiet" href="/account/delete">@KeepCopy.DeleteAccount</a></p>
       </div>
     </section>
@@ -161,12 +169,20 @@
   @if (Accounts.IsAvailable)
   {
   @* Sync is quiet: it speaks here only when a plan has moved or another device's details replaced the ones on this one. *@
-  <div class="sync-notice" data-sync-notice role="status" hidden>
-    @foreach (var (key, sentence) in SyncCopy.Says)
-    {
-      <p data-sync-says="@key" hidden>@sentence</p>
-    }
-    <button type="button" class="button button--quiet" data-sync-dismiss>Got it</button>
+  <div class="foot-notes">
+    <div class="foot-note" data-sync-notice role="status" hidden>
+      @foreach (var (key, sentence) in SyncCopy.Says)
+      {
+        <p data-sync-says="@key" hidden>@sentence</p>
+      }
+      <button type="button" class="button button--quiet" data-sync-dismiss>Got it</button>
+    </div>
+    @* Offered once on a device after signing in by code, to a household with no passkey, where the browser can make one. *@
+    <div class="foot-note foot-note--asks" data-passkey-offer role="region" aria-label="@KeepCopy.OfferHeading" hidden>
+      <p><strong>@KeepCopy.OfferHeading</strong> @KeepCopy.OfferSentence</p>
+      <button type="button" class="button" data-passkey-add>@KeepCopy.OfferAdd</button>
+      <button type="button" class="button button--quiet" data-passkey-not-now>@KeepCopy.OfferNotNow</button>
+    </div>
   </div>
   @* The first time a device's own plan meets a different plan in the account, the person chooses. Never a merge of the two. *@
   <dialog class="dialog keep" data-sync-choice aria-labelledby="sync-choice-heading">

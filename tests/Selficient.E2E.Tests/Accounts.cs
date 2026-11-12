@@ -67,6 +67,7 @@ public sealed class Accounts
         await chip.ClickAsync();
         await panel.GetByRole(AriaRole.Link, new() { Name = "Create an account" }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Sign in or create an account" })).ToBeVisibleAsync();
+        await page.EvaluateAsync("() => localStorage.setItem('selficient.passkey-declined', '1')");
         await Expect(page.Locator(".panel .field__hint")).ToHaveTextAsync("You do not need an account to use Selficient. Your plan is saved on this device either way.");
         await ShouldBeSoundAsync(page);
         await page.GetByLabel("Email address").FillAsync("not an address");
@@ -130,6 +131,7 @@ public sealed class Accounts
 
         // Signed in again, and out without keeping a copy: the plan leaves this browser with the session.
         await page.GotoAsync("/account/sign-in");
+        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Use a passkey" })).ToBeVisibleAsync();
         await page.GetByLabel("Email address").FillAsync(Email);
         await page.GetByRole(AriaRole.Button, new() { Name = "Send me a code" }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Check your email" })).ToBeVisibleAsync();
@@ -186,6 +188,8 @@ public sealed class Accounts
         IPage onLaptop = await laptop.NewPageAsync();
         await onLaptop.GotoAsync("/");
         await SignInAsync(_browser, onLaptop, Email);
+        // The account's plan arrives and the page is rebuilt from it; leaving in the middle of that would be cut off.
+        await onLaptop.Locator("[data-plan][data-plan-ready]").WaitForAsync();
 
         await onLaptop.GotoAsync("/account/delete");
         await onLaptop.GetByRole(AriaRole.Button, new() { Name = "Delete my account" }).ClickAsync();
@@ -196,10 +200,19 @@ public sealed class Accounts
         (await phone.CookiesAsync()).ShouldNotContain(c => c.Name == "selficient.signed-in", "the hint goes when the session it pointed at is gone");
     }
 
-    /// <summary>Signs a page in as a household, with the code from the message the running application was asked to send.</summary>
-    internal static async Task SignInAsync(Browser browser, IPage page, string email)
+    /// <summary>
+    /// Signs a page in as a household, with the code from the message the running application was
+    /// asked to send. The offer of a passkey that follows a first sign-in sits over the foot of the
+    /// page, so a journey that is not about it says "not now" beforehand, as a person would once.
+    /// </summary>
+    internal static async Task SignInAsync(Browser browser, IPage page, string email, bool offerPasskey = false)
     {
         await page.GotoAsync("/account/sign-in");
+        if (!offerPasskey)
+        {
+            await page.EvaluateAsync("() => localStorage.setItem('selficient.passkey-declined', '1')");
+        }
+
         await page.GetByLabel("Email address").FillAsync(email);
         await page.GetByRole(AriaRole.Button, new() { Name = "Send me a code" }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Check your email" })).ToBeVisibleAsync();

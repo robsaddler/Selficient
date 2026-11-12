@@ -706,15 +706,22 @@ progress.tier-progress {
   font-size: var(--text-s);
 }
 
-/* What sync says, when it says anything: a strip along the foot of the screen that takes no room from the page. */
-.sync-notice {
+/* What the account says, when it says anything: strips along the foot of the screen that take no room from the page.
+   Sync's goes by itself and a press passes through it; the passkey offer asks something and waits. */
+.foot-notes {
   position: fixed;
   inset-block-end: max(var(--space-4), env(safe-area-inset-bottom));
   inset-inline: var(--space-4);
   z-index: 30;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  pointer-events: none;
+}
+
+.foot-note {
   inline-size: fit-content;
-  max-inline-size: min(34rem, calc(100% - 2 * var(--space-4)));
-  margin-inline: auto;
+  max-inline-size: min(34rem, 100%);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -727,8 +734,6 @@ progress.tier-progress {
   color: var(--c-ink);
   box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 25%);
   font-size: var(--text-s);
-  /* It sits over the foot of the page for a few seconds; a press on it goes to whatever is underneath, except on its own button. */
-  pointer-events: none;
 
   & p {
     flex: 1 1 14rem;
@@ -737,6 +742,42 @@ progress.tier-progress {
 
   & button {
     pointer-events: auto;
+  }
+}
+
+.foot-note--asks {
+  border-inline-start-color: var(--c-lantern);
+  pointer-events: auto;
+
+  & p {
+    flex-basis: 100%;
+    font-weight: 400;
+  }
+}
+
+/* The passkeys an account has, in its row of the panel. */
+.keep__passkeys {
+  padding-block-start: var(--space-3);
+  border-block-start: var(--border);
+
+  & h4 {
+    font-size: var(--text-s);
+  }
+}
+
+.keep__passkey-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+
+  & li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: var(--text-s);
   }
 }
 

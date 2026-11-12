@@ -99,6 +99,9 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
         // Each test host gets a database of its own on the test server, migrated by the host itself as on the vhost.
         builder.UseSetting("Database:ConnectionString", _database.ConnectionString);
         builder.UseSetting("Email:Provider", "None");
+        // Passkeys are bound to the address the test host answers on, as they are to the site's own in production.
+        builder.UseSetting("Passkeys:RelyingPartyId", "localhost");
+        builder.UseSetting("Passkeys:Origins:0", "https://localhost");
         foreach ((string key, string value) in _settings)
         {
             builder.UseSetting(key, value);
