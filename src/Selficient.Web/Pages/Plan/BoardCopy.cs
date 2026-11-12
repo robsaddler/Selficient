@@ -30,20 +30,27 @@ public static class BoardCopy
         };
     }
 
-    /// <summary>What a cell says when the sheet is being compared with today: its own sentence, then how the same cell stands today where that differs.</summary>
-    public static string Cell(BoardRow row, HorizonCell cell, HorizonCell today)
+    /// <summary>The words in front of the line of a pair that shows a need as it stands today.</summary>
+    public static string Today => "Today";
+
+    /// <summary>The words in front of the line of a pair that shows a need with the chosen position.</summary>
+    public static string WithThis => "With this";
+
+    /// <summary>What a cell in a pair says when read out: which of the two lines it is on, then its own sentence.</summary>
+    public static string Cell(BoardRow row, HorizonCell cell, string line)
     {
-        ArgumentNullException.ThrowIfNull(today);
-        string sentence = Cell(row, cell);
-        return today.State == cell.State ? sentence : $"{sentence} Today: {State(today.State).ToLowerInvariant()}.";
+        ArgumentNullException.ThrowIfNull(line);
+        return $"{line}. {Cell(row, cell)}";
     }
 
-    /// <summary>The mark a cell carries for how it stands today, when that differs from the sheet being shown; nothing when it is the same.</summary>
-    public static string? TodayMark(HorizonCell cell, HorizonCell today)
+    /// <summary>The needs the sheet draws differently from today, each with its row as it stands today, so the board can draw the two one above the other.</summary>
+    public static IReadOnlyDictionary<string, BoardRow> Pairs(BoardSet set)
     {
-        ArgumentNullException.ThrowIfNull(cell);
-        ArgumentNullException.ThrowIfNull(today);
-        return today.State == cell.State ? null : today.State.ToString().ToLowerInvariant();
+        ArgumentNullException.ThrowIfNull(set);
+        Dictionary<string, BoardRow> today = set.Current.Rows.ToDictionary(static row => row.Key);
+        return set.Sheet.Rows
+            .Where(row => row.Needed && !row.Cells.SequenceEqual(today[row.Key].Cells))
+            .ToDictionary(static row => row.Key, row => today[row.Key]);
     }
 
     /// <summary>How far a row moves against today, under its name: "1 day today, 16 days with this".</summary>

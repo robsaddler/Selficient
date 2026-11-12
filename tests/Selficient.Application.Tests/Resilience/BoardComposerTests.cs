@@ -276,6 +276,23 @@ public sealed class BoardComposerTests
         BoardComposer.DaysHeld(new BoardRow("x", "x", Rung.Survive, true, [new DayState(CellState.Held, "a", null), new DayState(CellState.Held, "a", null), new DayState(CellState.Lost, null, "b")], []), 30).ShouldBe(2m);
     }
 
+    [Fact]
+    public void A_need_lost_later_is_a_need_that_improved_though_no_cell_changes_state()
+    {
+        static Board Lasting(int days)
+        {
+            List<DayState> states = [.. Enumerable.Repeat(new DayState(CellState.Held, "tins", null), days), new DayState(CellState.Lost, null, "tins")];
+            return new Board(Scenarios.Storm, Season.Winter, 30, [new BoardRow("Food", "Food", Rung.Survive, true, states, [new HorizonCell(Horizon.TwoWeeks, CellState.Lost, days)])]);
+        }
+
+        NeedShift later = BoardComposer.Shifts(Lasting(6), Lasting(12)).ShouldHaveSingleItem();
+
+        later.From.ShouldBe(6m);
+        later.To.ShouldBe(12m);
+        BoardComposer.Shifts(Lasting(12), Lasting(6)).ShouldBeEmpty("lost sooner is not better");
+        BoardComposer.Shifts(Lasting(6), Lasting(6)).ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData(Horizon.OneDay, "a day")]
     [InlineData(Horizon.ThreeDays, "three days")]

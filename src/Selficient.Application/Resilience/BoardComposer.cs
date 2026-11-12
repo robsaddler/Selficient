@@ -263,7 +263,8 @@ public static class BoardComposer
             bool better = false;
             for (int c = 0; c < was.Cells.Count; c++)
             {
-                if (now.Cells[c].State < was.Cells[c].State)
+                // Better is a better state, or the same state reached later: a shelf that gives out on day twelve where it gave out on day six.
+                if ((now.Cells[c].State, -now.Cells[c].HeldDays).CompareTo((was.Cells[c].State, -was.Cells[c].HeldDays)) < 0)
                 {
                     better = true;
                 }

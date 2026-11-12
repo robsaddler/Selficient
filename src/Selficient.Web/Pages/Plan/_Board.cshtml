@@ -5,9 +5,25 @@
     var set = Model.Set;
     var culture = System.Globalization.CultureInfo.CurrentCulture;
     var rungs = new[] { Rung.Normal, Rung.House, Rung.Function, Rung.Survive };
-    // The same rows as they stand today, so a sheet for another position can be read against them cell by cell.
-    var today = set.Current.Rows.ToDictionary(row => row.Key);
+    // The needs this sheet draws differently from today, each with its row as it stands today: those are drawn twice, one line above the other.
+    var pairs = Selficient.Web.Pages.Plan.BoardCopy.Pairs(set);
     var shifts = set.Compared.ToDictionary(shift => shift.Key, shift => shift.Shift);
+}
+
+@functions {
+    // One line of cells for a need. In a pair each cell says which line it is on before its own sentence.
+    private void Cells(BoardRow row, string? line)
+    {
+        foreach (var cell in row.Cells)
+        {
+            <span class="cell cell--@cell.State.ToString().ToLowerInvariant()" role="img" aria-label="@(line is null ? Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell) : Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell, line))" data-when="@BoardComposer.HorizonWords(cell.Horizon)">
+              @if (cell.State != CellState.Held && cell.HeldDays > 0)
+              {
+                <span class="cell__days data">@cell.HeldDays</span>
+              }
+            </span>
+        }
+    }
 }
 
 <section class="board" aria-labelledby="board-heading" data-board data-days-ready="@set.DaysReady.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)" data-scenario="@set.Scenario.Id" data-scenario-name="@set.Scenario.Name" data-source="@set.SourceId" data-season="@set.Season">
@@ -73,17 +89,21 @@
 
   @if (set.SourceId != BoardSet.HouseSource)
   {
-    @* Another position is on the board: it can be read against today in the same table. On by default, because the difference is the point; the script remembers when it is turned off. *@
+    @* Another position is on the board: a sentence says what it adds up to, and every need it changes is drawn twice below, as it stands today and with this. The switch narrows the board to those needs; the script remembers it through a redraw. *@
     <div class="board__compare">
-      <label class="board__compare-switch"><input type="checkbox" data-board-compare checked> <span>Compare with today</span></label>
       <p class="board__comparison" data-board-comparison>@Selficient.Web.Pages.Plan.BoardCopy.Comparison(set)</p>
+      @if (pairs.Count > 0)
+      {
+        <p class="board__pairs-note">Each need that changes is drawn twice: as it stands today, and with this.</p>
+        <label class="board__compare-switch"><input type="checkbox" data-board-only-changes> <span>Show only what changes</span></label>
+      }
     </div>
   }
   @{
     var board = set.Sheet;
   }
   @* One sheet: the chosen source in the chosen season. A switch posts for another, which costs the server a few milliseconds and the page nothing it does not show. *@
-  <div class="board__sheet" data-source="@set.SourceId" data-season="@set.Season">
+  <div class="board__sheet" data-source="@set.SourceId" data-season="@set.Season" data-paired="@Selficient.Web.Pages.Plan.TallyCopy.Flag(pairs.Count > 0)">
       @* Each rung is its own band with its name, what it is for and how it stands, and its own column labels, so four groups read as four and not as one long table. *@
       @foreach (var rung in rungs)
       {
@@ -108,7 +128,7 @@
           </div>
           @foreach (var row in rows)
           {
-            <details class="board__row" data-turned="@Selficient.Web.Pages.Plan.TallyCopy.Flag(shifts.ContainsKey(row.Key))">
+            <details class="board__row" data-turned="@Selficient.Web.Pages.Plan.TallyCopy.Flag(shifts.ContainsKey(row.Key))" data-paired="@Selficient.Web.Pages.Plan.TallyCopy.Flag(pairs.ContainsKey(row.Key))">
               <summary class="board__summary">
                 <span class="board__need"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="@(Selficient.Web.Pages.Plan.Marks.Sprite)#@Selficient.Web.Pages.Plan.Marks.ForRow(row.Key)"/></svg>@row.Name
                   @if (shifts.TryGetValue(row.Key, out var shift))
@@ -116,16 +136,16 @@
                     <span class="board__delta">@Selficient.Web.Pages.Plan.BoardCopy.Delta(shift)</span>
                   }
                 </span>
-                @for (var c = 0; c < row.Cells.Count; c++)
+                @if (pairs.TryGetValue(row.Key, out var was))
                 {
-                  var cell = row.Cells[c];
-                  var was = today[row.Key].Cells[c];
-                  <span class="cell cell--@cell.State.ToString().ToLowerInvariant()" role="img" aria-label="@Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell, was)" data-today="@Selficient.Web.Pages.Plan.BoardCopy.TodayMark(cell, was)" data-when="@BoardComposer.HorizonWords(cell.Horizon)">
-                    @if (cell.State != CellState.Held && cell.HeldDays > 0)
-                    {
-                      <span class="cell__days data">@cell.HeldDays</span>
-                    }
-                  </span>
+                  <span class="board__when" data-line="today">@Selficient.Web.Pages.Plan.BoardCopy.Today</span>
+                  Cells(was, Selficient.Web.Pages.Plan.BoardCopy.Today);
+                  <span class="board__when" data-line="with">@Selficient.Web.Pages.Plan.BoardCopy.WithThis</span>
+                  Cells(row, Selficient.Web.Pages.Plan.BoardCopy.WithThis);
+                }
+                else
+                {
+                  Cells(row, null);
                 }
               </summary>
               <p class="board__why">@Selficient.Web.Pages.Plan.BoardCopy.Row(row)</p>
@@ -142,7 +162,6 @@
     <span><i class="cell cell--rationed" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Rationed)</span>
     <span><i class="cell cell--lost" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Lost)</span>
     <span>A number on a cell is how many days it held before it changed. Tap a row for the reason.</span>
-    <span class="board__key-compare"><i class="cell cell--held" data-today="lost" aria-hidden="true"></i>The band along the foot of a cell is how it stands today.</span>
   </p>
   @if (!Model.HasOwnRoof)
   {

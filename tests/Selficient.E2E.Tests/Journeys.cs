@@ -277,26 +277,51 @@ public sealed class Journeys
         await Expect(page.Locator(".board__headline")).ToContainTextAsync("with everything we plan to get, this house stands on its own for");
         await Expect(page.Locator("#source-planned")).ToBeCheckedAsync();
         (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe(tonight, "the figure in the hero is the house as it is");
-        // The one table is read against today: a sentence, a line under each row that moves, and a band on each cell that differs.
-        ILocator compare = page.Locator("[data-board-compare]");
-        await Expect(compare).ToBeCheckedAsync();
+        // The one table is read against today: a sentence, and every need that changes drawn twice, "Today" above "With this".
         await Expect(page.Locator("[data-board-comparison]")).ToContainTextAsync("Everything we plan to get turns");
-        await Expect(page.Locator(".board__row[data-turned=\"true\"] .board__delta").First).ToBeVisibleAsync();
-        ILocator banded = page.Locator(".cell[data-today]:not([data-today=\"\"])").First;
-        (await banded.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldNotBe("none", "a cell that stands differently today carries the band");
-        // Every cell carries the attribute, empty when nothing differs; such a cell must draw nothing along its foot.
-        ILocator same = page.Locator(".board .cell[data-today=\"\"]").First;
-        (await same.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldBe("none", "a cell that stands the same today carries no band");
-        // Off, and it stays off when the board is drawn again for another season.
-        await compare.UncheckAsync();
-        await Expect(page.Locator("[data-board-comparison]")).ToBeHiddenAsync();
-        await Expect(page.Locator(".board__delta").First).ToBeHiddenAsync();
-        (await banded.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldBe("none");
+        (await page.Locator(".board__row[data-paired=\"true\"][data-turned=\"false\"]").CountAsync()).ShouldBe(0, "every need drawn twice says by how much it moves");
+        ILocator pair = page.Locator(".board__row[data-paired=\"true\"]").First;
+        await Expect(pair.Locator(".board__delta")).ToBeVisibleAsync();
+        await Expect(pair.Locator(".board__when")).ToHaveTextAsync(["Today", "With this"]);
+        (await pair.Locator(".cell").CountAsync()).ShouldBe(10, "five cells for today and five with this");
+        // The two lines sit one above the other, cell under cell, each the size of any other cell on the board and under the same
+        // column heads. On a phone each line's words sit above it; on a wide screen they sit in front of it.
+        const string Measure =
+            """
+            (row, wide) => {
+              const cells = [...row.querySelectorAll(".cell")].map(cell => cell.getBoundingClientRect());
+              const words = [...row.querySelectorAll(".board__when")].map(word => word.getBoundingClientRect());
+              const single = document.querySelector(".board__row[data-paired='false'] .cell").getBoundingClientRect();
+              const head = row.closest(".board__rung").querySelector(".board__col").getBoundingClientRect();
+              return JSON.stringify({
+                under: Math.abs(cells[0].left - cells[5].left) < 1 && cells[5].top >= cells[0].bottom,
+                sameSize: Math.abs(cells[0].height - single.height) < 1 && Math.abs(cells[0].width - single.width) < 1,
+                underHead: Math.abs(cells[0].left - head.left) < 1 && Math.abs(single.left - head.left) < 1,
+                worded: wide
+                  ? words[0].right <= cells[0].left && words[1].right <= cells[5].left && words[0].top < cells[0].bottom && words[1].top >= cells[0].bottom - 1
+                  : words[0].bottom <= cells[0].top && words[1].top >= cells[0].bottom && words[1].bottom <= cells[5].top,
+              });
+            }
+            """;
+        const string Sound = "{\"under\":true,\"sameSize\":true,\"underHead\":true,\"worded\":true}";
+        (await pair.EvaluateAsync<string>(Measure, false)).ShouldBe(Sound, "on a phone");
+        PageViewportSizeResult phone = page.ViewportSize!;
+        await page.SetViewportSizeAsync(2000, 1200);
+        (await pair.EvaluateAsync<string>(Measure, true)).ShouldBe(Sound, "on a wide screen");
+        await page.SetViewportSizeAsync(phone.Width, phone.Height);
+        // Narrowed to what changes, and it stays narrowed when the board is drawn again for another season.
+        ILocator only = page.Locator("[data-board-only-changes]");
+        await Expect(only).Not.ToBeCheckedAsync();
+        ILocator once = page.Locator(".board__row[data-paired=\"false\"]").First;
+        await Expect(once).ToBeVisibleAsync();
+        await only.CheckAsync();
+        await Expect(once).ToBeHiddenAsync();
+        await Expect(pair).ToBeVisibleAsync();
         await page.Locator("label[for=\"season-summer\"]").ClickAsync();
         await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-season", "Summer");
-        await Expect(page.Locator("[data-board-compare]")).Not.ToBeCheckedAsync();
-        await page.Locator("[data-board-compare]").CheckAsync();
-        await Expect(page.Locator("[data-board-comparison]")).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-board-only-changes]")).ToBeCheckedAsync();
+        await page.Locator("[data-board-only-changes]").UncheckAsync();
+        await Expect(page.Locator(".board__row[data-paired=\"false\"]").First).ToBeVisibleAsync();
         // Clearing what is planned takes the pill away and the board goes back to the house.
         await page.Locator(".plan__tally").GetByRole(AriaRole.Button, new() { Name = "Clear what you plan to get: The whole plan" }).ClickAsync();
         await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-source", "house");

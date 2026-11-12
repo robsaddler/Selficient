@@ -34,17 +34,17 @@ export function initBoard(doc) {
   let scenario = board?.getAttribute("data-scenario") ?? "";
   let source = board?.getAttribute("data-source") ?? "";
   let season = board?.getAttribute("data-season") ?? "";
-  // The comparison with today is on whenever another position is drawn, until it is turned off; a
-  // redraw brings a fresh switch, so the choice is kept here and put back.
-  let compare = true;
+  // "Show only what changes" narrows a compared board to the needs drawn twice. A redraw brings a
+  // fresh switch, so the choice is kept here and put back.
+  let onlyChanges = false;
 
   const refresh = () => {
     window.clearTimeout(pending);
     pending = window.setTimeout(() => {
       void redraw(doc, slot, echo, { scenario, source, season }).then(() => {
-        const toggle = slot.querySelector("[data-board-compare]");
+        const toggle = slot.querySelector("[data-board-only-changes]");
         if (toggle instanceof HTMLInputElement) {
-          toggle.checked = compare;
+          toggle.checked = onlyChanges;
         }
       });
     }, DEBOUNCE_MS);
@@ -55,8 +55,8 @@ export function initBoard(doc) {
     if (!(target instanceof HTMLInputElement)) {
       return;
     }
-    if (target.hasAttribute("data-board-compare")) {
-      compare = target.checked;
+    if (target.hasAttribute("data-board-only-changes")) {
+      onlyChanges = target.checked;
     } else if (target.dataset.choice) {
       refresh();
     } else if (target.name === "board-source") {
