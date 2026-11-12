@@ -28,6 +28,7 @@
         <span class="locate-row__or" aria-hidden="true">or</span>
         <input id="hero-postcode" name="postcode" class="input" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="Enter postcode">
         <button type="submit" class="button button--primary">Start your plan</button>
+        <span class="no-account">@KeepCopy.ChipNone</span>
       </div>
       <p id="hero-locate-status" class="locate__status" role="status" hidden></p>
     </form>
@@ -130,6 +131,7 @@
   </div>
   <p class="closing__actions">
     <a class="button button--lantern" href="/plan/start">Start your plan</a>
+    <span class="no-account">@KeepCopy.ChipNone</span>
   </p>
   <div class="closing__picture" aria-hidden="true">@await Html.PartialAsync("_Hill")</div>
 </section>

@@ -144,6 +144,36 @@ public sealed class Layout
         }
     }
 
+    [Theory]
+    [InlineData(390, true)]
+    [InlineData(1440, false)]
+    [InlineData(2000, false)]
+    public async Task The_header_chip_sits_where_sign_in_would_be_and_takes_its_own_line_on_a_phone(int width, bool mobile)
+    {
+        await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile, theme: "light");
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+
+        string measured = await page.EvaluateAsync<string>(
+            """
+            () => {
+              const box = selector => document.querySelector(selector).getBoundingClientRect();
+              const chip = box("[data-keep-chip]"), nav = box(".site-nav"), word = box(".wordmark");
+              return JSON.stringify({
+                inside: chip.left >= 0 && chip.right <= document.documentElement.clientWidth,
+                pressable: chip.height >= 36,
+                beside: chip.top < nav.bottom && chip.bottom > nav.top && chip.left >= nav.right,
+                below: chip.top >= nav.bottom && chip.top >= word.bottom,
+                oneLine: chip.height < 48,
+              });
+            }
+            """);
+
+        measured.ShouldBe(mobile
+            ? "{\"inside\":true,\"pressable\":true,\"beside\":false,\"below\":true,\"oneLine\":true}"
+            : "{\"inside\":true,\"pressable\":true,\"beside\":true,\"below\":false,\"oneLine\":true}");
+    }
+
     [Fact]
     public async Task The_phone_hero_is_one_column()
     {

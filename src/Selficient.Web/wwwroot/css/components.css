@@ -626,6 +626,8 @@ progress.tier-progress {
 
 /* Native dialog */
 .dialog {
+  /* The reset takes every margin off, and a modal dialog is centred by its automatic margins. */
+  margin: auto;
   inline-size: min(90vw, 28rem);
   border: var(--border);
   border-radius: var(--radius-m);
@@ -635,6 +637,70 @@ progress.tier-progress {
 
   &::backdrop {
     background: oklch(20% 0.02 230 / 0.5);
+  }
+}
+
+/* The panel behind the header chip: one row for each place a plan can be kept, each a heading and a sentence. */
+.keep {
+  & h2 {
+    font-size: var(--text-l);
+  }
+}
+
+.keep__row {
+  margin-block: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  display: grid;
+  gap: var(--space-2);
+
+  & h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-m);
+  }
+
+  & .mark-icon {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    flex: none;
+  }
+}
+
+.keep__warning {
+  padding: var(--space-3);
+  border-inline-start: 4px solid var(--c-lantern);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  background: var(--c-lantern-tint);
+  font-size: var(--text-s);
+}
+
+/* Beside a start button: the thing a visitor expects to be asked for, and is not. */
+.no-account {
+  align-self: center;
+  font-size: var(--text-s);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Under the figure, once: the plan is saved here and no account is needed. */
+.kept-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--text-s);
+
+  &[hidden] {
+    display: none;
+  }
+
+  & .mark-icon {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    flex: none;
   }
 }
 

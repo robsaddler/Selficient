@@ -58,7 +58,8 @@ public sealed class LookTests : IDisposable
         ids.ShouldContain(Marks.House);
         ids.ShouldContain(Marks.ActionGeneral);
         ids.ShouldContain("mark-locate");
-        ids.Count.ShouldBe(Enum.GetValues<NeedId>().Length + Marks.SourceIds.Count + Scenarios.All.Count + 5, "no mark is drawn for nothing");
+        ids.ShouldContain("mark-device");
+        ids.Count.ShouldBe(Enum.GetValues<NeedId>().Length + Marks.SourceIds.Count + Scenarios.All.Count + 6, "no mark is drawn for nothing");
     }
 
     [Fact]

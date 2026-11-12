@@ -86,11 +86,11 @@ code {
   min-block-size: var(--header-height);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-5);
 }
 
 .wordmark {
+  margin-inline-end: auto;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -122,6 +122,51 @@ code {
     &:hover {
       color: light-dark(var(--c-pine), var(--c-on-roof-link));
     }
+  }
+}
+
+/* Where "Sign in" would be: a chip that says there is no account to make, and where the plan is kept. */
+.keep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 2.5rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid light-dark(var(--c-contour), var(--c-on-roof-line));
+  border-radius: 999px;
+  font-size: var(--text-s);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  color: light-dark(var(--c-ink), var(--c-on-roof));
+
+  &:hover {
+    border-color: light-dark(var(--c-pine), var(--c-on-roof-link));
+    color: light-dark(var(--c-pine), var(--c-on-roof-link));
+  }
+
+  & .mark-icon {
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    flex: none;
+  }
+}
+
+@media (max-width: 44rem) {
+  /* On a phone there is no room beside the links, so the chip takes a line of its own under them. */
+  .site-header__inner {
+    flex-wrap: wrap;
+    padding-block-end: var(--space-2);
+  }
+
+  .site-nav {
+    min-block-size: var(--header-height);
+  }
+
+  .keep-chip {
+    flex: 1 0 100%;
+    justify-content: center;
+    min-block-size: 2.25rem;
   }
 }
 

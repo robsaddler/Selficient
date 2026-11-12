@@ -38,6 +38,35 @@ public sealed partial class MarketingPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Every_household_page_says_no_account_is_needed_where_sign_in_would_be()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string landing = await client.GetStringAsync(new Uri("/", UriKind.Relative));
+        string privacy = await client.GetStringAsync(new Uri("/privacy", UriKind.Relative));
+        string backOffice = await client.GetStringAsync(new Uri("/admin/sign-in", UriKind.Relative));
+
+        foreach (string page in new[] { landing, privacy })
+        {
+            // A link to the privacy page until the script runs, so the chip goes somewhere without it.
+            page.ShouldContain("<a class=\"keep-chip\" href=\"/privacy\" data-keep-chip data-open-dialog=\"keep-dialog\" data-kept=\"none\">");
+            page.ShouldContain("<span data-keep-label=\"none\">No account needed</span>");
+            page.ShouldContain("<span data-keep-label=\"device\" hidden>Saved on this device</span>");
+            page.ShouldContain("<h2 id=\"keep-heading\">Where your plan is kept</h2>");
+            page.ShouldContain("<p data-keep-says=\"none\">Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.</p>");
+            page.ShouldContain("<p data-keep-says=\"device\" hidden>Your plan lives in this browser and nowhere else. You do not need an account.</p>");
+            page.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");
+        }
+
+        // Beside both start buttons on the landing page.
+        Regex.Count(landing, "<span class=\"no-account\">No account needed</span>").ShouldBe(2);
+        backOffice.ShouldNotContain("keep-chip", customMessage: "the back office is not a household's page");
+        KeepCopy.ShowsOn("/Admin/catalogue").ShouldBeFalse();
+        KeepCopy.ShowsOn("/administration").ShouldBeTrue("only the back office's own segment");
+        KeepCopy.FirstPlan.ShouldBe("Your plan is saved on this device. You do not need an account.");
+    }
+
+    [Fact]
     public async Task Structured_data_repeats_the_questions_word_for_word()
     {
         using HttpClient client = _factory.CreateClient();

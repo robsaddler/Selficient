@@ -62,6 +62,17 @@
           <span aria-hidden="true">◐</span>
         </button>
       </nav>
+      @* Where "Sign in" is on other sites, this says the thing a visitor is waiting to be told: there is no account to make.
+         It is a link to the privacy page until the script runs, and then it opens the panel below. keep.js swaps the words
+         once a plan is saved in this browser. The back office is not a household's page and does not carry it. *@
+      @if (KeepCopy.ShowsOn(Context.Request.Path))
+      {
+      <a class="keep-chip" href="/privacy" data-keep-chip data-open-dialog="keep-dialog" data-kept="none">
+        <svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>
+        <span data-keep-label="none">@KeepCopy.ChipNone</span>
+        <span data-keep-label="device" hidden>@KeepCopy.ChipDevice</span>
+      </a>
+      }
     </div>
   </header>
   <p class="offline-banner" data-offline-banner role="status" hidden>You are offline. Your saved plan, its ticks and the map you have already seen still work; building a new plan or an estimate needs a connection.</p>
@@ -86,6 +97,18 @@
       <p class="site-footer__made">@LegalCopy.MadeBy</p>
     </div>
   </footer>
+  <dialog class="dialog keep" id="keep-dialog" data-keep-dialog aria-labelledby="keep-heading">
+    <h2 id="keep-heading">@KeepCopy.PanelHeading</h2>
+    <section class="keep__row" aria-labelledby="keep-device">
+      <h3 id="keep-device"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>@KeepCopy.DeviceHeading</h3>
+      <p data-keep-says="none">@KeepCopy.DeviceNone</p>
+      <p data-keep-says="device" hidden>@KeepCopy.DeviceKept</p>
+      <p class="keep__warning" data-keep-safari hidden>@KeepCopy.SafariWarning</p>
+    </section>
+    <p class="cluster">
+      <button type="button" class="button" data-close>Close</button>
+    </p>
+  </dialog>
   <dialog class="dialog" data-install-ios>
     <h2>Put Selficient on this iPhone or iPad</h2>
     <p>Safari does not offer an install button, but it takes two taps.</p>

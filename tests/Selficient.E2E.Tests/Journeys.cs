@@ -506,6 +506,58 @@ public sealed class Journeys
     }
 
     [Fact]
+    public async Task A_visitor_is_told_no_account_is_needed_and_then_where_the_plan_is_kept()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        ILocator chip = page.Locator("[data-keep-chip]");
+        ILocator panel = page.Locator("#keep-dialog");
+
+        // Before a plan: the header says it where "Sign in" would be, and so does each start button.
+        await page.GotoAsync("/");
+        await Expect(chip.Locator("span:visible")).ToHaveTextAsync("No account needed");
+        await Expect(page.Locator(".hero .no-account")).ToBeVisibleAsync();
+        await Expect(page.Locator(".closing .no-account")).ToHaveTextAsync("No account needed");
+        await ShouldNotScrollSidewaysAsync(page);
+        await chip.ClickAsync();
+        await Expect(panel).ToBeVisibleAsync();
+        new Uri(page.Url).AbsolutePath.ShouldBe("/", "with the script running the chip opens the panel and goes nowhere");
+        (await panel.EvaluateAsync<bool>("panel => { const box = panel.getBoundingClientRect(); return Math.abs((box.left + box.right) / 2 - innerWidth / 2) < 10 && Math.abs((box.top + box.bottom) / 2 - innerHeight / 2) < 10; }")).ShouldBeTrue("the panel opens in the middle of the screen, not in its corner");
+        await Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Where your plan is kept" })).ToBeVisibleAsync();
+        await Expect(panel.Locator("[data-keep-says=\"none\"]")).ToHaveTextAsync("Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.");
+        await Expect(panel.Locator("[data-keep-says=\"device\"]")).ToBeHiddenAsync();
+        await Expect(panel.Locator("[data-keep-safari]")).ToBeHiddenAsync();
+        AxeResult open = await RunAxeWhenSettledAsync(page);
+        open.Violations.ShouldBeEmpty(string.Join("\n", open.Violations.Select(v => $"{v.Id}: {v.Help} ({v.Nodes.Length} nodes)")));
+        await panel.GetByRole(AriaRole.Button, new() { Name = "Close" }).ClickAsync();
+        await Expect(panel).ToBeHiddenAsync();
+
+        // The first plan on this device: the chip changes, and the page says so once under the figure.
+        await BuildPlanAsync(page);
+        await Expect(chip.Locator("span:visible")).ToHaveTextAsync("Saved on this device");
+        ILocator notice = page.Locator("[data-kept-notice]");
+        await Expect(notice).ToBeVisibleAsync();
+        await Expect(notice.Locator("span")).ToHaveTextAsync("Your plan is saved on this device. You do not need an account.");
+        (await page.EvaluateAsync<bool>("() => navigator.storage.persisted().then(() => localStorage.getItem('selficient.persist-asked') === '1')")).ShouldBeTrue("the browser is asked once to keep this site's storage");
+        await ShouldNotScrollSidewaysAsync(page);
+        await notice.GetByRole(AriaRole.Button, new() { Name = "Got it" }).ClickAsync();
+        await Expect(notice).ToBeHiddenAsync();
+        await chip.ClickAsync();
+        await Expect(panel.Locator("[data-keep-says=\"device\"]")).ToHaveTextAsync("Your plan lives in this browser and nowhere else. You do not need an account.");
+        await Expect(panel.Locator("[data-keep-says=\"none\"]")).ToBeHiddenAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(panel).ToBeHiddenAsync();
+
+        // The next visit: the chip still says where the plan is, and the sentence is not said again.
+        await page.ReloadAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(chip.Locator("span:visible")).ToHaveTextAsync("Saved on this device");
+        await Expect(notice).ToBeHiddenAsync();
+        await page.GotoAsync("/");
+        await Expect(chip.Locator("span:visible")).ToHaveTextAsync("Saved on this device");
+    }
+
+    [Fact]
     public async Task The_install_button_is_hidden_where_the_browser_cannot_install()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();

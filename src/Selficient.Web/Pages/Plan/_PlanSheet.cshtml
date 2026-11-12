@@ -34,6 +34,8 @@
     </days-ready>
     <p class="hero__lede" data-hero-scenario>In @Model.Board.Scenario.Name.ToLowerInvariant(). Say what you already have and the figure moves. Three days is the government's ask; seven is where a storm becomes an inconvenience.</p>
     @await Html.PartialAsync("_Strip", Selficient.Web.Pages.Plan.Strip.From(Model.Board.Current))
+    @* Said once, the first time a plan is saved in this browser; keep.js shows it and remembers that it has. *@
+    <p class="kept-notice" data-kept-notice role="status" hidden><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg><span>@Selficient.Web.Pages.KeepCopy.FirstPlan</span> <button type="button" class="button button--quiet" data-kept-dismiss>Got it</button></p>
     <p class="hero__share"><button type="button" class="button button--quiet" data-share hidden>Share this figure</button> <span class="share__status" role="status" data-share-status hidden></span></p>
   </div>
   <div class="hero__scenarios">
