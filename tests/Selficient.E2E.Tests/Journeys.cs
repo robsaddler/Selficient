@@ -282,8 +282,11 @@ public sealed class Journeys
         await Expect(compare).ToBeCheckedAsync();
         await Expect(page.Locator("[data-board-comparison]")).ToContainTextAsync("Everything we plan to get turns");
         await Expect(page.Locator(".board__row[data-turned=\"true\"] .board__delta").First).ToBeVisibleAsync();
-        ILocator banded = page.Locator(".cell[data-today]").First;
+        ILocator banded = page.Locator(".cell[data-today]:not([data-today=\"\"])").First;
         (await banded.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldNotBe("none", "a cell that stands differently today carries the band");
+        // Every cell carries the attribute, empty when nothing differs; such a cell must draw nothing along its foot.
+        ILocator same = page.Locator(".board .cell[data-today=\"\"]").First;
+        (await same.EvaluateAsync<string>("cell => getComputedStyle(cell, '::after').content")).ShouldBe("none", "a cell that stands the same today carries no band");
         // Off, and it stays off when the board is drawn again for another season.
         await compare.UncheckAsync();
         await Expect(page.Locator("[data-board-comparison]")).ToBeHiddenAsync();

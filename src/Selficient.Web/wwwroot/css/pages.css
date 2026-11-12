@@ -917,7 +917,8 @@
   flex-basis: 100%;
 }
 
-.board:has([data-board-compare]:checked) .cell[data-today] {
+/* Razor writes a data attribute even when its value is nothing, so every cell carries data-today; only one with a state in it stands differently today. */
+.board:has([data-board-compare]:checked) .cell[data-today]:not([data-today=""]) {
   position: relative;
   overflow: hidden;
 
