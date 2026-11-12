@@ -1,0 +1,19 @@
+@page "/account/delete"
+@model Selficient.Web.Pages.Account.DeleteModel
+@{
+    ViewData["Title"] = AccountCopy.DeleteHeading;
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="delete-heading">
+  <form method="post" class="panel" data-delete-account>
+    <p class="eyebrow">Signed in as @Model.Email</p>
+    <h1 id="delete-heading">@AccountCopy.DeleteHeading</h1>
+    <p class="panel__lede">@AccountCopy.DeleteLede</p>
+    <p>@AccountCopy.DeleteLeaves</p>
+    <div class="panel__actions">
+      <button type="submit" class="button button--danger">@AccountCopy.Delete</button>
+      <a class="button button--quiet" href="/plan">@AccountCopy.KeepAccount</a>
+    </div>
+  </form>
+</section>

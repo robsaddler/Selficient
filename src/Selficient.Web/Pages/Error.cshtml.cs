@@ -21,17 +21,23 @@ public sealed class ErrorModel : PageModel
     public string Message { get; private set; } = string.Empty;
 
     /// <summary>Renders the explanation for <paramref name="code"/>.</summary>
-    public IActionResult OnGet(int? code) => Explain(code);
+    public IActionResult OnGet([FromRoute] int? code) => Explain(code);
 
     /// <summary>
     /// A rejected POST (rate limit, bad token) is re-executed here as a POST. Without this handler
     /// Razor Pages renders the page with no model and an empty heading.
     /// </summary>
-    public IActionResult OnPost(int? code) => Explain(code);
+    /// <remarks>
+    /// The status is read from the address and nowhere else. A rejected post still carries its
+    /// form, and a field in it called "code" (the sign-in pages have one) was once read as the
+    /// status, so a six-digit code became a six-digit status and the page threw.
+    /// </remarks>
+    public IActionResult OnPost([FromRoute] int? code) => Explain(code);
 
     private PageResult Explain(int? code)
     {
-        Status = code ?? StatusCodes.Status500InternalServerError;
+        // Only an error status is explained here; anything else in the address is an error of its own.
+        Status = code is >= 400 and <= 599 ? code.Value : StatusCodes.Status500InternalServerError;
         (Title, Message) = Describe(Status);
         Response.StatusCode = Status;
         return Page();

@@ -524,7 +524,7 @@ public sealed class Journeys
         new Uri(page.Url).AbsolutePath.ShouldBe("/", "with the script running the chip opens the panel and goes nowhere");
         (await panel.EvaluateAsync<bool>("panel => { const box = panel.getBoundingClientRect(); return Math.abs((box.left + box.right) / 2 - innerWidth / 2) < 10 && Math.abs((box.top + box.bottom) / 2 - innerHeight / 2) < 10; }")).ShouldBeTrue("the panel opens in the middle of the screen, not in its corner");
         await Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Where your plan is kept" })).ToBeVisibleAsync();
-        await Expect(panel.Locator("[data-keep-says=\"none\"]")).ToHaveTextAsync("Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.");
+        await Expect(panel.Locator("[data-keep-says=\"device-none\"]")).ToHaveTextAsync("Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.");
         await Expect(panel.Locator("[data-keep-says=\"device\"]")).ToBeHiddenAsync();
         await Expect(panel.Locator("[data-keep-safari]")).ToBeHiddenAsync();
         AxeResult open = await RunAxeWhenSettledAsync(page);
@@ -544,7 +544,7 @@ public sealed class Journeys
         await Expect(notice).ToBeHiddenAsync();
         await chip.ClickAsync();
         await Expect(panel.Locator("[data-keep-says=\"device\"]")).ToHaveTextAsync("Your plan lives in this browser and nowhere else. You do not need an account.");
-        await Expect(panel.Locator("[data-keep-says=\"none\"]")).ToBeHiddenAsync();
+        await Expect(panel.Locator("[data-keep-says=\"device-none\"]")).ToBeHiddenAsync();
         await page.Keyboard.PressAsync("Escape");
         await Expect(panel).ToBeHiddenAsync();
 
@@ -578,6 +578,9 @@ public sealed class Journeys
     [InlineData("/terms")]
     [InlineData("/offline")]
     [InlineData("/receive")]
+    [InlineData("/account/sign-in")]
+    [InlineData("/account/unavailable")]
+    [InlineData("/account/deleted")]
     [InlineData("/styleguide")]
     public async Task Every_page_has_no_accessibility_violations_and_no_sideways_scroll(string path)
     {

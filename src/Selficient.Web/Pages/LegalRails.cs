@@ -26,6 +26,8 @@ public sealed record LegalRails(
         [
             ("stays", "What stays in your browser"),
             ("leaves", "What leaves your browser"),
+            ("account", "If you make an account"),
+            ("cookies", "Cookies"),
             ("server", "What our server sees"),
             ("rights", "Your rights"),
         ],

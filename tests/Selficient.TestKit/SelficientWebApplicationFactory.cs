@@ -14,6 +14,11 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
     private string _environment = "Testing";
     private bool _useFakes = true;
 
+    private bool _mail = true;
+
+    /// <summary>What the application has been asked to send. Every test host can send mail, into here, unless it says otherwise.</summary>
+    public RecordingEmailSender Mail { get; } = new();
+
     private readonly List<(string Key, string Value)> _settings = [];
     private readonly List<Action<IWebHostBuilder>> _configure = [];
 
@@ -21,6 +26,13 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
     public SelficientWebApplicationFactory WithRealUpstreams()
     {
         _useFakes = false;
+        return this;
+    }
+
+    /// <summary>Hosts the application as a server with no way to send mail, which offers no accounts.</summary>
+    public SelficientWebApplicationFactory WithoutMail()
+    {
+        _mail = false;
         return this;
     }
 
@@ -86,9 +98,16 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
         builder.UseSetting("Upstreams:UseFakes", _useFakes ? "true" : "false");
         // Each test host gets a database of its own on the test server, migrated by the host itself as on the vhost.
         builder.UseSetting("Database:ConnectionString", _database.ConnectionString);
+        builder.UseSetting("Email:Provider", "None");
         foreach ((string key, string value) in _settings)
         {
             builder.UseSetting(key, value);
+        }
+
+        if (_mail)
+        {
+            // Sign-in codes go into the recorder, where a test reads them as a person reads their inbox.
+            builder.ConfigureServices(services => Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.Replace(services, ServiceDescriptor.Singleton<Selficient.Application.Accounts.IEmailSender>(Mail)));
         }
 
         foreach (Action<IWebHostBuilder> configure in _configure)

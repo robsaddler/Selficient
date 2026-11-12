@@ -11,7 +11,7 @@
   <header class="legal__head">
     <p class="eyebrow">Privacy</p>
     <h1 id="privacy-heading">How your data is handled</h1>
-    <p class="legal__lede">Selficient has no accounts, sets no cookies, runs no analytics and keeps no record of who you are. This page is short because there is not much to say.</p>
+    <p class="legal__lede">Selficient needs no account, runs no analytics and keeps no record of who you are unless you choose to make an account. This page is short because there is not much to say.</p>
   </header>
 
   @await Html.PartialAsync("_LegalRails", Selficient.Web.Pages.LegalRails.Privacy)
@@ -37,12 +37,20 @@
     </div>
     <p>Where we point to a shop, following the link takes you to that shop, which handles your data under its own terms.</p>
 
+    <h2 id="account">If you make an account</h2>
+    <p>You never have to. Everything on Selficient works without one, and your plan is saved on your device either way. An account exists for two things: to keep every device you sign in on in step, and to keep your plan if a device is lost.</p>
+    <p>If you make one, we keep your email address and a copy of your plan, and nothing else about you: no name, no password, no profile. The copy of your plan is encrypted where it is stored. You sign in with a six-digit code sent to your address, which @Selficient.Web.Pages.LegalCopy.MailProvider delivers for us; they receive your address and the message, and nothing about your plan. If you ask for a code and never use it, the request is forgotten within the hour.</p>
+    <p>You can delete your account at any time, from "Where your plan is kept" at the top of any page. Deleting removes your address, the copy of your plan, your passkeys and every sign-in, straight away. The plan on your device stays, and "Export as a file" gives you a copy whenever you want one.</p>
+
+    <h2 id="cookies">Cookies</h2>
+    <p>Selficient sets no cookie that follows you or counts you, and there is no banner to click through because there is nothing to consent to. A page with a form on it sets one security cookie, which stops another website sending that form in your name; it holds a random value, says nothing about you and goes when you close the browser. If you sign in, a second cookie keeps you signed in on that device for ninety days, and a third, holding only the figure 1, tells the page to show that you are. While a sign-in code is on its way, one more holds your address, encrypted, for ten minutes, so the code only works in the browser that asked for it.</p>
+
     <h2 id="server">What our server sees</h2>
     <p>Like any website, the server records that a request happened, its address, the page asked for and the time, for a fortnight, to keep the site running and to stop abuse. It does not record your postcode, your answers, your photos or anything the model said. Photographs are re-encoded in memory and discarded the moment they have been read; they are never written to disk. If you send us a shop link under "Found it cheaper?", we keep the link and nothing about you.</p>
     <p>The people who run Selficient sign in to a reviewer that readers never see. Their accounts, and the record of their own sign-ins and the changes they make, are kept the way any staff system keeps them. That is about us, not about you.</p>
 
     <h2 id="rights">Your rights</h2>
-    <p>Because we hold nothing that identifies you, there is nothing for us to show you, correct or delete; the data is in your hands already. If you think that is wrong in your case, write to <a href="mailto:@Selficient.Web.Pages.LegalCopy.ContactEmail">@Selficient.Web.Pages.LegalCopy.ContactEmail</a> and we will look.</p>
+    <p>If you have not made an account, we hold nothing that identifies you, so there is nothing for us to show you, correct or delete; the data is in your hands already. If you have, what we hold is your address and the plan the site shows you: "Export as a file" downloads it, and deleting the account removes it. If you think any of that is wrong in your case, write to <a href="mailto:@Selficient.Web.Pages.LegalCopy.ContactEmail">@Selficient.Web.Pages.LegalCopy.ContactEmail</a> and we will look.</p>
 
     <p class="disclosure">Reviewed @Selficient.Web.Pages.LegalCopy.Reviewed.ToString("d MMMM yyyy", gb). @Selficient.Web.Pages.LegalCopy.MadeBy</p>
   </article>

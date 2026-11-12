@@ -12,6 +12,9 @@ public static class LegalCopy
     /// <summary>Who makes it, as the pages say it.</summary>
     public const string MadeBy = "Selficient is made in Blackwood, South Wales.";
 
+    /// <summary>Who delivers the sign-in codes, as the privacy page names them.</summary>
+    public const string MailProvider = "Postmark, a mail service";
+
     /// <summary>When the legal pages were last reviewed.</summary>
     public static DateOnly Reviewed { get; } = new(2026, 11, 12);
 
@@ -22,8 +25,9 @@ public static class LegalCopy
     /// </summary>
     public static IReadOnlyList<(string Heading, string Sentence)> PrivacyAtAGlance { get; } =
     [
-        ("No account, ever", "There is nothing to sign up for and nothing to sign in to, so there is no account of yours for anyone to take."),
-        ("No cookies, no analytics", "The site sets no cookies and runs no analytics. Nobody is counting you, here or anywhere else."),
+        ("No account needed", "Everything works without one. Nobody is asked to sign up, and a plan made as a guest is a whole plan."),
+        ("An account is yours to make and to delete", "If you make one, we keep your email address and your plan and nothing else. Deleting it removes both, straight away."),
+        ("No tracking, no analytics", "Nobody is counting you, here or anywhere else. The only cookies are the ones that protect a form and keep you signed in."),
         ("Your plan stays on your device", "Your answers, your ticks and the pin on your map live in your own browser's storage. Clearing your browser clears them."),
         ("Your postcode goes once", "It goes to a public lookup to find your area and your height above sea level, and it is not kept afterwards."),
         ("Photographs never touch our disk", "A photo is re-encoded in memory, read, and discarded in the same request."),
@@ -47,6 +51,7 @@ public static class LegalCopy
         ("PVGIS, from the European Commission", "the coordinates of your postcode's centre, your roof's direction and pitch", "to find what a kilowatt of panels would make on your roof, only when you use the solar estimator"),
         ("Google Solar API", "the coordinates of your postcode's centre", "to describe the slopes of the nearest roof, only when you tick the consent box on the solar estimator and only if this site has a key for it"),
         ("Selficient, when you send a copy to another device", "an encrypted copy of your plan that we cannot read, because the key stays in the code on your screen", "to hand it to your other device, once; it is deleted as it is collected, or after ten minutes if it never is"),
+        ("Postmark", "your email address and a sign-in code, only if you ask to sign in", "to deliver the code to you; nothing about your plan goes with it"),
         ("Anthropic", "a photograph you choose, re-encoded with its metadata removed, or the text of your plan", "to count what is in a cupboard, read a boiler plate or fuse board, or explain your plan, only when you ask; with your own key the photograph goes from your browser to Anthropic and never reaches us"),
     ];
 }

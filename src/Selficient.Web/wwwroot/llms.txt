@@ -14,6 +14,6 @@
 ## Facts
 
 - Free. Some shop links earn a small commission at no cost to the household, disclosed beside them.
-- No accounts, no cookies, no analytics. Plans live in the browser and can be exported as a file.
+- No account needed, no tracking, no analytics. Plans live in the browser and can be exported as a file. An optional account, signed in to by a code sent to an email address, keeps a plan in step across devices; it holds the address and the plan and can be deleted at any time.
 - Installable as an app; the saved plan opens without a connection.
 - Guidance, not professional advice. Made in Blackwood, South Wales.

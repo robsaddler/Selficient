@@ -95,6 +95,17 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<Selficient.Application.Handoff.IHandoffStore>(static provider => new Selficient.Infrastructure.Handoff.SqlHandoffStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         services.AddSingleton(static provider => new Selficient.Application.Handoff.HandoffDesk(provider.GetRequiredService<Selficient.Application.Handoff.IHandoffStore>(), provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IExpiring>(static provider => provider.GetRequiredService<Selficient.Application.Handoff.HandoffDesk>());
+        // Household accounts (M23): the store, the mailer chosen by configuration, and the sign-in over both.
+        services.AddOptions<Selficient.Infrastructure.Email.EmailOptions>()
+            .Bind(configuration.GetSection(Selficient.Infrastructure.Email.EmailOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(static o => o.PostmarkIsComplete, "Email:PostmarkServerToken is required when Email:Provider is Postmark. Set the Email__PostmarkServerToken environment variable.")
+            .Validate(static o => o.PostmarkUrlIsSafe, "Email:PostmarkBaseUrl must be an absolute https URL.")
+            .ValidateOnStart();
+        AddEmailSender(services, Selficient.Infrastructure.Email.EmailOptions.Resolve(configuration[$"{Selficient.Infrastructure.Email.EmailOptions.SectionName}:{nameof(Selficient.Infrastructure.Email.EmailOptions.Provider)}"], environment.IsDevelopment()));
+        services.AddSingleton<Selficient.Application.Accounts.IAccountStore>(static provider => new Selficient.Infrastructure.Accounts.SqlAccountStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddSingleton(static provider => new Selficient.Application.Accounts.AccountSignIn(provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>(), provider.GetRequiredService<Selficient.Application.Accounts.IEmailSender>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IExpiring>(static provider => provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>());
         // The housekeeper removes whatever has run out, once a minute, and tells the run log once a day.
         services.AddSingleton<Housekeeper>();
         services.AddHostedService(static provider => provider.GetRequiredService<Housekeeper>());
@@ -248,6 +259,37 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IRoofInsightsProvider>(static provider => provider.GetRequiredService<GoogleSolarRoofInsights>());
 
         return services;
+    }
+
+    /// <summary>
+    /// The one mailer this server uses. SMTP for the local machine's Papercut, the Postmark API for
+    /// production, and none at all when nothing is configured, in which case the site offers no
+    /// accounts. The tests put a recorder of their own in its place.
+    /// </summary>
+    private static void AddEmailSender(IServiceCollection services, string provider)
+    {
+        if (provider == Selficient.Infrastructure.Email.EmailOptions.Smtp)
+        {
+            services.AddSingleton<Selficient.Application.Accounts.IEmailSender, Selficient.Infrastructure.Email.SmtpEmailSender>();
+        }
+        else if (provider == Selficient.Infrastructure.Email.EmailOptions.Postmark)
+        {
+            // No retries: a code sent twice is two emails. The token is a header, so it is in no log and no address.
+            services.AddHttpClient<Selficient.Infrastructure.Email.PostmarkEmailSender>(static (provider, client) =>
+                {
+                    Selficient.Infrastructure.Email.EmailOptions options = provider.GetRequiredService<IOptions<Selficient.Infrastructure.Email.EmailOptions>>().Value;
+                    client.BaseAddress = options.PostmarkBaseUrl;
+                    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+                    client.DefaultRequestHeaders.Add(Selficient.Infrastructure.Email.PostmarkEmailSender.TokenHeader, options.PostmarkServerToken);
+                    client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+                })
+                .RemoveAllLoggers();
+            services.AddSingleton<Selficient.Application.Accounts.IEmailSender>(static provider => provider.GetRequiredService<Selficient.Infrastructure.Email.PostmarkEmailSender>());
+        }
+        else
+        {
+            services.AddSingleton<Selficient.Application.Accounts.IEmailSender, Selficient.Infrastructure.Email.NoEmailSender>();
+        }
     }
 
     /// <summary>One typed client per upstream, each with the fixed base address, body cap and resilience pipeline.</summary>

@@ -73,6 +73,51 @@ public static class KeepCopy
         ("failed", "The copy could not be sent. Try again in a moment."),
     ];
 
+    /// <summary>The header chip for a signed-in household, before its address.</summary>
+    public static string ChipAccount => "Signed in as";
+
+    /// <summary>The row's sentence for a signed-in household: the copy here is what opens without a connection.</summary>
+    public static string DeviceSignedIn => "A copy of your plan lives in this browser, so it opens without a connection.";
+
+    /// <summary>The row's sentence for a signed-in household with no plan in this browser yet.</summary>
+    public static string DeviceSignedInNone => "Nothing is saved on this device yet. When you make a plan it is kept here and in your account.";
+
+    /// <summary>The Safari warning once an account is a second way to keep a plan.</summary>
+    public static string SafariWarningWithAccount => "Safari clears a site's data after a week without a visit. Add Selficient to your home screen, or make an account, to keep your plan.";
+
+    /// <summary>The Safari warning for this server: it names an account only where one can be made.</summary>
+    public static string Safari(bool accounts) => accounts ? SafariWarningWithAccount : SafariWarning;
+
+    /// <summary>The heading of the panel's row for an account, to a guest.</summary>
+    public static string AccountHeading => "An account";
+
+    /// <summary>The two things an account does, and how little it asks.</summary>
+    public static string AccountSentence => "Keep every device in step and keep your plan if this one is lost. Just an email address, no password.";
+
+    /// <summary>The button that goes to make one.</summary>
+    public static string CreateAccount => "Create an account";
+
+    /// <summary>The quiet line under the rows, before its link.</summary>
+    public static string AlreadyHave => "Already have an account?";
+
+    /// <summary>That line's link.</summary>
+    public static string SignIn => "Sign in";
+
+    /// <summary>The heading of the account row once signed in.</summary>
+    public static string YourAccountHeading => "Your account";
+
+    /// <summary>The account row's sentence once signed in, before the address.</summary>
+    public static string SignedInAs => "Signed in as";
+
+    /// <summary>The account row's link to sign out.</summary>
+    public static string SignOut => "Sign out";
+
+    /// <summary>The account row's link to delete the account.</summary>
+    public static string DeleteAccount => "Delete my account";
+
+    /// <summary>Said to a guest after a copy has gone: the one moment an account is the answer to what they just did.</summary>
+    public static string SentAccount => "An account would keep both in step.";
+
     /// <summary>Said once under the figure, the first time a plan is saved in this browser.</summary>
     public static string FirstPlan => "Your plan is saved on this device. You do not need an account.";
 }

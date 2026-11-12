@@ -78,6 +78,33 @@ public sealed class PagesTests : IDisposable
     }
 
     [Theory]
+    [InlineData("/error/200")]
+    [InlineData("/error/399")]
+    [InlineData("/error/600")]
+    [InlineData("/error/123456")]
+    public async Task Only_an_error_status_is_explained_and_anything_else_is_an_error_of_its_own(string path)
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        using HttpResponseMessage response = await client.GetAsync(new Uri(path, UriKind.Relative));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("Something went wrong on our side.");
+    }
+
+    [Fact]
+    public async Task The_status_is_read_from_the_address_and_never_from_a_form_field_that_happens_to_be_called_code()
+    {
+        using HttpClient client = _factory.CreateClient();
+        using FormUrlEncodedContent form = new(new Dictionary<string, string> { ["Code"] = "123456", ["code"] = "200" });
+
+        using HttpResponseMessage response = await client.PostAsync(new Uri("/error/429", UriKind.Relative), form);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests, "a six-digit sign-in code in a rejected post is not a status");
+        (await response.Content.ReadAsStringAsync()).ShouldContain("That was a little too fast.");
+    }
+
+    [Theory]
     [InlineData(404, "We couldn't find that page.")]
     [InlineData(429, "That was a little too fast.")]
     [InlineData(500, "Something went wrong on our side.")]

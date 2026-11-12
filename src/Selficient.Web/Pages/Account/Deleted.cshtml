@@ -1,0 +1,15 @@
+@page "/account/deleted"
+@model Selficient.Web.Pages.Account.DeletedModel
+@{
+    ViewData["Title"] = AccountCopy.DeletedHeading;
+    ViewData["NoIndex"] = true;
+}
+
+<section class="notice" aria-labelledby="deleted-heading" data-account-gone>
+  <p class="eyebrow">No account</p>
+  <h1 id="deleted-heading">@AccountCopy.DeletedHeading</h1>
+  <p>@AccountCopy.DeletedLede</p>
+  <p class="cluster">
+    <a class="button button--primary" href="/plan">Open your plan</a>
+  </p>
+</section>

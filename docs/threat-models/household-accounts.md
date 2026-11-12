@@ -1,0 +1,58 @@
+# Threat model: household accounts (M23 to M25)
+
+*12 November 2026. The account a household may choose to make: an email address and, once sync lands, a copy of its plan. Sign-in is by a six-digit code sent to the address (M23) and by passkey (M25); the plan is kept in step across devices (M24). This is the first personal data the platform holds about a reader, under the rule Rob changed the same day: nothing about a reader is kept unless they make an account, and then only their email address and their plan, which they can delete at any time.*
+
+*Sections 1 to 4 are M23 and are written before its code. Sections 5 and 6 are filled in before M24 and M25.*
+
+## 1. What it is (M23)
+
+- `/account/sign-in` takes an address and sends a code. `/account/code` takes the code. The same two pages make an account and sign in to one, and say the same sentences either way.
+- A pending sign-in is bound to the browser that asked: a cookie (`selficient.signin`, HttpOnly, Secure, SameSite=Strict, path `/account`, ten minutes) holds the address and a random 256-bit value, encrypted and signed by the Data Protection key ring. The database row holds a hash of that value, a hash of the address and a keyed hash of the code, and nothing readable.
+- A signed-in household carries `selficient.household`: HttpOnly, Secure, SameSite=Lax, ninety days sliding (decision 60), with the account's number and its security stamp. A second cookie, `selficient.signed-in`, readable by script and holding only `1`, tells the page to ask who is signed in, so a guest's browser never asks.
+- `/account/sign-out` and `/account/delete` are forms, each one confirmation. Deleting removes the address, the plan, the passkeys and every sign-in at once; the copy in the browser stays.
+- Mail goes through `IEmailSender`: SMTP to Papercut on the local machine, the Postmark API in production (decision 67).
+
+## 2. Assets
+
+- The address, which identifies a person.
+- The session: whoever holds it reads and (from M24) writes that household's plan.
+- The plan: answers about a home, its postcode, what is in its cupboards, where the house is.
+- The promise to guests, who must lose nothing by accounts existing: no cookie they did not have, no request they did not make, nothing kept.
+- The mail reputation of the sending domain, which a flood of codes to strangers would burn.
+
+## 3. Cases (M23)
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 1 | **Enumeration**: the pages reveal which addresses have accounts | There is no "sign up" and no "that address is not known". Any well-formed address is sent a code and shown the same sentence; the account is made, if it does not exist, only when the code is proved. Timing is the same because the work is the same | `A_known_address_and_a_new_one_are_told_the_same_thing` |
+| 2 | **Code guessing**: a million codes, five tries | Every attempt, right or wrong, increments the row's counter in one statement before the code is compared, so racing attempts cannot share a try; the sixth is refused whatever it says. Ten minutes. One use. Five tries of a million is one in two hundred thousand per code, and codes are limited per address (case 5) | `Five_wrong_codes_burn_the_code_and_the_right_one_is_then_refused`, `Attempts_are_counted_before_the_code_is_read` (store), `Racing_guesses_share_five_tries_between_them` |
+| 3 | **A code used from a different browser**: read over a shoulder, from a forwarded email, from a mailbox the attacker can see | The code is useless without the binding cookie of the browser that asked. The stored hash of the code is keyed by the cookie's value, so the row cannot even be checked without it | `A_code_is_refused_in_a_browser_that_did_not_ask_for_it` |
+| 4 | **The database is read**: a backup, an injection elsewhere | The codes table holds hashes only: no address, no code. The code's hash is keyed by a value that is only in the asking browser, so a six-digit space cannot be searched offline. Accounts hold the address, which is the one thing the feature needs | `A_code_row_holds_nothing_that_can_be_read` |
+| 5 | **A flood of mail to a victim**, or to thousands of strangers through us | Per destination: three codes in fifteen minutes and six in an hour, counted on the address's hash, refused with a sentence that says so. Per sender: a limiter policy of its own on both forms. A malformed address is refused before anything is sent. The message says what to do if you did not ask | `An_address_is_sent_three_codes_in_fifteen_minutes_and_no_more`, `The_sign_in_forms_are_rate_limited_on_a_policy_of_their_own`, `An_address_that_is_not_one_is_refused_before_anything_is_sent` |
+| 6 | **Sign-in CSRF**: an attacker signs the victim's browser in to the attacker's account, so the victim's plan syncs to it | Both forms carry antiforgery tokens. Beyond that, a code only works with the binding cookie, which is set only in answer to a same-site post and is SameSite=Strict, so an attacker cannot plant a pending sign-in for their own address in someone else's browser | `The_forms_refuse_a_post_without_a_token`, case 3's test |
+| 7 | **Session fixation** | Signing in always issues a new cookie from the server; nothing a visitor arrives with is promoted. The binding cookie is deleted on success | `The_session_cookie_is_locked_down_and_signing_in_sets_a_fresh_session_and_clears_the_pending_one` |
+| 8 | **A stolen session cookie** | HttpOnly, Secure, SameSite=Lax; the CSP allows no inline script and no other origin, so there is nothing to read it with. The stamp in it is checked against the account on every request that uses it, so deleting the account ends every session at the next request. Ninety days is Rob's decision (60); the trade is written there | The same test, `Deleting_the_account_ends_every_session_and_removes_every_row`, `A_session_that_ended_elsewhere_reads_as_a_guest_at_the_next_page` (E2E) |
+| 9 | **The household's session reaches the back office, or an operator's reaches a household's pages** | Two schemes, two cookies, two tables. The operator's cookie is scoped to `/admin`; the household policy names its own scheme and the operator policy its own. Neither identity satisfies the other's policy | `A_household_is_not_an_operator_and_an_operator_is_not_a_household` |
+| 10 | **Cross-site request forgery against sign out and delete** | Both are posts with antiforgery tokens; a visit by address shows the question and changes nothing. The session cookie is Lax, so a cross-site post does not carry it at all | `Sign_out_and_delete_are_posts_with_a_token_and_a_visit_by_address_changes_nothing` |
+| 11 | **A guest pays for accounts existing** | A guest's page is byte-for-byte what it was, apart from words that mention accounts. The page asks "who is signed in?" only when the hint cookie exists, which only signing in sets. No account cookie is set by any page a guest can reach without asking for a code | `A_guest_is_never_asked_who_they_are_and_is_offered_an_account_only_as_a_third_way_to_keep_a_plan` (E2E: no request to `/api/account`, no cookie but the form's), `Asking_for_a_code_is_the_first_thing_that_sets_an_account_cookie` |
+| 12 | **The address is logged** | The request log's line holds the path and the status, never a form body. The mail adapters log the failure and the provider's reason, never the recipient | `A_failed_send_is_logged_without_the_address` |
+| 13 | **The mailer is down** | The person is told the code could not be sent and nothing is stored that counts against the address | `A_code_that_could_not_be_sent_is_said_so_and_not_counted` |
+| 14 | **Accounts on a server with no mailer** | With no provider configured the sign-in page says accounts are not available here, the panel does not offer one, and nothing else changes | `A_server_with_no_mailer_offers_no_account` |
+| 15 | **Header injection through the address** | The address is validated to one mailbox with no control characters before it reaches an adapter; the Postmark adapter sends JSON, and `MailAddress` refuses what SMTP would misread | `An_address_that_is_not_one_is_refused_before_anything_is_sent` |
+| 16 | **Open redirect after sign-in** | There is no return address. Signing in lands on the plan | By construction |
+| 17 | **A sender that keeps codes in memory, for the tests to read, runs in production** | There is none in the product. The recorder lives in the test kit and is put in place by the test host; the providers the options accept are none, SMTP and Postmark | `The_provider_is_one_of_three_and_defaults_to_papercut_on_a_development_machine_only`, `Mail_settings_that_cannot_work_stop_the_server_starting` |
+| 18 | **A pending cookie from before a key ring change, or one tampered with** | It fails to decrypt and reads as no pending sign-in: the code page sends the visitor back to ask again | `A_pending_cookie_that_does_not_open_is_no_pending_sign_in` |
+
+## 4. Accepted (M23)
+
+- Whoever controls the mailbox controls the account. That is what "just an email address, no password" means, and it is the recovery path that makes a lost phone not a lost plan.
+- An address that asks for a code and never uses it is remembered as a hash for one hour, to count codes against it, and then forgotten.
+- Postmark processes the address and the code in transit, as any mail provider would. The privacy page names it.
+
+## 5. Sync (M24)
+
+*Written before M24's code.*
+
+## 6. Passkeys (M25)
+
+*Written before M25's code.*

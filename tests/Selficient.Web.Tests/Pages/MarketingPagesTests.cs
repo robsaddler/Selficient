@@ -50,12 +50,15 @@ public sealed partial class MarketingPagesTests : IDisposable
         {
             // A link to the privacy page until the script runs, so the chip goes somewhere without it.
             page.ShouldContain("<a class=\"keep-chip\" href=\"/privacy\" data-keep-chip data-open-dialog=\"keep-dialog\" data-kept=\"none\">");
+            page.ShouldContain("<svg class=\"mark-icon\" data-keep-mark=\"device\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/img/marks.svg#mark-device\"/></svg>");
+            page.ShouldContain("<svg class=\"mark-icon\" data-keep-mark=\"account\" aria-hidden=\"true\" focusable=\"false\" hidden><use href=\"/img/marks.svg#mark-account\"/></svg>");
             page.ShouldContain("<span data-keep-label=\"none\">No account needed</span>");
             page.ShouldContain("<span data-keep-label=\"device\" hidden>Saved on this device</span>");
             page.ShouldContain("<h2 id=\"keep-heading\">Where your plan is kept</h2>");
-            page.ShouldContain("<p data-keep-says=\"none\">Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.</p>");
+            page.ShouldContain("<p data-keep-says=\"device-none\">Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.</p>");
             page.ShouldContain("<p data-keep-says=\"device\" hidden>Your plan lives in this browser and nowhere else. You do not need an account.</p>");
-            page.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");
+            page.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen, or make an account, to keep your plan.</p>");
+            page.ShouldContain("<p>Your plan is kept in your own browser. What leaves it, and when, is on the <a href=\"/privacy\">privacy page</a>.</p>");
         }
 
         // The second row of the panel: sending a copy. Hidden until there is a plan to send, and every sentence it can say is on the page already.
@@ -65,7 +68,7 @@ public sealed partial class MarketingPagesTests : IDisposable
         landing.ShouldContain("<div class=\"keep__code\" data-send-code role=\"img\" aria-label=\"A code for your other device&#x27;s camera\"></div>");
         landing.ShouldContain("<p>Point your other device&#x27;s camera at this. It works for ten minutes, once.</p>");
         landing.ShouldContain("<button type=\"button\" class=\"button button--quiet\" data-send-link>Copy the link instead</button>");
-        landing.ShouldContain("<p>Sent. Your other device has its own copy now. Changes you make on one will not appear on the other.</p>");
+        landing.ShouldContain("<p>Sent. Your other device has its own copy now. Changes you make on one will not appear on the other.<span data-keep-guest> An account would keep both in step.</span></p>");
         foreach ((string key, string sentence) in KeepCopy.SendSays)
         {
             landing.ShouldContain($"<p class=\"keep__says\" data-send-says=\"{key}\" hidden>{System.Text.Encodings.Web.HtmlEncoder.Default.Encode(sentence)}</p>");
@@ -196,7 +199,21 @@ public sealed partial class MarketingPagesTests : IDisposable
         string privacy = await client.GetStringAsync(new Uri("/privacy", UriKind.Relative));
         string terms = await client.GetStringAsync(new Uri("/terms", UriKind.Relative));
 
-        privacy.ShouldContain("no accounts, sets no cookies, runs no analytics");
+        privacy.ShouldContain("Selficient needs no account, runs no analytics and keeps no record of who you are unless you choose to make an account.");
+        privacy.ShouldNotContain("sets no cookies", customMessage: "a page with a form sets a security cookie, and the page now says so");
+        privacy.ShouldContain("<h2 id=\"account\">If you make an account</h2>");
+        privacy.ShouldContain("You never have to. Everything on Selficient works without one, and your plan is saved on your device either way.");
+        privacy.ShouldContain("If you make one, we keep your email address and a copy of your plan, and nothing else about you: no name, no password, no profile.");
+        privacy.ShouldContain("Postmark, a mail service delivers for us");
+        privacy.ShouldContain("If you ask for a code and never use it, the request is forgotten within the hour.");
+        privacy.ShouldContain("Deleting removes your address, the copy of your plan, your passkeys and every sign-in, straight away.");
+        privacy.ShouldContain("<h2 id=\"cookies\">Cookies</h2>");
+        privacy.ShouldContain("Selficient sets no cookie that follows you or counts you");
+        privacy.ShouldContain("A page with a form on it sets one security cookie, which stops another website sending that form in your name");
+        privacy.ShouldContain("If you sign in, a second cookie keeps you signed in on that device for ninety days");
+        privacy.ShouldContain("<td>your email address and a sign-in code, only if you ask to sign in</td>");
+        LegalRails.Privacy.Sections.Select(s => s.Id).ShouldBe(["stays", "leaves", "account", "cookies", "server", "rights"]);
+        LegalCopy.PrivacyAtAGlance.Select(c => c.Heading).ShouldBe(["No account needed", "An account is yours to make and to delete", "No tracking, no analytics", "Your plan stays on your device", "Your postcode goes once", "Photographs never touch our disk"]);
         foreach ((string service, _, _) in LegalCopy.Upstreams)
         {
             privacy.ShouldContain(service);

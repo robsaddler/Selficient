@@ -34,6 +34,10 @@ public sealed class RateLimitOptions
     /// <summary>Copies of a plan left or collected per IP per minute. A household sends one; a script sends hundreds.</summary>
     [Range(1, 10_000)]
     public int HandoffPerMinute { get; init; } = 12;
+
+    /// <summary>Sign-in codes asked for or tried per IP per minute. A person does each once or twice.</summary>
+    [Range(1, 10_000)]
+    public int SignInPerMinute { get; init; } = 10;
 }
 
 /// <summary>Registers the limiter and its policies.</summary>
@@ -57,6 +61,9 @@ public static class RateLimits
     /// <summary>Policy for leaving and collecting a copy of a plan.</summary>
     public const string HandoffPolicy = "handoff";
 
+    /// <summary>Policy for asking for a sign-in code and trying one. Reading the pages is not limited.</summary>
+    public const string SignInPolicy = "signin";
+
     /// <summary>Adds the limiter. Rejections carry 429 and no body, so the status-code pages middleware renders the sentence.</summary>
     public static IServiceCollection AddSelficientRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -77,6 +84,7 @@ public static class RateLimits
             limiter.AddPolicy(TilesPolicy, TilesPartition);
             limiter.AddPolicy(AiPolicy, AiPartition);
             limiter.AddPolicy(HandoffPolicy, HandoffPartition);
+            limiter.AddPolicy(SignInPolicy, SignInPartition);
         });
 
         return services;
@@ -96,6 +104,12 @@ public static class RateLimits
         HttpMethods.IsGet(context.Request.Method)
             ? RateLimitPartition.GetNoLimiter("ai-read")
             : Window(context, static o => o.AiPerMinute);
+
+    /// <summary>The partition for the sign-in policy: the forms' posts are counted, the pages themselves are not.</summary>
+    internal static RateLimitPartition<string> SignInPartition(HttpContext context) =>
+        HttpMethods.IsGet(context.Request.Method)
+            ? RateLimitPartition.GetNoLimiter("signin-read")
+            : Window(context, static o => o.SignInPerMinute);
 
     /// <summary>The partition for the handoff policy.</summary>
     internal static RateLimitPartition<string> HandoffPartition(HttpContext context) => Window(context, static o => o.HandoffPerMinute);

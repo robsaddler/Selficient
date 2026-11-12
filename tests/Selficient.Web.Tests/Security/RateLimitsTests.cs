@@ -75,5 +75,20 @@ public sealed class RateLimitsTests
 
         (await handoffLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("a household sends one copy; twelve a minute is already a script");
         new RateLimitOptions().HandoffPerMinute.ShouldBe(12);
+
+        HttpContext posting = Context(IPAddress.Parse("203.0.113.9"));
+        posting.Request.Method = "POST";
+        RateLimitPartition<string> signIn = RateLimits.SignInPartition(posting);
+        signIn.PartitionKey.ShouldBe("203.0.113.9");
+        using RateLimiter signInLimiter = signIn.Factory(signIn.PartitionKey);
+        for (int i = 0; i < 10; i++)
+        {
+            (await signInLimiter.AcquireAsync()).IsAcquired.ShouldBeTrue();
+        }
+
+        (await signInLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("asking for codes and trying them is counted");
+        HttpContext reading = Context(IPAddress.Parse("203.0.113.9"));
+        reading.Request.Method = "GET";
+        RateLimits.SignInPartition(reading).PartitionKey.ShouldBe("signin-read", "reading the sign-in pages is not");
     }
 }

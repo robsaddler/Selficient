@@ -142,7 +142,7 @@ public sealed partial class Handoff
         // Back on the sender: told it went, and told the two are not linked. The code has left the screen.
         ILocator sent = row.Locator("[data-send-state=\"sent\"]");
         await Expect(sent).ToBeVisibleAsync();
-        await Expect(sent.Locator("p").First).ToHaveTextAsync("Sent. Your other device has its own copy now. Changes you make on one will not appear on the other.");
+        await Expect(sent.Locator("p").First).ToHaveTextAsync("Sent. Your other device has its own copy now. Changes you make on one will not appear on the other. An account would keep both in step.");
         (await row.Locator("[data-send-code]").EvaluateAsync<int>("box => box.childElementCount")).ShouldBe(0);
 
         // The link works once: a second visit, and a visit after reloading with nothing waiting, are told so.

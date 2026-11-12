@@ -1,0 +1,24 @@
+@page "/account/sign-out"
+@model Selficient.Web.Pages.Account.SignOutModel
+@{
+    ViewData["Title"] = AccountCopy.SignOutHeading;
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="signout-heading">
+  <form method="post" class="panel" data-sign-out>
+    <p class="eyebrow">Signed in as @Model.Email</p>
+    <h1 id="signout-heading">@AccountCopy.SignOutHeading</h1>
+    <p class="panel__lede">@AccountCopy.SignOutLede</p>
+    @* Whether the plan stays in this browser is the browser's doing, so the question is only asked where the script can act on the answer. *@
+    <div class="field field--check" data-keep-copy hidden>
+      <input type="checkbox" id="keep-copy" checked>
+      <label for="keep-copy">@AccountCopy.KeepACopy</label>
+      <p class="field__hint">@AccountCopy.KeepACopyHint</p>
+    </div>
+    <div class="panel__actions">
+      <button type="submit" class="button button--primary">@AccountCopy.SignOut</button>
+      <a class="button button--quiet" href="/plan">Stay signed in</a>
+    </div>
+  </form>
+</section>

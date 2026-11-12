@@ -60,6 +60,7 @@ public static class WebApplicationExtensions
         app.MapSeoEndpoints();
         app.MapShareEndpoints();
         app.MapHandoffEndpoints();
+        app.MapAccountEndpoints();
 
         return app;
     }

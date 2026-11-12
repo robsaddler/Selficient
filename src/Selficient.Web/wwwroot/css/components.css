@@ -677,6 +677,17 @@ progress.tier-progress {
   font-size: var(--text-s);
 }
 
+/* The address of a signed-in household: it may be long, and it must never widen the panel or the header. */
+.keep__who {
+  overflow-wrap: anywhere;
+}
+
+/* The quiet line under the rows. */
+.keep__already {
+  margin-block: var(--space-3);
+  font-size: var(--text-s);
+}
+
 /* One state of a row: the same grid as the row, because a grid's gap reaches its own children only. */
 .keep__part {
   display: grid;
@@ -2261,7 +2272,9 @@ progress.tier-progress {
 .button--danger {
   background: var(--c-ember);
   border-color: var(--c-ember);
-  color: oklch(98% 0 0);
+  /* Ember is deep in the light and bright in the dark, so the words on it change sides with it.
+     White on the dark theme's ember measured 2.9:1. */
+  color: light-dark(oklch(98% 0 0), oklch(18% 0.03 28));
 
   &:hover {
     background: color-mix(in oklab, var(--c-ember) 85%, var(--c-slate));

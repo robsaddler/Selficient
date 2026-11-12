@@ -183,6 +183,69 @@ public sealed class InfrastructureCompositionTests
     }
 
     [Fact]
+    public void The_local_machine_sends_mail_through_papercut_without_being_told_to()
+    {
+        ServiceCollection services = new();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddSelficientInfrastructure(Config(), Environment("Development"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        Selficient.Application.Accounts.IEmailSender mail = provider.GetRequiredService<Selficient.Application.Accounts.IEmailSender>();
+        Selficient.Infrastructure.Email.EmailOptions options = provider.GetRequiredService<IOptions<Selficient.Infrastructure.Email.EmailOptions>>().Value;
+
+        mail.ShouldBeOfType<Selficient.Infrastructure.Email.SmtpEmailSender>();
+        options.SmtpHost.ShouldBe("localhost");
+        options.SmtpPort.ShouldBe(25);
+        provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>().IsAvailable.ShouldBeTrue();
+        provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>().ShouldBeOfType<Selficient.Infrastructure.Accounts.SqlAccountStore>();
+        provider.GetServices<Selficient.Application.Operations.IExpiring>().Select(e => e.GetType().Name).ShouldBe(["HandoffDesk", "AccountSignIn"], "everything that expires is swept by the one housekeeper");
+        provider.GetRequiredService<Selficient.Infrastructure.Data.Housekeeper>().ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void A_server_told_nothing_about_mail_sends_none_and_offers_no_account()
+    {
+        ServiceCollection services = new();
+        services.AddSelficientInfrastructure(Config(), Environment("Production"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<Selficient.Application.Accounts.IEmailSender>().ShouldBeOfType<Selficient.Infrastructure.Email.NoEmailSender>();
+        provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>().IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Production_sends_through_postmark_with_the_token_as_a_header()
+    {
+        ServiceCollection services = new();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddSelficientInfrastructure(Config(("Email:Provider", "Postmark"), ("Email:PostmarkServerToken", "a-server-token"), ("Email:TimeoutSeconds", "7")), Environment("Production"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<Selficient.Application.Accounts.IEmailSender>().ShouldBeOfType<Selficient.Infrastructure.Email.PostmarkEmailSender>();
+        HttpClient client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(Selficient.Infrastructure.Email.PostmarkEmailSender));
+        client.BaseAddress.ShouldBe(new Uri("https://api.postmarkapp.com/"));
+        client.Timeout.ShouldBe(TimeSpan.FromSeconds(7));
+        client.DefaultRequestHeaders.GetValues(Selficient.Infrastructure.Email.PostmarkEmailSender.TokenHeader).ShouldBe(["a-server-token"]);
+        client.DefaultRequestHeaders.Accept.ToString().ShouldBe("application/json");
+    }
+
+    [Theory]
+    [InlineData("Email:Provider", "Postmark", "Email:PostmarkServerToken is required when Email:Provider is Postmark. Set the Email__PostmarkServerToken environment variable.")]
+    [InlineData("Email:Provider", "Recording", "Email:Provider must be None, Smtp or Postmark.")]
+    [InlineData("Email:Provider", "Sendmail", "Email:Provider must be None, Smtp or Postmark.")]
+    [InlineData("Email:PostmarkBaseUrl", "http://api.postmarkapp.com/", "Email:PostmarkBaseUrl must be an absolute https URL.")]
+    public void Mail_settings_that_cannot_work_stop_the_server_starting(string key, string value, string sentence)
+    {
+        ServiceCollection services = new();
+        services.AddSelficientInfrastructure(Config((key, value)), Environment("Production"));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        OptionsValidationException refused = Should.Throw<OptionsValidationException>(() => provider.GetRequiredService<IOptions<Selficient.Infrastructure.Email.EmailOptions>>().Value);
+
+        refused.Message.ShouldContain(sentence);
+    }
+
+    [Fact]
     public void Rejects_missing_arguments()
     {
         ServiceCollection services = new();

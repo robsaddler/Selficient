@@ -27,7 +27,7 @@ public sealed class IndexModel : PageModel
         new("Is this the government's three-day checklist?",
             "It starts there. The Be Ready campaign of 22 October 2026 asks every household for three days of water, food that needs no cooking, light, a radio, a charged power bank, some cash and a few other things. Selficient turns that list into a plan sized to your house, your hill and your heating, and then goes further for those who want to."),
         new("Do you store my address or my answers?",
-            "No. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. There are no accounts and no cookies."),
+            "Not unless you ask us to. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. You do not need an account and nothing tracks you. If you choose to make an account, so that your plan follows you between devices, we keep your email address and your plan, and you can delete both whenever you like."),
         new("How much does it cost?",
             "Nothing. Where we point to a shop, some links earn us a small commission at no cost to you, and we say so beside them. Photo readings use a small free monthly allowance, or your own key if you prefer."),
         new("Is this professional advice?",

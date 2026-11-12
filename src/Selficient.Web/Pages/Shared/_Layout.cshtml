@@ -1,5 +1,6 @@
 @inject Selficient.Web.Security.CspNonce Nonce
 @inject Selficient.Web.Services.ShellVersion Shell
+@inject Selficient.Application.Accounts.AccountSignIn Accounts
 <!DOCTYPE html>
 @* data-sw-build is this deploy's shell fingerprint; shell.js compares it with the service
    worker's own version and reloads once on a mismatch, so a device never runs one deploy's
@@ -68,9 +69,11 @@
       @if (KeepCopy.ShowsOn(Context.Request.Path))
       {
       <a class="keep-chip" href="/privacy" data-keep-chip data-open-dialog="keep-dialog" data-kept="none">
-        <svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>
+        <svg class="mark-icon" data-keep-mark="device" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>
+        <svg class="mark-icon" data-keep-mark="account" aria-hidden="true" focusable="false" hidden><use href="/img/marks.svg#mark-account"/></svg>
         <span data-keep-label="none">@KeepCopy.ChipNone</span>
         <span data-keep-label="device" hidden>@KeepCopy.ChipDevice</span>
+        <span data-keep-label="account" hidden>@KeepCopy.ChipAccount <span class="keep-chip__who" data-keep-email></span></span>
       </a>
       }
     </div>
@@ -82,7 +85,7 @@
   <footer class="site-footer">
     <div class="site-footer__inner">
       <p>Selficient helps households prepare for everyday emergencies. It is guidance, not professional advice, and it never replaces the instructions of the emergency services.</p>
-      <p>Nothing you enter leaves your browser except the postcode we use to find your area.</p>
+      <p>Your plan is kept in your own browser. What leaves it, and when, is on the <a href="/privacy">privacy page</a>.</p>
       @* Shown by install.js only where the browser can install or explain how, and never inside the
          installed app. It lives below the content so appearing never pushes the page down. *@
       <p class="site-footer__install"><button type="button" class="button button--quiet" data-install hidden>Install the app</button></p>
@@ -101,9 +104,11 @@
     <h2 id="keep-heading">@KeepCopy.PanelHeading</h2>
     <section class="keep__row" aria-labelledby="keep-device">
       <h3 id="keep-device"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>@KeepCopy.DeviceHeading</h3>
-      <p data-keep-says="none">@KeepCopy.DeviceNone</p>
+      <p data-keep-says="device-none">@KeepCopy.DeviceNone</p>
       <p data-keep-says="device" hidden>@KeepCopy.DeviceKept</p>
-      <p class="keep__warning" data-keep-safari hidden>@KeepCopy.SafariWarning</p>
+      <p data-keep-says="account" hidden>@KeepCopy.DeviceSignedIn</p>
+      <p data-keep-says="account-none" hidden>@KeepCopy.DeviceSignedInNone</p>
+      <p class="keep__warning" data-keep-safari hidden>@KeepCopy.Safari(Accounts.IsAvailable)</p>
     </section>
     @* Only once there is a plan to send. A copy is a copy: the sentence says so before the button and again when it has gone. *@
     <section class="keep__row" aria-labelledby="keep-another" data-keep-another hidden>
@@ -118,7 +123,7 @@
         <p class="cluster"><button type="button" class="button button--quiet" data-send-link>@KeepCopy.SendLink</button></p>
       </div>
       <div class="keep__part" data-send-state="sent" hidden>
-        <p>@KeepCopy.Sent</p>
+        <p>@KeepCopy.Sent@if (Accounts.IsAvailable) {<span data-keep-guest> @KeepCopy.SentAccount</span>}</p>
         <p class="cluster"><button type="button" class="button button--quiet" data-send-copy>@KeepCopy.SendButton again</button></p>
       </div>
       <div role="status">
@@ -128,6 +133,22 @@
         }
       </div>
     </section>
+    @* Only where this server can send a sign-in code. An account is offered as the third way to keep a plan, never as a step. *@
+    @if (Accounts.IsAvailable)
+    {
+    <section class="keep__row" aria-labelledby="keep-account" data-keep-account>
+      <h3 id="keep-account"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-account"/></svg><span data-keep-guest>@KeepCopy.AccountHeading</span><span data-keep-member hidden>@KeepCopy.YourAccountHeading</span></h3>
+      <div class="keep__part" data-keep-guest>
+        <p>@KeepCopy.AccountSentence</p>
+        <p class="cluster"><a class="button" href="/account/sign-in">@KeepCopy.CreateAccount</a></p>
+      </div>
+      <div class="keep__part" data-keep-member hidden>
+        <p>@KeepCopy.SignedInAs <strong class="keep__who" data-keep-email></strong>.</p>
+        <p class="cluster"><a class="button button--quiet" href="/account/sign-out">@KeepCopy.SignOut</a> <a class="button button--quiet" href="/account/delete">@KeepCopy.DeleteAccount</a></p>
+      </div>
+    </section>
+    <p class="keep__already" data-keep-guest>@KeepCopy.AlreadyHave <a href="/account/sign-in">@KeepCopy.SignIn</a>.</p>
+    }
     <p class="cluster">
       <button type="button" class="button" data-close>Close</button>
     </p>

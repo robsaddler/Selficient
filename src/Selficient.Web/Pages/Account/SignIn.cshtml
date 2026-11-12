@@ -1,0 +1,33 @@
+@page "/account/sign-in"
+@model Selficient.Web.Pages.Account.SignInModel
+@{
+    ViewData["Title"] = AccountCopy.SignInHeading;
+    ViewData["Description"] = "Sign in to Selficient with a code sent to your email address. No password.";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="signin-heading">
+  <form method="post" class="panel" novalidate>
+    <p class="eyebrow">An account, if you want one</p>
+    <h1 id="signin-heading">@AccountCopy.SignInHeading</h1>
+    <p class="panel__lede">@AccountCopy.SignInLede</p>
+    <ul class="panel__list">
+      @foreach (var line in AccountCopy.WhatItDoes)
+      {
+        <li>@line</li>
+      }
+    </ul>
+    @if (Model.Refusal is { } refusal)
+    {
+      <p class="callout callout--warning" role="alert">@refusal</p>
+    }
+    <div class="field">
+      <label asp-for="Email">Email address</label>
+      <input asp-for="Email" type="email" class="input" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required>
+    </div>
+    <div class="panel__actions">
+      <button type="submit" class="button button--primary">@AccountCopy.SendCode</button>
+    </div>
+    <p class="field__hint">@AccountCopy.NotNeeded</p>
+  </form>
+</section>

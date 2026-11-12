@@ -34,6 +34,7 @@ public sealed class Screenshots
     [InlineData("/deals", "deals")]
     [InlineData("/share/storm/1", "share")]
     [InlineData("/receive", "receive")]
+    [InlineData("/account/sign-in", "sign-in")]
     public async Task Every_page_is_captured_at_phone_and_desktop_widths_in_both_themes(string path, string name)
     {
         foreach ((string size, int width, int height, bool mobile) in Sizes)

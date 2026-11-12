@@ -1,0 +1,16 @@
+@page "/account/unavailable"
+@model Selficient.Web.Pages.Account.UnavailableModel
+@{
+    ViewData["Title"] = AccountCopy.SignInHeading;
+    ViewData["NoIndex"] = true;
+}
+
+@* A server with no way to send a sign-in code offers no account. The panel does not link here; this is what a typed address finds. *@
+<section class="notice" aria-labelledby="unavailable-heading">
+  <p class="eyebrow">An account, if you want one</p>
+  <h1 id="unavailable-heading">@AccountCopy.SignInHeading</h1>
+  <p class="callout callout--warning" role="status">@Selficient.Application.Accounts.AccountSignIn.Unavailable.Message</p>
+  <p class="cluster">
+    <a class="button button--primary" href="/plan">Open your plan</a>
+  </p>
+</section>

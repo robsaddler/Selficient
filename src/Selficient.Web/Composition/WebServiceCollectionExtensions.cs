@@ -111,7 +111,24 @@ public static class WebServiceCollectionExtensions
                 options.AccessDeniedPath = "/admin/sign-in";
                 options.SlidingExpiration = true;
                 options.EventsType = typeof(OperatorCookieEvents);
+            })
+            // A household's session: its own scheme and cookie, on every page, for ninety days sliding. Lax, not strict,
+            // so a link followed from elsewhere arrives signed in; every change it can make is a post with a token.
+            .AddCookie(HouseholdAuth.Scheme, options =>
+            {
+                options.Cookie.Name = HouseholdAuth.CookieName;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.Path = "/";
+                options.Cookie.IsEssential = true;
+                options.LoginPath = HouseholdAuth.SignInPath;
+                options.ExpireTimeSpan = HouseholdAuth.SessionLength;
+                options.SlidingExpiration = true;
+                options.EventsType = typeof(HouseholdCookieEvents);
             });
+        services.AddScoped<HouseholdCookieEvents>();
+        services.AddSingleton<PendingSignInCookie>();
         services.AddAuthorizationBuilder()
             .AddPolicy(OperatorAuth.Policy, policy => policy
                 .AddAuthenticationSchemes(OperatorAuth.Scheme)
@@ -125,6 +142,9 @@ public static class WebServiceCollectionExtensions
                 .RequireAssertion(context => !OperatorAuth.IsPending(context.User)))
             .AddPolicy(OperatorAuth.PendingPolicy, policy => policy
                 .AddAuthenticationSchemes(OperatorAuth.Scheme)
+                .RequireAuthenticatedUser())
+            .AddPolicy(HouseholdAuth.Policy, policy => policy
+                .AddAuthenticationSchemes(HouseholdAuth.Scheme)
                 .RequireAuthenticatedUser());
     }
 

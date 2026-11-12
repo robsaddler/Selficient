@@ -1,0 +1,37 @@
+@page "/account/code"
+@model Selficient.Web.Pages.Account.CodeModel
+@{
+    ViewData["Title"] = AccountCopy.CodeHeading;
+    ViewData["NoIndex"] = true;
+}
+
+<section class="panel-page" aria-labelledby="code-heading">
+  <div class="panel">
+    <form method="post" class="panel__form" novalidate>
+      <p class="eyebrow">An account, if you want one</p>
+      <h1 id="code-heading">@AccountCopy.CodeHeading</h1>
+      <p class="panel__lede">@AccountCopy.CodeSentTo <strong data-code-address>@Model.Email</strong>. @AccountCopy.CodeGoodFor</p>
+      @if (Model.Refusal is { } refusal)
+      {
+        <p class="callout callout--warning" role="alert">@refusal</p>
+      }
+      @if (Model.Notice is { } notice)
+      {
+        <p class="callout" role="status">@notice</p>
+      }
+      <div class="field">
+        <label asp-for="Code">Six-digit code</label>
+        <input asp-for="Code" class="input input--code" inputmode="numeric" autocomplete="one-time-code" spellcheck="false" maxlength="9" required autofocus>
+      </div>
+      <div class="panel__actions">
+        <button type="submit" class="button button--primary">@AccountCopy.SignIn</button>
+      </div>
+    </form>
+    <form method="post" asp-page-handler="Resend" class="panel__form panel__form--after">
+      <p class="cluster">
+        <button type="submit" class="button button--quiet">@AccountCopy.Resend</button>
+        <a href="/account/sign-in">@AccountCopy.OtherAddress</a>
+      </p>
+    </form>
+  </div>
+</section>

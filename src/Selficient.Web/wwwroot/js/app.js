@@ -18,6 +18,7 @@ import { initShare } from "selficient/share.js";
 import { initKeep } from "selficient/keep.js";
 import { initSendCopy } from "selficient/handoff.js";
 import { initReceive } from "selficient/receive.js";
+import { initAccount } from "selficient/account.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -35,5 +36,6 @@ initShare(document);
 void initKeep(document);
 initSendCopy(document);
 void initReceive(document);
+initAccount(document);
 void initHouseMap(document);
 initPhotos(document);
