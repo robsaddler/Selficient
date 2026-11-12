@@ -282,20 +282,24 @@ public sealed class BoardPagesTests : IDisposable
         offered.ShouldNotContain("data-board-comparison");
         offered.ShouldNotContain("data-paired=\"true\"", customMessage: "nothing is drawn twice on the house sheet");
         offered.ShouldNotContain("board__when");
-        drawn.ShouldContain("<p class=\"board__pairs-note\">Each need that changes is drawn twice: as it stands today, and with this.</p>");
+        drawn.ShouldContain("<p class=\"board__pairs-note\">Each need that changes is drawn twice: as it stands today, and with the plan.</p>");
         drawn.ShouldContain("<input type=\"checkbox\" data-board-only-changes> <span>Show only what changes</span>");
         drawn.ShouldContain("data-season=\"Winter\" data-paired=\"true\">");
-        drawn.ShouldMatch("data-board-comparison>Everything we plan to get turns [0-9]+ of [0-9]+ needs for the better\\. Today the house stands for 1 day; with this, [0-9.]+ days\\. What you plan has £[0-9.,]+ to £[0-9.,]+ still to spend\\.</p>");
+        drawn.ShouldMatch("data-board-comparison>Everything we plan to get turns [0-9]+ of [0-9]+ needs for the better\\. Today the house stands for 1 day; with the plan, [0-9.]+ days\\. What you plan has £[0-9.,]+ to £[0-9.,]+ still to spend\\.</p>");
         drawn.ShouldContain("data-turned=\"true\"");
         drawn.ShouldContain("data-turned=\"false\"");
-        drawn.ShouldMatch("<span class=\"board__delta\">1 day today, [0-9.]+ days with this</span>");
+        drawn.ShouldMatch("<span class=\"board__delta\">1 day today, [0-9.]+ days with the plan</span>");
         // A need that changes is drawn twice, each line with its words in front and on every cell's label.
         drawn.ShouldContain("data-turned=\"true\" data-paired=\"true\">");
         drawn.ShouldContain("data-turned=\"false\" data-paired=\"false\">");
         drawn.ShouldContain("<span class=\"board__when\" data-line=\"today\">Today</span>");
-        drawn.ShouldContain("<span class=\"board__when\" data-line=\"with\">With this</span>");
+        drawn.ShouldContain("<span class=\"board__when\" data-line=\"with\">With the plan</span>");
+        // Every position the board can offer has a name of its own, or the page would fail the moment its pill was chosen.
+        string[] positions = [.. Regex.Matches(drawn, "name=\"board-source\" id=\"source-([a-z-]+)\"").Select(match => match.Groups[1].Value)];
+        positions.Length.ShouldBe(7, "the house, the plan and the five things a house with its own roof can add");
+        positions.ShouldAllBe(position => BoardCopy.With(position).StartsWith("with ", StringComparison.Ordinal));
         drawn.ShouldMatch("aria-label=\"Today\\. Food, [a-z ]+: [a-z0-9 ,]*lost[a-z ]*\\.\"");
-        drawn.ShouldMatch("aria-label=\"With this\\. Food, [a-z ]+: held throughout\\.\"");
+        drawn.ShouldMatch("aria-label=\"With the plan\\. Food, [a-z ]+: held throughout\\.\"");
         drawn.ShouldContain("aria-label=\"Laundry, a day: ", customMessage: "a need that does not change is drawn once and labelled as before");
     }
 
@@ -312,11 +316,13 @@ public sealed class BoardPagesTests : IDisposable
         string withBattery = await Post(client, "/plan/board", battery);
         string withBanks = await Post(client, "/plan/board", banks);
 
-        withBattery.ShouldMatch("data-board-comparison>A home battery and gateway turns [0-9]+ of [0-9]+ needs for the better\\. Today the house stands for 1 day; with this, [0-9.]+ days?\\.</p>");
+        withBattery.ShouldMatch("data-board-comparison>A home battery and gateway turns [0-9]+ of [0-9]+ needs for the better\\. Today the house stands for 1 day; with the battery, [0-9.]+ days?\\.</p>");
+        withBattery.ShouldContain("data-line=\"with\">With the battery</span>");
+        withBattery.ShouldContain("with the battery</span>", customMessage: "the line under a need names the battery too");
         withBattery.ShouldNotContain("still to spend.</p>", customMessage: "only the plan has a cost to quote");
         withBattery.ShouldContain("data-board-only-changes");
         withBattery.ShouldContain("aria-label=\"Today. ");
-        withBanks.ShouldMatch("data-board-comparison>Power banks turns none of the [0-9]+ needs on this board\\. Today the house stands for [a-z0-9. ]+; with this, [a-z0-9. ]+\\.</p>");
+        withBanks.ShouldMatch("data-board-comparison>Power banks turns none of the [0-9]+ needs on this board\\. Today the house stands for [a-z0-9. ]+; with power banks, [a-z0-9. ]+\\.</p>");
         withBanks.ShouldNotContain("aria-label=\"Today. ", customMessage: "nothing differs, so nothing is drawn twice");
         withBanks.ShouldNotContain("data-paired=\"true\"");
         withBanks.ShouldNotContain("data-board-only-changes", customMessage: "there is nothing to narrow the board to");
@@ -464,12 +470,16 @@ public sealed class BoardPagesTests : IDisposable
         BoardCopy.TierOutcome(4m).ShouldBe("With everything up to here ticked, the house stands for 4 days.");
         BoardCopy.TierOutcome(null).ShouldBe("");
         BoardCopy.Cell(food, food.Cells[1], BoardCopy.Today).ShouldBe("Today. Food, three days: held for 1 day, then lost.");
-        BoardCopy.Cell(food, food.Cells[0], BoardCopy.WithThis).ShouldBe("With this. Food, a day: held throughout.");
+        BoardCopy.Cell(food, food.Cells[0], BoardCopy.WithLabel(BoardSet.PlannedSource)).ShouldBe("With the plan. Food, a day: held throughout.");
+        BoardCopy.With("large-power-station").ShouldBe("with the station and panels");
+        BoardCopy.WithLabel("petrol-generator").ShouldBe("With the generator");
+        BoardCopy.PairsNote("portable-power-station").ShouldBe("Each need that changes is drawn twice: as it stands today, and with the power station.");
+        Should.Throw<ArgumentNullException>(() => BoardCopy.With(null!));
         Should.Throw<ArgumentNullException>(() => BoardCopy.Pairs(null!));
-        BoardCopy.Delta(new NeedShift("Food", 1m, 16m, true)).ShouldBe("1 day today, 16 days with this");
-        BoardCopy.Delta(new NeedShift("Warmth", 30m, 30m, true)).ShouldBe("eased with this, though not for longer");
+        BoardCopy.Delta(new NeedShift("Food", 1m, 16m, true), BoardSet.PlannedSource).ShouldBe("1 day today, 16 days with the plan");
+        BoardCopy.Delta(new NeedShift("Warmth", 30m, 30m, true), "rooftop-solar-and-battery").ShouldBe("eased with the battery, though not for longer");
         Should.Throw<ArgumentNullException>(() => BoardCopy.Cell(food, food.Cells[0], (string)null!));
-        Should.Throw<ArgumentNullException>(() => BoardCopy.Delta(null!));
+        Should.Throw<ArgumentNullException>(() => BoardCopy.Delta(null!, BoardSet.PlannedSource));
         Should.Throw<ArgumentNullException>(() => BoardCopy.Comparison(null!));
         BoardCopy.TierOutcome(null, true).ShouldBe("");
         BoardCopy.TierOutcome(4m, true).ShouldBe("With everything up to here except what is not for you, the house stands for 4 days.");

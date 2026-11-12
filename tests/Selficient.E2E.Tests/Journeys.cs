@@ -277,13 +277,13 @@ public sealed class Journeys
         await Expect(page.Locator(".board__headline")).ToContainTextAsync("with everything we plan to get, this house stands on its own for");
         await Expect(page.Locator("#source-planned")).ToBeCheckedAsync();
         (await page.Locator("days-ready").GetAttributeAsync("value")).ShouldBe(tonight, "the figure in the hero is the house as it is");
-        // The one table is read against today: a sentence, and every need that changes drawn twice, "Today" above "With this".
+        // The one table is read against today: a sentence, and every need that changes drawn twice, "Today" above "With the plan".
         await Expect(page.Locator("[data-board-comparison]")).ToContainTextAsync("Everything we plan to get turns");
         (await page.Locator(".board__row[data-paired=\"true\"][data-turned=\"false\"]").CountAsync()).ShouldBe(0, "every need drawn twice says by how much it moves");
         ILocator pair = page.Locator(".board__row[data-paired=\"true\"]").First;
         await Expect(pair.Locator(".board__delta")).ToBeVisibleAsync();
-        await Expect(pair.Locator(".board__when")).ToHaveTextAsync(["Today", "With this"]);
-        (await pair.Locator(".cell").CountAsync()).ShouldBe(10, "five cells for today and five with this");
+        await Expect(pair.Locator(".board__when")).ToHaveTextAsync(["Today", "With the plan"]);
+        (await pair.Locator(".cell").CountAsync()).ShouldBe(10, "five cells for today and five with the plan");
         // The two lines sit one above the other, cell under cell, each the size of any other cell on the board and under the same
         // column heads. On a phone each line's words sit above it; on a wide screen they sit in front of it.
         const string Measure =
@@ -308,6 +308,15 @@ public sealed class Journeys
         PageViewportSizeResult phone = page.ViewportSize!;
         await page.SetViewportSizeAsync(2000, 1200);
         (await pair.EvaluateAsync<string>(Measure, true)).ShouldBe(Sound, "on a wide screen");
+        // A scenario with fewer columns than the storm's five: the second line still starts under the first, with its words in
+        // front. It once ran on into the empty columns beside the first line.
+        await page.Locator("[data-scenario-card][value=\"stay-home\"]").ClickAsync();
+        await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-scenario", "stay-home");
+        ILocator short3 = page.Locator(".board__row[data-paired=\"true\"]").First;
+        (await short3.Locator(".cell").CountAsync()).ShouldBe(6, "three cells for today and three with the plan");
+        (await short3.EvaluateAsync<string>(Measure.Replace("cells[5]", "cells[3]", StringComparison.Ordinal), true)).ShouldBe(Sound, "on a wide screen with three columns");
+        await page.Locator("[data-scenario-card][value=\"storm\"]").ClickAsync();
+        await Expect(page.Locator("[data-board]")).ToHaveAttributeAsync("data-scenario", "storm");
         await page.SetViewportSizeAsync(phone.Width, phone.Height);
         // Narrowed to what changes, and it stays narrowed when the board is drawn again for another season.
         ILocator only = page.Locator("[data-board-only-changes]");

@@ -875,7 +875,7 @@
 }
 
 /* Comparing a sheet with today, in the one table. A need the sheet changes is drawn twice, one line
-   above the other, with "Today" and "With this" in words in front of each; it says by how much under
+   above the other, with "Today" and the position by name ("With the plan") in words in front of each; it says by how much under
    its name; and a sentence above says what it adds up to. A switch narrows the board to those needs,
    with no script. */
 .board__compare {
@@ -923,8 +923,9 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--c-ink-muted);
+  line-height: 1.15;
   text-align: end;
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 /* A sheet with pairs has a narrow column for those words between the need and its cells. A need
@@ -932,7 +933,7 @@
 .board__sheet[data-paired="true"] {
   & .board__head,
   & .board__summary {
-    grid-template-columns: minmax(8rem, 1.6fr) 4.5rem repeat(var(--cols), minmax(0, 1fr));
+    grid-template-columns: minmax(8rem, 1.6fr) 6.5rem repeat(var(--cols), minmax(0, 1fr));
   }
 
   & .board__corner,
@@ -952,6 +953,12 @@
     & .board__need {
       grid-column: 1;
       grid-row: 1 / span 2;
+    }
+
+    /* Each line's words are pinned to their column, so the second line starts a new row whatever the scenario's number of
+       columns. Left to flow, it ran on into the empty columns beside the first line of a three-column board. */
+    & .board__when {
+      grid-column: 2;
     }
   }
 }
@@ -1011,6 +1018,10 @@
     & .board__row[data-paired="true"] .board__need {
       grid-column: 1 / -1;
       grid-row: auto;
+    }
+
+    & .board__row[data-paired="true"] .board__when {
+      grid-column: 1 / -1;
     }
   }
 

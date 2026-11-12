@@ -33,8 +33,35 @@ public static class BoardCopy
     /// <summary>The words in front of the line of a pair that shows a need as it stands today.</summary>
     public static string Today => "Today";
 
-    /// <summary>The words in front of the line of a pair that shows a need with the chosen position.</summary>
-    public static string WithThis => "With this";
+    // What each position on the board is called in the middle of a sentence. It names the thing, because "with this" leaves the
+    // reader to scroll back up and find out what "this" was.
+    private static readonly Dictionary<string, string> Withs = new()
+    {
+        [BoardSet.HouseSource] = "with what is in the house",
+        [BoardSet.PlannedSource] = "with the plan",
+        ["power-banks"] = "with power banks",
+        ["portable-power-station"] = "with the power station",
+        ["large-power-station"] = "with the station and panels",
+        ["rooftop-solar-and-battery"] = "with the battery",
+        ["petrol-generator"] = "with the generator",
+    };
+
+    /// <summary>The chosen position by name, for the middle of a sentence: "with the plan", "with the battery".</summary>
+    public static string With(string sourceId)
+    {
+        ArgumentNullException.ThrowIfNull(sourceId);
+        return Withs[sourceId];
+    }
+
+    /// <summary>The words in front of the line of a pair that shows a need with the chosen position: "With the plan".</summary>
+    public static string WithLabel(string sourceId)
+    {
+        string with = With(sourceId);
+        return char.ToUpperInvariant(with[0]) + with[1..];
+    }
+
+    /// <summary>The line under the comparison that says how a changed need is drawn.</summary>
+    public static string PairsNote(string sourceId) => $"Each need that changes is drawn twice: as it stands today, and {With(sourceId)}.";
 
     /// <summary>What a cell in a pair says when read out: which of the two lines it is on, then its own sentence.</summary>
     public static string Cell(BoardRow row, HorizonCell cell, string line)
@@ -53,13 +80,14 @@ public static class BoardCopy
             .ToDictionary(static row => row.Key, row => today[row.Key]);
     }
 
-    /// <summary>How far a row moves against today, under its name: "1 day today, 16 days with this".</summary>
-    public static string Delta(NeedShift shift)
+    /// <summary>How far a row moves against today, under its name: "1 day today, 16 days with the plan".</summary>
+    public static string Delta(NeedShift shift, string sourceId)
     {
         ArgumentNullException.ThrowIfNull(shift);
+        string with = With(sourceId);
         return shift.To > shift.From
-            ? $"{DaysReady(shift.From)} today, {DaysReady(shift.To)} with this"
-            : "eased with this, though not for longer";
+            ? $"{DaysReady(shift.From)} today, {DaysReady(shift.To)} {with}"
+            : $"eased {with}, though not for longer";
     }
 
     /// <summary>The comparison in a sentence, above the sheet: how many needs the sheet turns, the two figures, and for the plan what it still costs.</summary>
@@ -71,7 +99,7 @@ public static class BoardCopy
         string turns = set.Compared.Count == 0
             ? $"{name} turns none of the {needs} needs on this board."
             : string.Create(CultureInfo.InvariantCulture, $"{name} turns {set.Compared.Count} of {needs} needs for the better.");
-        string figures = $"Today the house stands for {DaysReady(set.Current.DaysReady)}; with this, {DaysReady(set.Sheet.DaysReady)}.";
+        string figures = $"Today the house stands for {DaysReady(set.Current.DaysReady)}; {With(set.SourceId)}, {DaysReady(set.Sheet.DaysReady)}.";
         string cost = set.SourceId == BoardSet.PlannedSource && set.Tally.PlannedCost.To.Pence > 0
             ? $" What you plan has {Selficient.Web.Formatting.MoneyFormat.Range(set.Tally.PlannedCost)} still to spend."
             : string.Empty;
