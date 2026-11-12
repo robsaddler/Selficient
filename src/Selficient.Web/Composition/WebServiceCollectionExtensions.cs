@@ -129,6 +129,12 @@ public static class WebServiceCollectionExtensions
             });
         services.AddScoped<HouseholdCookieEvents>();
         services.AddSingleton<PendingSignInCookie>();
+        // The copy of a plan an account keeps is encrypted by the key ring before it reaches the store.
+        services.AddSingleton<Selficient.Application.Accounts.IPlanProtector, DataProtectionPlanProtector>();
+        services.AddSingleton(static provider => new Selficient.Application.Accounts.PlanSync(
+            provider.GetRequiredService<Selficient.Application.Accounts.IPlanStore>(),
+            provider.GetRequiredService<Selficient.Application.Accounts.IPlanProtector>(),
+            provider.GetRequiredService<TimeProvider>()));
         services.AddAuthorizationBuilder()
             .AddPolicy(OperatorAuth.Policy, policy => policy
                 .AddAuthenticationSchemes(OperatorAuth.Scheme)

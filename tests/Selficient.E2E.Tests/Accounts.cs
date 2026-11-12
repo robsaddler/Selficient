@@ -39,11 +39,16 @@ public sealed class Accounts
         await Expect(row.Locator("[data-keep-member]:visible")).ToHaveCountAsync(0);
         await Expect(panel.Locator(".keep__already")).ToHaveTextAsync("Already have an account? Sign in.");
         await Expect(panel.Locator("[data-keep-says]:visible")).ToHaveTextAsync("Your plan lives in this browser and nowhere else. You do not need an account.");
+        // The row the plan is kept in now is the one marked, in words as well as colour.
+        await Expect(panel.Locator(".keep__row[aria-current=\"true\"]")).ToHaveAttributeAsync("data-keep-row", "device");
+        await Expect(panel.Locator("[data-keep-here]:visible")).ToHaveTextAsync("Kept here");
+        await panel.Locator("[data-keep-here]:visible").EvaluateAsync("tag => tag.remove()");
         (await panel.Locator(".keep__row:visible h3").AllInnerTextsAsync()).ShouldBe(["On this device", "Another device", "An account"], "three rows, each with one job, in the order a person meets them");
         AxeResult axe = await page.RunAxe();
         axe.Violations.ShouldBeEmpty(string.Join("\n", axe.Violations.Select(v => $"{v.Id}: {v.Help} ({v.Nodes.Length} nodes)")));
 
         asked.ShouldNotContain("/api/account", "a guest's browser never asks who is signed in");
+        asked.ShouldNotContain("/api/account/plan", "and never looks for a plan in an account it does not have");
         IReadOnlyList<BrowserContextCookiesResult> cookies = await context.CookiesAsync();
         cookies.ShouldAllBe(c => c.Name.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal), "a guest holds nothing but the cookie that protects a form");
     }
@@ -95,6 +100,9 @@ public sealed class Accounts
         await Expect(account.Locator("[data-keep-member] p").First).ToHaveTextAsync($"Signed in as {Email}.");
         await Expect(panel.Locator("[data-keep-guest]:visible")).ToHaveCountAsync(0);
         await Expect(panel.Locator("[data-keep-says]:visible")).ToHaveTextAsync("A copy of your plan lives in this browser, so it opens without a connection.");
+        await Expect(panel.Locator(".keep__row[aria-current=\"true\"]")).ToHaveAttributeAsync("data-keep-row", "account");
+        await Expect(account.Locator("[data-keep-here]")).ToBeVisibleAsync();
+        await Expect(panel.Locator("[data-keep-row=\"device\"] [data-keep-here]")).ToBeHiddenAsync();
         AxeResult axe = await page.RunAxe();
         axe.Violations.ShouldBeEmpty(string.Join("\n", axe.Violations.Select(v => $"{v.Id}: {v.Help} ({v.Nodes.Length} nodes)")));
 
@@ -135,6 +143,7 @@ public sealed class Accounts
         await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/");
         await Expect(chip.Locator("[data-keep-label]:visible")).ToHaveTextAsync("No account needed");
         (await page.EvaluateAsync<bool>("() => import('/js/plan-store.js').then(store => store.getProfile()).then(profile => profile === null)")).ShouldBeTrue("the plan left the browser with the session");
+        (await page.EvaluateAsync<string?>("() => localStorage.getItem('selficient.sync')")).ShouldBeNull("and so did the record of what it last agreed with the account");
     }
 
     [Fact]

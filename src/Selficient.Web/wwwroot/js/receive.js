@@ -8,6 +8,7 @@
  */
 import * as store from "selficient/plan-store.js";
 import { fromBase64Url, isEnvelope, unseal } from "selficient/handoff.js";
+import { describe } from "selficient/plan-words.js";
 
 const PENDING_KEY = "selficient.receive";
 
@@ -139,30 +140,6 @@ async function arrive(show) {
     show("unreadable");
     return null;
   }
-}
-
-/**
- * "A plan for 4 people in NP12, 9 things ticked"
- * @param {import("selficient/plan-store.js").Snapshot} plan
- * @param {string} opening
- */
-function describe(plan, opening) {
-  const people = Number(plan.profile?.People);
-  const who = Number.isInteger(people) && people > 0 ? ` for ${people === 1 ? "1 person" : `${people} people`}` : "";
-  const district = outward(plan.profile?.Postcode);
-  const where = district ? ` in ${district}` : "";
-  const ticked = plan.ticks.length === 0 ? "nothing ticked yet" : plan.ticks.length === 1 ? "1 thing ticked" : `${plan.ticks.length} things ticked`;
-  return `${opening}${who}${where}, ${ticked}`;
-}
-
-/**
- * The outward half of a postcode, which names a district and not a street.
- * @param {string | undefined} postcode
- */
-function outward(postcode) {
-  const tight = (postcode ?? "").toUpperCase().replaceAll(/\s/g, "");
-  const out = tight.length >= 5 ? tight.slice(0, -3) : "";
-  return /^[A-Z]{1,2}[0-9][0-9A-Z]?$/.test(out) ? out : "";
 }
 
 /**

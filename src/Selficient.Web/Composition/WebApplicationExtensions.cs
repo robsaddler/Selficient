@@ -29,7 +29,8 @@ public static class WebApplicationExtensions
 
         app.UseStatusCodePagesWithReExecute("/error/{0}");
         app.UseHttpsRedirection();
-        app.UseSerilogRequestLogging();
+        // One line a request. A browser that hung up mid-upload is not logged as an error.
+        app.UseSerilogRequestLogging(static options => options.GetLevel = Selficient.Web.Diagnostics.RequestLog.Level);
         app.UseSecurityHeaders();
         app.UseRequestLocalization();
         // Before the static files so the sheets and scripts are compressed too. Tiles arrive

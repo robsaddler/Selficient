@@ -198,6 +198,7 @@ public sealed class InfrastructureCompositionTests
         options.SmtpPort.ShouldBe(25);
         provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>().IsAvailable.ShouldBeTrue();
         provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>().ShouldBeOfType<Selficient.Infrastructure.Accounts.SqlAccountStore>();
+        provider.GetRequiredService<Selficient.Application.Accounts.IPlanStore>().ShouldBeOfType<Selficient.Infrastructure.Accounts.SqlPlanStore>();
         provider.GetServices<Selficient.Application.Operations.IExpiring>().Select(e => e.GetType().Name).ShouldBe(["HandoffDesk", "AccountSignIn"], "everything that expires is swept by the one housekeeper");
         provider.GetRequiredService<Selficient.Infrastructure.Data.Housekeeper>().ShouldNotBeNull();
     }

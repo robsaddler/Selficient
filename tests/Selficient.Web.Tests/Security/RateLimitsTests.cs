@@ -87,6 +87,16 @@ public sealed class RateLimitsTests
         }
 
         (await signInLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("asking for codes and trying them is counted");
+        RateLimitPartition<string> sync = RateLimits.SyncPartition(context);
+        sync.PartitionKey.ShouldBe(plan.PartitionKey);
+        using RateLimiter syncLimiter = sync.Factory(sync.PartitionKey);
+        for (int i = 0; i < 60; i++)
+        {
+            (await syncLimiter.AcquireAsync()).IsAcquired.ShouldBeTrue();
+        }
+
+        (await syncLimiter.AcquireAsync()).IsAcquired.ShouldBeFalse("a device reads on each page and writes when something changes; sixty a minute is plenty");
+
         HttpContext reading = Context(IPAddress.Parse("203.0.113.9"));
         reading.Request.Method = "GET";
         RateLimits.SignInPartition(reading).PartitionKey.ShouldBe("signin-read", "reading the sign-in pages is not");

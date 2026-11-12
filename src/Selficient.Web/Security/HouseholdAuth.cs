@@ -157,6 +157,48 @@ public sealed class HouseholdCookieEvents : CookieAuthenticationEvents
 }
 
 /// <summary>
+/// The key ring, as what encrypts the copy of a plan an account keeps (decision 61). A purpose of
+/// its own, so nothing else the ring protects can be passed off as a plan or a plan as it.
+/// </summary>
+public sealed class DataProtectionPlanProtector : IPlanProtector
+{
+    private const string Purpose = "Selficient.Household.Plan.v1";
+
+    private readonly IDataProtector _protector;
+
+    /// <summary>Creates the protector.</summary>
+    public DataProtectionPlanProtector(IDataProtectionProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        _protector = provider.CreateProtector(Purpose);
+    }
+
+    /// <inheritdoc />
+    public byte[] Protect(byte[] plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return _protector.Protect(plan);
+    }
+
+    /// <inheritdoc />
+    public byte[]? Unprotect(byte[] protectedPlan)
+    {
+        ArgumentNullException.ThrowIfNull(protectedPlan);
+        byte[]? plan = null;
+        try
+        {
+            plan = _protector.Unprotect(protectedPlan);
+        }
+        catch (CryptographicException)
+        {
+            // Written under a key ring this server no longer has. The browser still has the plan and writes it back.
+        }
+
+        return plan;
+    }
+}
+
+/// <summary>
 /// The cookie that binds a sign-in code to the browser that asked for it: the address and a random
 /// value, encrypted and signed by the key ring, readable by nothing but this server. Without it a
 /// code is useless, so a code read over a shoulder or from a forwarded email opens nothing.

@@ -102,8 +102,9 @@
   </footer>
   <dialog class="dialog keep" id="keep-dialog" data-keep-dialog aria-labelledby="keep-heading">
     <h2 id="keep-heading">@KeepCopy.PanelHeading</h2>
-    <section class="keep__row" aria-labelledby="keep-device">
-      <h3 id="keep-device"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>@KeepCopy.DeviceHeading</h3>
+    @* keep.js marks the row the plan is kept in now: this one for a guest with a plan, the account's for a household signed in. *@
+    <section class="keep__row" aria-labelledby="keep-device" data-keep-row="device">
+      <h3 id="keep-device"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-device"/></svg>@KeepCopy.DeviceHeading<span class="keep__here" data-keep-here hidden>@KeepCopy.KeptHere</span></h3>
       <p data-keep-says="device-none">@KeepCopy.DeviceNone</p>
       <p data-keep-says="device" hidden>@KeepCopy.DeviceKept</p>
       <p data-keep-says="account" hidden>@KeepCopy.DeviceSignedIn</p>
@@ -136,14 +137,18 @@
     @* Only where this server can send a sign-in code. An account is offered as the third way to keep a plan, never as a step. *@
     @if (Accounts.IsAvailable)
     {
-    <section class="keep__row" aria-labelledby="keep-account" data-keep-account>
-      <h3 id="keep-account"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-account"/></svg><span data-keep-guest>@KeepCopy.AccountHeading</span><span data-keep-member hidden>@KeepCopy.YourAccountHeading</span></h3>
+    <section class="keep__row" aria-labelledby="keep-account" data-keep-account data-keep-row="account">
+      <h3 id="keep-account"><svg class="mark-icon" aria-hidden="true" focusable="false"><use href="/img/marks.svg#mark-account"/></svg><span data-keep-guest>@KeepCopy.AccountHeading</span><span data-keep-member hidden>@KeepCopy.YourAccountHeading</span><span class="keep__here" data-keep-here hidden>@KeepCopy.KeptHere</span></h3>
       <div class="keep__part" data-keep-guest>
         <p>@KeepCopy.AccountSentence</p>
         <p class="cluster"><a class="button" href="/account/sign-in">@KeepCopy.CreateAccount</a></p>
       </div>
       <div class="keep__part" data-keep-member hidden>
         <p>@KeepCopy.SignedInAs <strong class="keep__who" data-keep-email></strong>.</p>
+        @* sync.js shows one of these: in step, waiting for a connection, or two plans to choose between. *@
+        <p data-sync-status="synced">@SyncCopy.Synced</p>
+        <p data-sync-status="waiting" hidden>@SyncCopy.Waiting</p>
+        <p data-sync-status="choosing" hidden>@SyncCopy.Choosing <button type="button" class="button button--quiet" data-sync-choose>@SyncCopy.Choose</button></p>
         <p class="cluster"><a class="button button--quiet" href="/account/sign-out">@KeepCopy.SignOut</a> <a class="button button--quiet" href="/account/delete">@KeepCopy.DeleteAccount</a></p>
       </div>
     </section>
@@ -153,6 +158,28 @@
       <button type="button" class="button" data-close>Close</button>
     </p>
   </dialog>
+  @if (Accounts.IsAvailable)
+  {
+  @* Sync is quiet: it speaks here only when a plan has moved or another device's details replaced the ones on this one. *@
+  <div class="sync-notice" data-sync-notice role="status" hidden>
+    @foreach (var (key, sentence) in SyncCopy.Says)
+    {
+      <p data-sync-says="@key" hidden>@sentence</p>
+    }
+    <button type="button" class="button button--quiet" data-sync-dismiss>Got it</button>
+  </div>
+  @* The first time a device's own plan meets a different plan in the account, the person chooses. Never a merge of the two. *@
+  <dialog class="dialog keep" data-sync-choice aria-labelledby="sync-choice-heading">
+    <h2 id="sync-choice-heading">@SyncCopy.ChoiceHeading</h2>
+    <p class="receive__summary" data-sync-theirs></p>
+    <p class="receive__summary" data-sync-mine></p>
+    <p>@SyncCopy.ChoiceSentence</p>
+    <p class="cluster">
+      <button type="button" class="button button--primary" data-sync-take="account">@SyncCopy.TakeAccount</button>
+      <button type="button" class="button" data-sync-take="device">@SyncCopy.TakeDevice</button>
+    </p>
+  </dialog>
+  }
   <dialog class="dialog" data-install-ios>
     <h2>Put Selficient on this iPhone or iPad</h2>
     <p>Safari does not offer an install button, but it takes two taps.</p>

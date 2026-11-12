@@ -130,6 +130,18 @@ function say(doc, chip, dialog, kept, email) {
       line.hidden = line.dataset.keepSays !== says;
     }
   }
+  // The row the plan is kept in now is marked, so the current answer is seen at a glance: the
+  // account's for a household signed in, this device's for a guest with a plan, none before one exists.
+  const current = email ? "account" : kept ? "device" : "";
+  for (const row of dialog.querySelectorAll("[data-keep-row]")) {
+    const here = row.getAttribute("data-keep-row") === current;
+    if (here) {
+      row.setAttribute("aria-current", "true");
+    } else {
+      row.removeAttribute("aria-current");
+    }
+    row.querySelector("[data-keep-here]")?.toggleAttribute("hidden", !here);
+  }
   // There is nothing to send until there is a plan.
   const another = dialog.querySelector("[data-keep-another]");
   if (another instanceof HTMLElement) {

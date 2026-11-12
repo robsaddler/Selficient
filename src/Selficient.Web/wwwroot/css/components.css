@@ -669,6 +669,24 @@ progress.tier-progress {
   }
 }
 
+/* The row the plan is kept in now: a heavier edge, a tint and the words "Kept here", so it does not rest on colour alone. */
+.keep__row[aria-current="true"] {
+  border-color: var(--c-pine);
+  box-shadow: inset 0 0 0 1px var(--c-pine);
+  background: var(--c-pine-tint);
+}
+
+.keep__here {
+  margin-inline-start: auto;
+  padding: 0.1rem var(--space-2);
+  border-radius: 999px;
+  background: var(--c-pine);
+  color: var(--c-paper);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .keep__warning {
   padding: var(--space-3);
   border-inline-start: 4px solid var(--c-lantern);
@@ -686,6 +704,45 @@ progress.tier-progress {
 .keep__already {
   margin-block: var(--space-3);
   font-size: var(--text-s);
+}
+
+/* What sync says, when it says anything: a strip along the foot of the screen that takes no room from the page. */
+.sync-notice {
+  position: fixed;
+  inset-block-end: max(var(--space-4), env(safe-area-inset-bottom));
+  inset-inline: var(--space-4);
+  z-index: 30;
+  inline-size: fit-content;
+  max-inline-size: min(34rem, calc(100% - 2 * var(--space-4)));
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border);
+  border-inline-start: 4px solid var(--c-pine);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  color: var(--c-ink);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 25%);
+  font-size: var(--text-s);
+  /* It sits over the foot of the page for a few seconds; a press on it goes to whatever is underneath, except on its own button. */
+  pointer-events: none;
+
+  & p {
+    flex: 1 1 14rem;
+    font-weight: 600;
+  }
+
+  & button {
+    pointer-events: auto;
+  }
+}
+
+/* The two summaries in the choice sit apart, each a plan in its own right. */
+[data-sync-choice] .receive__summary {
+  margin-block: var(--space-3);
 }
 
 /* One state of a row: the same grid as the row, because a grid's gap reaches its own children only. */

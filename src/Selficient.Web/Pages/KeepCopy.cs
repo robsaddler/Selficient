@@ -32,6 +32,9 @@ public static class KeepCopy
     /// <summary>The one weakness of keeping a plan in the browser, said only where it applies: Safari on an iPhone or iPad, in a tab.</summary>
     public static string SafariWarning => "Safari clears a site's data after a week without a visit. Add Selficient to your home screen to keep your plan.";
 
+    /// <summary>The tag on the row that says where the plan is kept now, so the current answer is seen without reading every row.</summary>
+    public static string KeptHere => "Kept here";
+
     /// <summary>The heading of the panel's row for sending a copy.</summary>
     public static string AnotherHeading => "Another device";
 

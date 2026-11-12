@@ -51,7 +51,36 @@
 
 ## 5. Sync (M24)
 
-*Written before M24's code.*
+*12 November 2026, before M24's code.*
+
+### What it is
+
+- The account keeps one copy of the plan: the same snapshot the browser exports, with the time its household details last changed. `GET /api/account/plan` answers it with a version number; `PUT /api/account/plan` replaces it, naming the version the writer last saw. A write based on a stale version is refused with 409 and the current copy.
+- The copy is encrypted at rest by the Data Protection key ring, under a purpose of its own (decision 61). The server never computes anything from it: the rules engine runs on what a browser posts, as it always has.
+- The browser does the work (`sync.js`). It keeps the last copy it agreed with the server (the base). When both sides have changed, it merges three ways: what a household said about each action is merged per action, with the base standing as the record of what was removed; its household details go to whichever side changed them, or to the newer when both did, and the page says so once. The first time a device with a plan meets an account with a different plan, the person chooses one. Never a silent merge of two unrelated plans.
+- The plan stays in the browser. Offline, everything works as before, and the next run catches up.
+
+### Cases
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 19 | **One account reads or writes another's plan** | The account number comes from the session and from nowhere else: no address, no body and no header names an account. There is no endpoint that takes one | `One_household_never_sees_or_writes_anothers_plan` |
+| 20 | **A stale write clobbers a newer one** | The write is one statement, `UPDATE … WHERE version = @base`, and the first write is an insert under a range lock. Two devices writing at once: one is told 409 with the current copy, merges and writes again | `A_write_based_on_a_stale_version_is_refused_with_the_current_copy`, `Two_writers_racing_from_the_same_version_make_one_winner` (store) |
+| 21 | **Cross-site request forgery against the write** | The session cookie is SameSite=Lax, which a cross-site PUT does not carry. Beyond that the endpoint requires a header a form cannot send (`X-Selficient-Sync`) and refuses any request whose `Sec-Fetch-Site` says it came from elsewhere | `A_write_without_the_sync_header_or_from_another_site_is_refused` |
+| 22 | **The stored plan is read from the database** | It is ciphertext under the key ring, which is itself wrapped by the machine's DPAPI on the server. The table holds the account number, the ciphertext, a version and a time | `The_stored_plan_is_not_readable_in_the_database` |
+| 23 | **A body that is not a plan**: free storage, or something built to break the page that reads it back | Capped at 64 KB on what arrives. The body must be JSON of exactly the snapshot's shape, by a guard on the server that mirrors the browser's `isSnapshot`: a flat map of short strings, bounded lists of kebab-case ids, figures in range, a pin in the United Kingdom. The browser runs its own guard again before anything it fetched is written to its store, and everything it shows is set as text | `What_is_not_a_plan_is_refused_before_it_is_stored`, the same test (over the cap), `A_copy_from_the_account_that_the_browser_would_not_accept_as_a_plan_changes_nothing` (E2E) |
+| 24 | **A plan that passes the guard but is hostile to the rules engine** | The server never feeds a stored plan to the engine. A browser that restores it posts it like any other profile, and the engine has treated the profile as untrusted input since M2 | By construction |
+| 25 | **A flood of writes** | A limiter policy of its own per address; one row per account, replaced in place, so an account's storage is bounded by the cap whatever it does | `Sync_is_rate_limited_on_a_policy_of_its_own` |
+| 26 | **A key ring that is lost or replaced** makes every stored plan unreadable | The read answers the version with no body; the browser, which still has the plan, writes it back. Nothing is lost unless every device has also lost it | `A_stored_plan_the_key_ring_cannot_open_reads_as_none_and_is_replaced` |
+| 27 | **Two unrelated plans are merged**: a person signs in on a friend's device, or on a device with an old plan | The first meeting of a device's plan and a different plan in the account is a choice between the two, with a summary of each. Merging happens only between copies that share a base | `A_second_device_with_its_own_plan_chooses_which_to_keep_and_the_two_are_never_mixed` (E2E) |
+| 28 | **A removal comes back**: device A unticks, device B still has the tick and syncs | B's copy equals the base for that action, so A's change wins. A removal only loses to a change made after the same base on the other side | `Two_devices_stay_in_step_through_an_account_and_a_tick_taken_off_stays_off`, `Ticks_are_merged_action_by_action_against_what_the_two_last_agreed` (E2E) |
+| 29 | **A shared device keeps a plan after sign-out** | Signing out asks, and unticking the box clears the plan and the sync record from the browser before the session ends | The account journey |
+| 30 | **Sync leaks a guest's plan** | A guest's browser never runs it: sync starts only when the page knows somebody is signed in, which it learns only with the hint cookie | `A_guest_is_never_asked_who_they_are…` (no request to `/api/account` or `/api/account/plan`) |
+
+### Accepted
+
+- The server can read a stored plan: the key ring is its own. End-to-end encryption was set aside in the design because it would make the emailed code unable to recover a plan, which is the reason for the account.
+- Clocks: "newer" for household details is by the two devices' own clocks. A device whose clock is badly wrong can win or lose a conflict it should not. The loser is told once, and can change the details back.
 
 ## 6. Passkeys (M25)
 

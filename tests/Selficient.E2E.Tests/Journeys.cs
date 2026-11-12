@@ -375,7 +375,7 @@ public sealed class Journeys
 
         // Wait for the worker to take control and for the plan to be kept under its address.
         await page.WaitForFunctionAsync("() => navigator.serviceWorker.controller !== null", null, new() { Timeout = 20_000 });
-        await page.WaitForFunctionAsync("async () => !!(await caches.match('/plan'))", null, new() { Timeout = 20_000 });
+        await Until.TrueAsync(page, "async () => !!(await caches.match('/plan'))", seconds: 20);
 
         await context.SetOfflineAsync(true);
         await page.GotoAsync("/plan");
@@ -526,6 +526,7 @@ public sealed class Journeys
         await Expect(panel.GetByRole(AriaRole.Heading, new() { Name = "Where your plan is kept" })).ToBeVisibleAsync();
         await Expect(panel.Locator("[data-keep-says=\"device-none\"]")).ToHaveTextAsync("Nothing is saved yet. When you make a plan it lives in this browser and nowhere else. You do not need an account.");
         await Expect(panel.Locator("[data-keep-says=\"device\"]")).ToBeHiddenAsync();
+        await Expect(panel.Locator(".keep__row[aria-current]")).ToHaveCountAsync(0);
         await Expect(panel.Locator("[data-keep-safari]")).ToBeHiddenAsync();
         AxeResult open = await RunAxeWhenSettledAsync(page);
         open.Violations.ShouldBeEmpty(string.Join("\n", open.Violations.Select(v => $"{v.Id}: {v.Help} ({v.Nodes.Length} nodes)")));

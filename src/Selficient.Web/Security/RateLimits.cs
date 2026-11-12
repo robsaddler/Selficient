@@ -38,6 +38,10 @@ public sealed class RateLimitOptions
     /// <summary>Sign-in codes asked for or tried per IP per minute. A person does each once or twice.</summary>
     [Range(1, 10_000)]
     public int SignInPerMinute { get; init; } = 10;
+
+    /// <summary>Reads and writes of an account's copy of its plan per IP per minute. A device reads on each page and writes when something changes.</summary>
+    [Range(1, 10_000)]
+    public int SyncPerMinute { get; init; } = 60;
 }
 
 /// <summary>Registers the limiter and its policies.</summary>
@@ -64,6 +68,9 @@ public static class RateLimits
     /// <summary>Policy for asking for a sign-in code and trying one. Reading the pages is not limited.</summary>
     public const string SignInPolicy = "signin";
 
+    /// <summary>Policy for reading and writing the copy of a plan an account keeps.</summary>
+    public const string SyncPolicy = "sync";
+
     /// <summary>Adds the limiter. Rejections carry 429 and no body, so the status-code pages middleware renders the sentence.</summary>
     public static IServiceCollection AddSelficientRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -85,6 +92,7 @@ public static class RateLimits
             limiter.AddPolicy(AiPolicy, AiPartition);
             limiter.AddPolicy(HandoffPolicy, HandoffPartition);
             limiter.AddPolicy(SignInPolicy, SignInPartition);
+            limiter.AddPolicy(SyncPolicy, SyncPartition);
         });
 
         return services;
@@ -110,6 +118,9 @@ public static class RateLimits
         HttpMethods.IsGet(context.Request.Method)
             ? RateLimitPartition.GetNoLimiter("signin-read")
             : Window(context, static o => o.SignInPerMinute);
+
+    /// <summary>The partition for the sync policy.</summary>
+    internal static RateLimitPartition<string> SyncPartition(HttpContext context) => Window(context, static o => o.SyncPerMinute);
 
     /// <summary>The partition for the handoff policy.</summary>
     internal static RateLimitPartition<string> HandoffPartition(HttpContext context) => Window(context, static o => o.HandoffPerMinute);

@@ -106,6 +106,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<Selficient.Application.Accounts.IAccountStore>(static provider => new Selficient.Infrastructure.Accounts.SqlAccountStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         services.AddSingleton(static provider => new Selficient.Application.Accounts.AccountSignIn(provider.GetRequiredService<Selficient.Application.Accounts.IAccountStore>(), provider.GetRequiredService<Selficient.Application.Accounts.IEmailSender>(), provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IExpiring>(static provider => provider.GetRequiredService<Selficient.Application.Accounts.AccountSignIn>());
+        services.AddSingleton<Selficient.Application.Accounts.IPlanStore>(static provider => new Selficient.Infrastructure.Accounts.SqlPlanStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The housekeeper removes whatever has run out, once a minute, and tells the run log once a day.
         services.AddSingleton<Housekeeper>();
         services.AddHostedService(static provider => provider.GetRequiredService<Housekeeper>());

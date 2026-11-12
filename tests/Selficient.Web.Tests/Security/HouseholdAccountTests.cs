@@ -425,6 +425,7 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldNotContain("data-keep-account", customMessage: "the panel offers an account only where one can be made");
         landing.ShouldNotContain("/account/sign-in");
         landing.ShouldNotContain("An account would keep both in step.");
+        landing.ShouldNotContain("data-sync-", customMessage: "with no accounts there is nothing to keep in step and nothing said about it");
         landing.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");
         planPage.ShouldContain("data-kept-notice");
         planPage.ShouldNotContain("Create an account");
@@ -441,7 +442,9 @@ public sealed partial class HouseholdAccountTests : IDisposable
         using HttpResponseMessage plan = await Pages.PlanPagesTests.PostRobsHouse(client);
         string planPage = await plan.Content.ReadAsStringAsync();
 
-        landing.ShouldContain("<section class=\"keep__row\" aria-labelledby=\"keep-account\" data-keep-account>");
+        landing.ShouldContain("<section class=\"keep__row\" aria-labelledby=\"keep-account\" data-keep-account data-keep-row=\"account\">");
+        landing.ShouldContain("<section class=\"keep__row\" aria-labelledby=\"keep-device\" data-keep-row=\"device\">");
+        System.Text.RegularExpressions.Regex.Count(landing, "<span class=\"keep__here\" data-keep-here hidden>Kept here</span>").ShouldBe(2, "the row the plan is kept in is marked by the script; neither is until it knows");
         landing.ShouldContain("<span data-keep-guest>An account</span><span data-keep-member hidden>Your account</span>");
         landing.ShouldContain("<p>Keep every device in step and keep your plan if this one is lost. Just an email address, no password.</p>");
         landing.ShouldContain("<a class=\"button\" href=\"/account/sign-in\">Create an account</a>");
@@ -455,6 +458,25 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldContain("<p data-keep-says=\"account-none\" hidden>Nothing is saved on this device yet. When you make a plan it is kept here and in your account.</p>");
         landing.ShouldContain("If you want your plan on every device, you can make an account later. You never have to.</p>");
         planPage.ShouldContain("<a class=\"button button--quiet\" href=\"/account/sign-in\" data-kept-dismiss data-keep-guest>Create an account</a>");
+
+        // Sync is quiet: one line in the panel, a strip that is hidden until it has something to say, and the choice between two plans.
+        landing.ShouldContain("<p data-sync-status=\"synced\">Your plan is kept in your account, and every device you sign in on stays in step.</p>");
+        landing.ShouldContain("<p data-sync-status=\"waiting\" hidden>Changes made on this device are waiting for a connection. They will go to your account when there is one.</p>");
+        landing.ShouldContain("<p data-sync-status=\"choosing\" hidden>This device and your account each have a plan. <button type=\"button\" class=\"button button--quiet\" data-sync-choose>Choose which to keep</button></p>");
+        landing.ShouldContain("<div class=\"sync-notice\" data-sync-notice role=\"status\" hidden>");
+        foreach ((string key, string sentence) in SyncCopy.Says)
+        {
+            landing.ShouldContain($"<p data-sync-says=\"{key}\" hidden>{sentence}</p>");
+        }
+
+        SyncCopy.Says.Select(s => s.Key).ShouldBe(["kept", "arrived", "replaced", "kept-here", "details"]);
+        SyncCopy.Says.Single(s => s.Key == "details").Sentence.ShouldBe("Your other device changed your household details. This device now shows those.");
+        SyncCopy.Says.Single(s => s.Key == "kept").Sentence.ShouldBe("Your plan is now kept in your account.");
+        landing.ShouldContain("<dialog class=\"dialog keep\" data-sync-choice aria-labelledby=\"sync-choice-heading\">");
+        landing.ShouldContain("<h2 id=\"sync-choice-heading\">This device and your account each have a plan</h2>");
+        landing.ShouldContain("<p>Choose one. The two are never mixed, and the one you choose replaces the other on every device you sign in on.</p>");
+        landing.ShouldContain("<button type=\"button\" class=\"button button--primary\" data-sync-take=\"account\">Use the plan in my account</button>");
+        landing.ShouldContain("<button type=\"button\" class=\"button\" data-sync-take=\"device\">Keep the plan on this device</button>");
         KeepCopy.Safari(accounts: true).ShouldBe(KeepCopy.SafariWarningWithAccount);
         KeepCopy.Safari(accounts: false).ShouldBe(KeepCopy.SafariWarning);
         AccountCopy.WhatItDoes.Count.ShouldBe(2, "an account does two things, and the page says only those two");

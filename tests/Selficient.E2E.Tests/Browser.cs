@@ -57,6 +57,8 @@ public sealed class Browser : IAsyncLifetime
             .WithSetting("RateLimits:ApiPerMinute", "10000")
             .WithSetting("RateLimits:HandoffPerMinute", "10000")
             .WithSetting("RateLimits:SignInPerMinute", "10000")
+            // The journeys ask the account what it holds many times a second while they wait.
+            .WithSetting("RateLimits:SyncPerMinute", "10000")
             // The reviewer is the one authenticated surface and had no browser coverage at all,
             // which is how its sign-in came to put the button hard against the box. The account a
             // journey signs in as is made through the store, as a real one is.
