@@ -1,0 +1,7 @@
+@model bool
+@* Under a start button. The headline a visitor is waiting for, then, where an account can be made, what one would be for. Never a step. *@
+<p class="start-note"><strong>@KeepCopy.ChipNone.</strong> @KeepCopy.StartNote</p>
+@if (Model)
+{
+  <p class="start-note start-note--account">@KeepCopy.StartAccountQuestion <a href="/account/sign-in">@KeepCopy.StartAccountLink</a>: @KeepCopy.StartAccountAsks</p>
+}

@@ -831,12 +831,83 @@ progress.tier-progress {
   font-weight: 600;
 }
 
-/* Beside a start button: the thing a visitor expects to be asked for, and is not. */
-.no-account {
-  align-self: center;
+/* Under a start button: the thing a visitor expects to be asked for and is not, then what an account would be for. */
+.start-note {
   font-size: var(--text-s);
-  font-weight: 600;
-  white-space: nowrap;
+  max-inline-size: 34rem;
+  text-wrap: pretty;
+
+  & a {
+    color: inherit;
+    font-weight: 600;
+  }
+}
+
+.start-note--account {
+  opacity: 0.9;
+}
+
+/* Where a plan is kept: the same three rows as the panel, as cards. */
+.ways {
+  margin-block-start: var(--space-8);
+
+  & h2 {
+    font-size: var(--text-2xl);
+    text-wrap: balance;
+  }
+}
+
+.ways__lede {
+  margin-block-start: var(--space-2);
+  max-inline-size: var(--measure);
+  color: var(--c-ink-muted);
+}
+
+.ways__grid {
+  margin-block-start: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  list-style: none;
+  padding: 0;
+}
+
+.ways__card {
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  /* The first is where everybody starts. */
+  &:first-child {
+    border-color: var(--c-pine);
+    box-shadow: inset 0 0 0 1px var(--c-pine);
+  }
+
+  & h3 {
+    margin-block-start: var(--space-3);
+    font-size: var(--text-l);
+  }
+
+  & p {
+    margin-block-start: var(--space-2);
+    color: var(--c-ink-muted);
+  }
+}
+
+.ways__mark {
+  inline-size: 2rem;
+  block-size: 2rem;
+  color: var(--c-pine);
+}
+
+.ways__promise {
+  margin-block-start: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-inline-start: 4px solid var(--c-pine);
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
+  background: var(--c-pine-tint);
+  max-inline-size: var(--measure);
 }
 
 /* Under the figure, once: the plan is saved here and no account is needed. */
@@ -1679,7 +1750,6 @@ progress.tier-progress {
 /* The landing page beyond the hero: the pitch, the steps, the privacy strip, what it covers, the questions */
 .pitch,
 .how,
-.privacy-strip,
 .covers,
 .faq,
 .closing {
@@ -1750,18 +1820,6 @@ progress.tier-progress {
       color: var(--c-ink-muted);
       text-wrap: pretty;
     }
-  }
-}
-
-.privacy-strip {
-  padding: var(--space-5);
-  border-inline-start: 4px solid var(--c-pine);
-  background: var(--c-pine-tint);
-  border-radius: 0 var(--radius-m) var(--radius-m) 0;
-  max-inline-size: var(--measure);
-
-  & p {
-    margin-block-start: var(--space-3);
   }
 }
 

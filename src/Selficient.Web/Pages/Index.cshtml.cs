@@ -21,13 +21,20 @@ public sealed class IndexModel : PageModel
     /// <summary>How long each need on the strip holds for the typical house.</summary>
     public IReadOnlyList<StripBar> Bars { get; } = Strip.From(TypicalBoard);
 
-    /// <summary>The questions on the page, which the structured data repeats word for word.</summary>
-    public static IReadOnlyList<Faq> Questions { get; } =
+    /// <summary>The questions on a server that offers accounts, which is what the public site is.</summary>
+    public static IReadOnlyList<Faq> Questions { get; } = QuestionsFor(accounts: true);
+
+    /// <summary>
+    /// The questions on the page, which the structured data repeats word for word. Two of the answers
+    /// are about accounts, and say only what this server can do: where no account can be made, none
+    /// is mentioned as on offer.
+    /// </summary>
+    public static IReadOnlyList<Faq> QuestionsFor(bool accounts) =>
     [
         new("Is this the government's three-day checklist?",
             "It starts there. The Be Ready campaign of 22 October 2026 asks every household for three days of water, food that needs no cooking, light, a radio, a charged power bank, some cash and a few other things. Selficient turns that list into a plan sized to your house, your hill and your heating, and then goes further for those who want to."),
-        new("Do you store my address or my answers?",
-            "Not unless you ask us to. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. You do not need an account and nothing tracks you. If you choose to make an account, so that your plan follows you between devices, we keep your email address and your plan, and you can delete both whenever you like."),
+        Stored(accounts),
+        Account(accounts),
         new("How much does it cost?",
             "Nothing. Where we point to a shop, some links earn us a small commission at no cost to you, and we say so beside them. Photo readings use a small free monthly allowance, or your own key if you prefer."),
         new("Is this professional advice?",
@@ -38,6 +45,18 @@ public sealed class IndexModel : PageModel
 
     /// <summary>Renders the page.</summary>
     public IActionResult OnGet() => Page();
+
+    private static Faq Stored(bool accounts) => new(
+        "Do you store my address or my answers?",
+        accounts
+            ? "Not unless you ask us to. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. You do not need an account and nothing tracks you. If you choose to make an account, so that your plan follows you between devices, we keep your email address and your plan, and you can delete both whenever you like."
+            : "No. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. There is no account to make and nothing tracks you.");
+
+    private static Faq Account(bool accounts) => new(
+        "Do I need an account?",
+        accounts
+            ? "No. Everything works without one, and your plan is saved on your device either way. If you want one, an account does two things: it keeps every device you sign in on in step, and it keeps your plan if a device is lost. It is an email address and no password. We keep the address and your plan and nothing else, and you can delete both at any time."
+            : "No. There is nothing to sign up for. Your plan is saved on your device, and you can send a copy to your phone or another computer by scanning a code.");
 
     /// <summary>
     /// A typical British household: four people, two of them children, a semi-detached house of two

@@ -516,8 +516,11 @@ public sealed class Journeys
         // Before a plan: the header says it where "Sign in" would be, and so does each start button.
         await page.GotoAsync("/");
         await Expect(chip.Locator("span:visible")).ToHaveTextAsync("No account needed");
-        await Expect(page.Locator(".hero .no-account")).ToBeVisibleAsync();
-        await Expect(page.Locator(".closing .no-account")).ToHaveTextAsync("No account needed");
+        await Expect(page.Locator(".hero .start-note").First).ToHaveTextAsync("No account needed. Your plan is saved on this device.");
+        await Expect(page.Locator(".hero .start-note--account")).ToHaveTextAsync("Want it on your phone too, or safe if this device is lost? Make a free account whenever you like: just an email address, no password.");
+        await Expect(page.Locator(".closing .start-note").First).ToHaveTextAsync("No account needed. Your plan is saved on this device.");
+        await Expect(page.Locator(".closing .start-note--account a")).ToHaveAttributeAsync("href", "/account/sign-in");
+        (await page.Locator(".ways__card h3").AllInnerTextsAsync()).ShouldBe(["On this device", "Send a copy", "An account, if you want one"], "the landing page and the panel teach the same three ways, in the same order");
         await ShouldNotScrollSidewaysAsync(page);
         await chip.ClickAsync();
         await Expect(panel).ToBeVisibleAsync();

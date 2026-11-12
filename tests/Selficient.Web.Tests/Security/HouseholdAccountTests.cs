@@ -428,6 +428,19 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldNotContain("/account/sign-in");
         landing.ShouldNotContain("An account would keep both in step.");
         landing.ShouldNotContain("data-sync-", customMessage: "with no accounts there is nothing to keep in step and nothing said about it");
+
+        // The landing page offers only what this server can do: two ways to keep a plan, and no account anywhere.
+        landing.ShouldContain("<h2 id=\"ways-heading\">Two ways to keep your plan</h2>");
+        landing.ShouldContain("<p class=\"ways__lede\">You start with the first and need nothing else. The second is there if you want it.</p>");
+        landing.ShouldContain("<p class=\"start-note\"><strong>No account needed.</strong> Your plan is saved on this device.</p>");
+        landing.ShouldNotContain("start-note--account");
+        landing.ShouldNotContain("data-way=\"mark-account\"");
+        landing.ShouldNotContain("free account");
+        landing.ShouldContain("There is nothing to sign up for. Your plan is saved on your device, and you can send a copy to your phone or another computer by scanning a code.");
+        landing.ShouldContain("There is no account to make and nothing tracks you.");
+        KeepCopy.Ways(accounts: false).Select(w => w.Name).ShouldBe(["On this device", "Send a copy"]);
+        IndexModel.QuestionsFor(accounts: false).Select(q => q.Question).ShouldBe(IndexModel.Questions.Select(q => q.Question), "the same questions either way; two answers differ");
+        IndexModel.QuestionsFor(accounts: false).ShouldAllBe(q => !q.Answer.Contains("email", StringComparison.OrdinalIgnoreCase));
         landing.ShouldNotContain("data-passkey");
         landing.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");
         planPage.ShouldContain("data-kept-notice");
@@ -459,7 +472,7 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldContain("<span data-keep-label=\"account\" hidden>Signed in as <span class=\"keep-chip__who\" data-keep-email></span></span>");
         landing.ShouldContain("<p data-keep-says=\"account\" hidden>A copy of your plan lives in this browser, so it opens without a connection.</p>");
         landing.ShouldContain("<p data-keep-says=\"account-none\" hidden>Nothing is saved on this device yet. When you make a plan it is kept here and in your account.</p>");
-        landing.ShouldContain("If you want your plan on every device, you can make an account later. You never have to.</p>");
+        landing.ShouldContain("An account, if you want one");
         planPage.ShouldContain("<a class=\"button button--quiet\" href=\"/account/sign-in\" data-kept-dismiss data-keep-guest>Create an account</a>");
 
         // Sync is quiet: one line in the panel, a strip that is hidden until it has something to say, and the choice between two plans.

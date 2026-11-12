@@ -118,6 +118,47 @@ public static class KeepCopy
     /// <summary>The account row's link to delete the account.</summary>
     public static string DeleteAccount => "Delete my account";
 
+    /// <summary>One way to keep a plan, as the landing page says it: its mark, its name and what it does in a sentence or two.</summary>
+    public sealed record Way(string Mark, string Name, string Sentence);
+
+    /// <summary>Under a start button: the headline a visitor is waiting for, and where the plan goes.</summary>
+    public static string StartNote => "Your plan is saved on this device.";
+
+    /// <summary>Under a start button, where an account can be made: what one is for, before its link.</summary>
+    public static string StartAccountQuestion => "Want it on your phone too, or safe if this device is lost?";
+
+    /// <summary>The link that follows.</summary>
+    public static string StartAccountLink => "Make a free account whenever you like";
+
+    /// <summary>And what it asks for.</summary>
+    public static string StartAccountAsks => "just an email address, no password.";
+
+    /// <summary>The heading of the landing page's section on where a plan is kept.</summary>
+    public static string WaysHeading(bool accounts) => accounts ? "Three ways to keep your plan" : "Two ways to keep your plan";
+
+    /// <summary>Under the heading: which of them is the default, and that the others are a choice.</summary>
+    public static string WaysLede(bool accounts) => accounts
+        ? "You start with the first and need nothing else. The other two are there if you want them, when you want them."
+        : "You start with the first and need nothing else. The second is there if you want it.";
+
+    /// <summary>
+    /// The ways to keep a plan, in the order the panel behind the header chip lists them, so the
+    /// landing page and the panel teach the same thing. An account is named only where one can be made.
+    /// </summary>
+    public static IReadOnlyList<Way> Ways(bool accounts)
+    {
+        Way[] ways =
+        [
+            new("mark-device", "On this device", "The default. Your plan lives in your own browser and nowhere else. There is nothing to sign up for."),
+            new("mark-devices", "Send a copy", "Move your plan to your phone or another computer by scanning a code. It is a one-off copy: the two do not stay in step."),
+            new("mark-account", "An account, if you want one", "Keeps every device you sign in on in step, and keeps your plan if a device is lost. An email address, no password, and you can delete it at any time."),
+        ];
+        return accounts ? ways : ways[..2];
+    }
+
+    /// <summary>What the section says after the cards: the rest of the old promise, unchanged for a guest.</summary>
+    public static string WaysPromise => "Whichever you choose, your postcode is sent once, to find your area and your height above sea level, and is not kept. There is no tracking and no analytics. Install Selficient to your phone and the plan opens without a signal.";
+
     /// <summary>The heading of the passkeys part of the account's row.</summary>
     public static string PasskeysHeading => "Passkeys";
 

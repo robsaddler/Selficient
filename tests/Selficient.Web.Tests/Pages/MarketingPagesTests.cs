@@ -21,7 +21,7 @@ public sealed partial class MarketingPagesTests : IDisposable
 
         html.ShouldContain("A plan for your house, not a pile for the cupboard");
         html.ShouldContain("<ol class=\"how__steps\">");
-        html.ShouldContain("Everything stays with you");
+        html.ShouldContain("<h2 id=\"ways-heading\">Three ways to keep your plan</h2>");
         html.ShouldContain("What it covers");
         html.ShouldContain("Questions people ask");
         html.ShouldContain("Start with the postcode");
@@ -81,7 +81,25 @@ public sealed partial class MarketingPagesTests : IDisposable
         KeepCopy.SendToPhone.ShouldBe("Send a copy to my phone");
 
         // Beside both start buttons on the landing page.
-        Regex.Count(landing, "<span class=\"no-account\">No account needed</span>").ShouldBe(2);
+        // Under both start buttons: the headline first, then what an account would be for, as a choice and with a way to it.
+        Regex.Count(landing, "<p class=\"start-note\"><strong>No account needed.</strong> Your plan is saved on this device.</p>").ShouldBe(2);
+        Regex.Count(landing, "<p class=\"start-note start-note--account\">Want it on your phone too, or safe if this device is lost\\? <a href=\"/account/sign-in\">Make a free account whenever you like</a>: just an email address, no password.</p>").ShouldBe(2);
+
+        // The section that says where a plan is kept, in the panel's own order: the default first, an account last and optional.
+        landing.ShouldContain("<p class=\"ways__lede\">You start with the first and need nothing else. The other two are there if you want them, when you want them.</p>");
+        KeepCopy.Ways(accounts: true).Select(w => w.Name).ShouldBe(["On this device", "Send a copy", "An account, if you want one"]);
+        foreach (KeepCopy.Way way in KeepCopy.Ways(accounts: true))
+        {
+            landing.ShouldContain($"<li class=\"ways__card\" data-way=\"{way.Mark}\">");
+            landing.ShouldContain($"<h3>{way.Name}</h3>");
+            landing.ShouldContain($"<p>{way.Sentence}</p>");
+        }
+
+        KeepCopy.Ways(accounts: true)[2].Sentence.ShouldBe("Keeps every device you sign in on in step, and keeps your plan if a device is lost. An email address, no password, and you can delete it at any time.");
+        KeepCopy.Ways(accounts: true)[1].Sentence.ShouldBe("Move your plan to your phone or another computer by scanning a code. It is a one-off copy: the two do not stay in step.");
+        landing.ShouldContain("Whichever you choose, your postcode is sent once, to find your area and your height above sea level, and is not kept. There is no tracking and no analytics.");
+        landing.ShouldContain("<summary>Do I need an account?</summary>");
+        landing.ShouldContain("If you want one, an account does two things: it keeps every device you sign in on in step, and it keeps your plan if a device is lost.");
         backOffice.ShouldNotContain("keep-chip", customMessage: "the back office is not a household's page");
         KeepCopy.ShowsOn("/Admin/catalogue").ShouldBeFalse();
         KeepCopy.ShowsOn("/administration").ShouldBeTrue("only the back office's own segment");

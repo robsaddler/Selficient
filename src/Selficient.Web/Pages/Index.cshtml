@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@inject Selficient.Application.Accounts.AccountSignIn Accounts
 @{
     ViewData["Title"] = "How many days could your house stand on its own?";
     ViewData["Description"] = "The government asks every household to be ready for three days. Selficient turns that into a plan for your house: ranked risks, a costed checklist, where to buy, your roof's solar sums, and a map, all kept in your own browser.";
@@ -28,9 +29,9 @@
         <span class="locate-row__or" aria-hidden="true">or</span>
         <input id="hero-postcode" name="postcode" class="input" autocomplete="postal-code" inputmode="text" maxlength="10" spellcheck="false" placeholder="Enter postcode">
         <button type="submit" class="button button--primary">Start your plan</button>
-        <span class="no-account">@KeepCopy.ChipNone</span>
       </div>
       <p id="hero-locate-status" class="locate__status" role="status" hidden></p>
+      @await Html.PartialAsync("_StartNote", Accounts.IsAvailable)
     </form>
     <p class="hero__actions"><a href="#how">See how it works</a></p>
   </div>
@@ -79,10 +80,21 @@
   </ol>
 </section>
 
-<section class="privacy-strip" aria-labelledby="privacy-heading">
-  <h2 id="privacy-heading">Everything stays with you</h2>
-  <p>Your postcode is sent once, to find your area and your height above sea level, and is not kept. Your plan, your ticks and the pin on the map live in your own browser. There is no account to make, no tracking and no analytics. Install it to your phone and the plan opens without a signal. If you want your plan on every device, you can make an account later. You never have to.</p>
-  <p><a href="/privacy">How your data is handled</a></p>
+@* Where a plan is kept, said as the panel behind the header chip says it: the default first, and the others as choices. *@
+<section class="ways" id="keep" aria-labelledby="ways-heading">
+  <h2 id="ways-heading">@KeepCopy.WaysHeading(Accounts.IsAvailable)</h2>
+  <p class="ways__lede">@KeepCopy.WaysLede(Accounts.IsAvailable)</p>
+  <ol class="ways__grid">
+    @foreach (var way in KeepCopy.Ways(Accounts.IsAvailable))
+    {
+      <li class="ways__card" data-way="@way.Mark">
+        <svg class="ways__mark" aria-hidden="true" focusable="false"><use href="/img/marks.svg#@way.Mark"/></svg>
+        <h3>@way.Name</h3>
+        <p>@way.Sentence</p>
+      </li>
+    }
+  </ol>
+  <p class="ways__promise">@KeepCopy.WaysPromise <a href="/privacy">How your data is handled</a></p>
 </section>
 
 <section class="covers" aria-labelledby="covers-heading">
@@ -114,7 +126,7 @@
     </div>
   </div>
   <div class="faq__list">
-    @foreach (var faq in IndexModel.Questions)
+    @foreach (var faq in IndexModel.QuestionsFor(Accounts.IsAvailable))
     {
       <details class="faq__item" name="faq">
         <summary>@faq.Question</summary>
@@ -129,11 +141,11 @@
     <h2 id="closing-heading">Start with the postcode</h2>
     <p>A minute of questions, then a plan you can act on this week. Nothing to sign up for, nothing to pay.</p>
   </div>
-  <p class="closing__actions">
+  <div class="closing__actions">
     <a class="button button--lantern" href="/plan/start">Start your plan</a>
-    <span class="no-account">@KeepCopy.ChipNone</span>
-  </p>
+    @await Html.PartialAsync("_StartNote", Accounts.IsAvailable)
+  </div>
   <div class="closing__picture" aria-hidden="true">@await Html.PartialAsync("_Hill")</div>
 </section>
 
-@await Html.PartialAsync("_JsonLd", IndexModel.Questions)
+@await Html.PartialAsync("_JsonLd", IndexModel.QuestionsFor(Accounts.IsAvailable))
