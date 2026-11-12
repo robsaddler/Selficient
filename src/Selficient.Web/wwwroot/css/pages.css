@@ -833,7 +833,15 @@
   }
 }
 
+/* Where a cell is too narrow for "held 14 days" it says "14 d". */
+@media (max-width: 64rem) {
+  .cell__long {
+    display: none;
+  }
+}
+
 .cell__days {
+  white-space: nowrap;
   padding: 0 var(--space-1);
   border-radius: 999px;
   background: var(--c-paper);

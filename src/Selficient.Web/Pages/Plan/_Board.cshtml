@@ -12,14 +12,18 @@
 
 @functions {
     // One line of cells for a need. In a pair each cell says which line it is on before its own sentence.
+    // What a cell says when read out or hovered over: its own sentence, led by the line it is on when it is one of a pair.
+    private static string Said(BoardRow row, HorizonCell cell, string? line) => line is null ? Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell) : Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell, line);
+
     private void Cells(BoardRow row, string? line)
     {
         foreach (var cell in row.Cells)
         {
-            <span class="cell cell--@cell.State.ToString().ToLowerInvariant()" role="img" aria-label="@(line is null ? Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell) : Selficient.Web.Pages.Plan.BoardCopy.Cell(row, cell, line))" data-when="@BoardComposer.HorizonWords(cell.Horizon)">
+            <span class="cell cell--@cell.State.ToString().ToLowerInvariant()" role="img" aria-label="@Said(row, cell, line)" title="@Said(row, cell, line)" data-when="@BoardComposer.HorizonWords(cell.Horizon)">
               @if (cell.State != CellState.Held && cell.HeldDays > 0)
               {
-                <span class="cell__days data">@cell.HeldDays</span>
+                @* "held 7 days": the words say the days are how long the need held inside this stretch, not a figure for the stretch. Where cells are narrow only "7 d" shows. *@
+                <span class="cell__days data"><span class="cell__long">held </span>@cell.HeldDays d<span class="cell__long">@Selficient.Web.Pages.Plan.BoardCopy.Unit(cell.HeldDays)[1..]</span></span>
               }
             </span>
         }
@@ -161,7 +165,7 @@
     <span><i class="cell cell--reduced" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Reduced)</span>
     <span><i class="cell cell--rationed" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Rationed)</span>
     <span><i class="cell cell--lost" aria-hidden="true"></i>@Selficient.Web.Pages.Plan.BoardCopy.State(CellState.Lost)</span>
-    <span>A number on a cell is how many days it held before it changed. Tap a row for the reason.</span>
+    <span>A cell that says &ldquo;held 7 days&rdquo; held for the first 7 days of that stretch, then changed to what the cell shows. Tap a row for the reason.</span>
   </p>
   @if (!Model.HasOwnRoof)
   {

@@ -301,6 +301,11 @@ public sealed class BoardPagesTests : IDisposable
         drawn.ShouldMatch("aria-label=\"Today\\. Food, [a-z ]+: [a-z0-9 ,]*lost[a-z ]*\\.\"");
         drawn.ShouldMatch("aria-label=\"With the plan\\. Food, [a-z ]+: held throughout\\.\"");
         drawn.ShouldContain("aria-label=\"Laundry, a day: ", customMessage: "a need that does not change is drawn once and labelled as before");
+        // A figure on a cell says in words that it is how long the need held, and every cell gives its whole sentence on hover.
+        drawn.ShouldMatch("<span class=\"cell__days data\"><span class=\"cell__long\">held </span>[0-9]+ d<span class=\"cell__long\">ays?</span></span>");
+        drawn.ShouldNotMatch("<span class=\"cell__days data\">[0-9]", "a bare number reads as a figure for the cell's own stretch");
+        drawn.ShouldMatch("aria-label=\"(Laundry, a fortnight: held for [0-9]+ days, then lost\\.)\" title=\"\\1\"");
+        drawn.ShouldContain("A cell that says &ldquo;held 7 days&rdquo; held for the first 7 days of that stretch, then changed to what the cell shows. Tap a row for the reason.");
     }
 
     [Fact]
