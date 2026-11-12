@@ -74,6 +74,13 @@ public static class PlaceCopy
 /// <summary>Where a pick's link goes: through the click counter when it came from the store, straight to the shop when it was shipped in the file.</summary>
 public static class KitLinks
 {
+    /// <summary>The number a pick is saved for later by: its offer's, or nothing for a pick that has none, which cannot be saved.</summary>
+    public static string OfferOf(Selficient.Domain.Kit.KitPick pick)
+    {
+        ArgumentNullException.ThrowIfNull(pick);
+        return pick.OfferId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
     /// <summary>The href for a pick.</summary>
     public static string Href(Selficient.Domain.Kit.KitPick pick)
     {

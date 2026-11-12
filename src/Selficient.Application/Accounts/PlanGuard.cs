@@ -16,7 +16,7 @@ public static partial class PlanGuard
     /// <summary>The largest body kept, in bytes of UTF-8. A whole plan is a few thousand.</summary>
     public static int MaxBytes => 64 * 1024;
 
-    private static readonly string[] SnapshotFields = ["profile", "ticks", "planned", "skipped", "amounts", "assumptions", "house", "dependencies"];
+    private static readonly string[] SnapshotFields = ["profile", "ticks", "planned", "skipped", "amounts", "assumptions", "house", "dependencies", "shortlist"];
     private static readonly string[] DependencyFields = ["name", "kind", "watts", "hoursPerDay", "daysOfStock", "mustStayCold"];
     private static readonly string[] Kinds = ["PoweredDevice", "Medicine", "Supply"];
 
@@ -58,7 +58,8 @@ public static partial class PlanGuard
         && Optional(plan, "amounts", IsAmounts)
         && Optional(plan, "assumptions", IsAssumptions)
         && Optional(plan, "house", static house => house.ValueKind == JsonValueKind.Null || IsHouse(house))
-        && Optional(plan, "dependencies", IsDependencies);
+        && Optional(plan, "dependencies", IsDependencies)
+        && Optional(plan, "shortlist", IsShortlist);
 
     /// <summary>An object whose members are all among the names given. Anything else on it is not a plan's.</summary>
     private static bool HasOnly(JsonElement element, string[] names) =>
@@ -91,6 +92,10 @@ public static partial class PlanGuard
     /// <summary>Up to two hundred action ids.</summary>
     private static bool IsIds(JsonElement list) =>
         list.ValueKind == JsonValueKind.Array && list.GetArrayLength() <= 200 && list.EnumerateArray().All(static id => id.ValueKind == JsonValueKind.String && id.GetString()!.Length <= 80 && Id().IsMatch(id.GetString()!));
+
+    /// <summary>What was saved for later: up to a hundred offers, each named by its number and nothing else.</summary>
+    private static bool IsShortlist(JsonElement list) =>
+        list.ValueKind == JsonValueKind.Array && list.GetArrayLength() <= 100 && list.EnumerateArray().All(static id => id.ValueKind == JsonValueKind.String && Offer().IsMatch(id.GetString()!));
 
     /// <summary>Up to twenty figures, each a whole number from nothing to ten thousand against an id.</summary>
     private static bool IsAmounts(JsonElement amounts) =>
@@ -130,6 +135,9 @@ public static partial class PlanGuard
 
     [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
     private static partial Regex Id();
+
+    [GeneratedRegex("^[0-9]{1,18}$", RegexOptions.CultureInvariant)]
+    private static partial Regex Offer();
 
     [GeneratedRegex("^[A-Za-z]{1,40}$", RegexOptions.CultureInvariant)]
     private static partial Regex FieldName();

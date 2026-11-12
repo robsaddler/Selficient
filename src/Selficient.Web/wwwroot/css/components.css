@@ -1154,6 +1154,23 @@ progress.tier-progress {
   }
 }
 
+/* Beside a pick: save it for later. Pressed, it says so in words and in weight. */
+.pick__save {
+  justify-self: start;
+
+  &[aria-pressed="true"] {
+    border-color: var(--c-pine);
+    color: var(--c-pine);
+    font-weight: 700;
+  }
+}
+
+/* The way from the plan to what was saved. */
+.plan__saved {
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+
 .disclosure {
   font-size: var(--text-s);
   color: var(--c-ink-muted);

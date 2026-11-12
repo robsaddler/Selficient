@@ -132,7 +132,7 @@ public sealed class Screenshots
         await page.WaitForFunctionAsync("() => document.fonts.status === 'loaded' && document.getAnimations().every((a) => a.playState === 'finished' || a.playState === 'idle')");
     }
 
-    private static string Target(string file)
+    internal static string Target(string file)
     {
         string directory = Path.Combine(FindRepositoryRoot(), "artifacts", "screens");
         Directory.CreateDirectory(directory);

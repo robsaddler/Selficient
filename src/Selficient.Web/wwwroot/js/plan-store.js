@@ -8,7 +8,7 @@
  */
 
 const DB_NAME = "selficient";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const CHANNEL = "selficient-plan";
 const LOCK = "selficient-plan-write";
 
@@ -18,7 +18,7 @@ const LOCK = "selficient-plan-write";
 /** @typedef {"have" | "plan" | "skip"} Choice */
 /** @typedef {Record<string, number>} Amounts */
 /** @typedef {{ cashRate?: number }} Assumptions */
-/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], amounts?: Amounts, assumptions?: Assumptions, house?: House | null, dependencies?: Dependency[] }} Snapshot */
+/** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], amounts?: Amounts, assumptions?: Assumptions, house?: House | null, dependencies?: Dependency[], shortlist?: string[] }} Snapshot */
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
@@ -44,6 +44,10 @@ function open() {
       if (!db.objectStoreNames.contains("amounts")) {
         db.createObjectStore("amounts");
       }
+      // Version 5 (M26): what the household saved for later, as the offers' numbers.
+      if (!db.objectStoreNames.contains("shortlist")) {
+        db.createObjectStore("shortlist");
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("The browser refused to open local storage."));
@@ -65,7 +69,7 @@ function done(request) {
 
 /**
  * @template T
- * @param {"profile" | "ticks" | "house" | "dependencies" | "amounts"} store
+ * @param {"profile" | "ticks" | "house" | "dependencies" | "amounts" | "shortlist"} store
  * @param {IDBTransactionMode} mode
  * @param {(store: IDBObjectStore) => IDBRequest<T> | Promise<T>} work
  * @returns {Promise<T>}
@@ -296,8 +300,41 @@ export async function clearAll() {
     await withStore("house", "readwrite", (s) => s.clear());
     await withStore("dependencies", "readwrite", (s) => s.clear());
     await withStore("amounts", "readwrite", (s) => s.clear());
+    await withStore("shortlist", "readwrite", (s) => s.clear());
   });
   announce();
+}
+
+/**
+ * What the household saved for later: the numbers of the offers, oldest first. Anything in the
+ * store that is not a bounded list of numbers reads as nothing saved.
+ * @returns {Promise<string[]>}
+ */
+export async function getShortlist() {
+  const value = await withStore("shortlist", "readonly", (s) => s.get("list"));
+  return isShortlist(value) ? [...value] : [];
+}
+
+/**
+ * Replaces the list. One past the hundredth is not kept.
+ * @param {string[]} ids
+ */
+export async function saveShortlist(ids) {
+  const kept = [...new Set(ids)].filter((id) => OFFER.test(id)).slice(0, 100);
+  await serialised(async () => {
+    await withStore("shortlist", "readwrite", (s) => s.put(kept, "list"));
+  });
+  announce();
+}
+
+/**
+ * Saves an offer for later, or takes it off the list.
+ * @param {string} id
+ * @param {boolean} saved
+ */
+export async function setShortlisted(id, saved) {
+  const list = (await getShortlist()).filter((other) => other !== id);
+  await saveShortlist(saved ? [...list, id] : list);
 }
 
 /** @returns {Promise<Dependency[]>} */
@@ -319,7 +356,7 @@ export async function saveDependencies(dependencies) {
 export async function snapshot() {
   const choices = await getChoices();
   const of = (/** @type {Choice} */ kind) => Object.keys(choices).filter((id) => choices[id] === kind);
-  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), amounts: await getAmounts(), assumptions: await getAssumptions(), house: await getHouse(), dependencies: await getDependencies() };
+  return { profile: await getProfile(), ticks: of("have"), planned: of("plan"), skipped: of("skip"), amounts: await getAmounts(), assumptions: await getAssumptions(), house: await getHouse(), dependencies: await getDependencies(), shortlist: await getShortlist() };
 }
 
 /**
@@ -353,6 +390,7 @@ export async function restore(data) {
     await withStore("dependencies", "readwrite", (s) => s.put((data.dependencies ?? []).slice(0, 12), "list"));
     await withStore("amounts", "readwrite", (s) => s.put(data.amounts ?? {}, "all"));
     await withStore("amounts", "readwrite", (s) => s.put(data.assumptions ?? {}, "assumptions"));
+    await withStore("shortlist", "readwrite", (s) => s.put(data.shortlist ?? [], "list"));
   });
   announce();
 }
@@ -369,6 +407,7 @@ export function onChange(handler) {
 }
 
 const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const OFFER = /^[0-9]{1,18}$/;
 const FIELD = /^[A-Za-z]{1,40}$/;
 
 /**
@@ -405,7 +444,7 @@ export function isSnapshot(value) {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const { profile, ticks, planned, skipped, amounts, assumptions, house, dependencies } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, amounts?: unknown, assumptions?: unknown, house?: unknown, dependencies?: unknown }} */ (value);
+  const { profile, ticks, planned, skipped, amounts, assumptions, house, dependencies, shortlist } = /** @type {{ profile?: unknown, ticks?: unknown, planned?: unknown, skipped?: unknown, amounts?: unknown, assumptions?: unknown, house?: unknown, dependencies?: unknown, shortlist?: unknown }} */ (value);
   const profileOk = profile === null || isProfile(profile);
   const ids = (/** @type {unknown} */ list) => Array.isArray(list) && list.length <= 200 && list.every((t) => typeof t === "string" && ID.test(t));
   // The two newer lists are optional, so a file exported before they existed still opens.
@@ -413,7 +452,16 @@ export function isSnapshot(value) {
   const houseOk = house === undefined || house === null || isHouse(house);
   const dependenciesOk = dependencies === undefined || (Array.isArray(dependencies) && dependencies.length <= 12 && dependencies.every(isDependency));
   const amountsOk = (amounts === undefined || isAmounts(amounts)) && (assumptions === undefined || isAssumptions(assumptions));
-  return profileOk && ticksOk && houseOk && dependenciesOk && amountsOk;
+  return profileOk && ticksOk && houseOk && dependenciesOk && amountsOk && (shortlist === undefined || isShortlist(shortlist));
+}
+
+/**
+ * What was saved for later: at most a hundred offers, each named by its number and nothing else.
+ * @param {unknown} value
+ * @returns {value is string[]}
+ */
+export function isShortlist(value) {
+  return Array.isArray(value) && value.length <= 100 && value.every((id) => typeof id === "string" && OFFER.test(id));
 }
 
 /**

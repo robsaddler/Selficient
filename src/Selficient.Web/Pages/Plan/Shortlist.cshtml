@@ -1,0 +1,53 @@
+@page "/plan/shortlist"
+@using Selficient.Web.Formatting
+@model Selficient.Web.Pages.Plan.ShortlistModel
+@{
+    ViewData["NoIndex"] = true;
+    ViewData["Title"] = ShortlistCopy.Heading;
+    ViewData["Description"] = "What you saved for later from your plan, grouped by shop.";
+    var gb = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+}
+
+@* The list is the browser's, kept with the plan. shortlist.js posts it; everything drawn here is the catalogue's own. *@
+<section class="shortlist" aria-labelledby="shortlist-heading" data-shortlist-page data-shortlist-asked="@Model.List.AskedFor" data-shortlist-known="@Model.List.Known">
+  <p class="eyebrow">Your plan</p>
+  <h1 id="shortlist-heading">@ShortlistCopy.Heading</h1>
+  @if (Model.List.Gone > 0)
+  {
+    <p class="callout" role="status" data-shortlist-gone>@ShortlistCopy.Gone(Model.List.Gone)</p>
+  }
+  @if (Model.List.Count == 0)
+  {
+    <p class="shortlist__lede" data-shortlist-nothing>@ShortlistCopy.Nothing</p>
+  }
+  else
+  {
+    <p class="shortlist__lede">@ShortlistCopy.Lede(Model.List.Count, Model.List.Shops.Count, Model.List.Total)</p>
+    <div class="shortlist__shops">
+      @foreach (var shop in Model.List.Shops)
+      {
+        <section class="shortlist__shop" data-shortlist-shop="@shop.Retailer">
+          <h2>@shop.Retailer</h2>
+          <p class="shortlist__sum">@ShortlistCopy.Shop(shop)</p>
+          <ul class="shortlist__list">
+            @foreach (var pick in shop.Picks)
+            {
+              <li class="pick">
+                <a href="@KitLinks.Href(pick)" rel="sponsored noopener noreferrer" target="_blank">@pick.Name</a>
+                <span class="pick__meta"><span class="data">@MoneyFormat.Amount(pick.Price)</span>, seen @pick.Seen.ToString("d MMM yyyy", gb)</span>
+                <button type="button" class="button button--small button--quiet" data-shortlist-remove="@KitLinks.OfferOf(pick)" aria-label="@ShortlistCopy.Remove: @pick.Name">@ShortlistCopy.Remove</button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+    <p class="disclosure">A link opens the shop's own search for the item; the price is what our checker read on the date given. Following a link to a shop takes you to the shop; some links earn Selficient a small commission at no cost to you.</p>
+  }
+  <p class="cluster">
+    <a class="button button--primary" href="/plan">Back to your plan</a>
+  </p>
+  <form method="post" data-shortlist-form hidden>
+    <input type="hidden" name="Ids" value="" data-shortlist-ids>
+  </form>
+</section>

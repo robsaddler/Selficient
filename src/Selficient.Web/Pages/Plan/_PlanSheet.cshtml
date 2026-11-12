@@ -51,6 +51,8 @@
 <section class="plan" aria-labelledby="actions-heading">
   <h2 id="actions-heading">Your plan, in order</h2>
   <p class="plan__lede">Say which of these you have, which you plan to get and which are not for you. Each action says what it changes on the board, and each stretch says where it takes the house.</p>
+  @* Shown by shortlist.js once something has been saved for later, with how many. *@
+  <p class="plan__saved" data-shortlist-link hidden><a href="/plan/shortlist">@Selficient.Web.Pages.Plan.ShortlistCopy.LinkBefore <span class="data" data-shortlist-count>0</span></a></p>
   <div class="plan__tally">
     <h3 class="plan__tally-heading">Where your plan stands</h3>
     @await Html.PartialAsync("_Tally", Selficient.Web.Pages.Plan.TallyView.ForPlan(Model.Board))

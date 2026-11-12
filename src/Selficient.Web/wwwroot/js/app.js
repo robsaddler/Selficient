@@ -21,6 +21,7 @@ import { initReceive } from "selficient/receive.js";
 import { initAccount } from "selficient/account.js";
 import { initSync } from "selficient/sync.js";
 import { initPasskeys } from "selficient/passkeys.js";
+import { initShortlist } from "selficient/shortlist.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -41,5 +42,6 @@ void initReceive(document);
 initAccount(document);
 initSync(document);
 void initPasskeys(document);
+void initShortlist(document);
 void initHouseMap(document);
 initPhotos(document);

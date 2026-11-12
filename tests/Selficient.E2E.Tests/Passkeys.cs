@@ -45,6 +45,7 @@ public sealed class Passkeys
         await Expect(passkeys.Locator("[data-passkey-says]")).ToHaveTextAsync("A passkey has been added for this device.");
         await Expect(passkeys.Locator("[data-passkey-none]")).ToBeHiddenAsync();
         await ShouldBeSoundAsync(page);
+        await page.ScreenshotAsync(new() { Path = Screenshots.Target("panel-signed-in-desktop-light.png") });
         await page.Keyboard.PressAsync("Escape");
 
         // Signed out, and back in with no address typed and no code waited for.

@@ -151,6 +151,9 @@ public sealed class PlanSyncTests
         PlanGuard.IsSyncBody(Body(extra: $"\"amounts\":{twenty}")).ShouldBeTrue();
         PlanGuard.IsSyncBody(Body(extra: $"\"dependencies\":[{string.Join(',', Enumerable.Repeat(dependency, 13))}]")).ShouldBeFalse();
         PlanGuard.IsSyncBody(Body(extra: $"\"dependencies\":[{string.Join(',', Enumerable.Repeat(dependency, 12))}]")).ShouldBeTrue();
+        PlanGuard.IsSyncBody(Body(extra: $"\"shortlist\":[{string.Join(',', Enumerable.Range(1, 101).Select(i => $"\"{i}\""))}]")).ShouldBeFalse("a hundred things saved for later is the most");
+        PlanGuard.IsSyncBody(Body(extra: $"\"shortlist\":[{string.Join(',', Enumerable.Range(1, 100).Select(i => $"\"{i}\""))}]")).ShouldBeTrue();
+        PlanGuard.IsSyncBody(Body(extra: "\"shortlist\":[]")).ShouldBeTrue();
         PlanGuard.IsSyncBody(Body(ticks: $"\"{new string('a', 81)}\"")).ShouldBeFalse("an id is eighty characters at most");
         PlanGuard.IsSyncBody(Body(ticks: $"\"{new string('a', 80)}\"")).ShouldBeTrue();
         PlanGuard.IsSyncBody("{\"plan\":{\"profile\":null,\"ticks\":[]},\"detailsAt\":1}" + new string(' ', PlanGuard.MaxBytes)).ShouldBeFalse("the cap is on the bytes, whatever they are");
@@ -184,6 +187,12 @@ public sealed class PlanSyncTests
     [InlineData("\"ticks\":[],\"house\":{\"lat\":51.6,\"lng\":-9.5}")]
     [InlineData("\"ticks\":[],\"house\":{\"lat\":51.6,\"lng\":3}")]
     [InlineData("\"ticks\":[],\"house\":{\"lat\":51.6,\"lng\":-3.2,\"street\":\"x\"}")]
+    [InlineData("\"ticks\":[],\"shortlist\":\"12\"")]
+    [InlineData("\"ticks\":[],\"shortlist\":[12]")]
+    [InlineData("\"ticks\":[],\"shortlist\":[\"twelve\"]")]
+    [InlineData("\"ticks\":[],\"shortlist\":[\"<script>\"]")]
+    [InlineData("\"ticks\":[],\"shortlist\":[\"-1\"]")]
+    [InlineData("\"ticks\":[],\"shortlist\":[\"1234567890123456789\"]")]
     [InlineData("\"ticks\":[],\"dependencies\":{}")]
     [InlineData("\"ticks\":[],\"dependencies\":[\"Fridge\"]")]
     public void Lists_figures_and_the_pin_are_held_to_their_bounds(string members) =>

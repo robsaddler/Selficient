@@ -82,6 +82,7 @@ export function canonical(plan) {
     assumptions: sorted(plan.assumptions),
     house: plan.house ? { lat: plan.house.lat, lng: plan.house.lng } : null,
     dependencies: (plan.dependencies ?? []).map((d) => ({ name: d.name, kind: d.kind, watts: d.watts, hoursPerDay: d.hoursPerDay, daysOfStock: d.daysOfStock, mustStayCold: d.mustStayCold })),
+    shortlist: [...new Set(plan.shortlist ?? [])].sort(),
   };
 }
 
@@ -169,6 +170,11 @@ export function merge(base, mine, theirs, mineAt, theirsAt) {
     return t[part];
   };
 
+  // What was saved for later is a set like the ticks: saved on either side is saved, and taken off on either is off.
+  const saved = [...new Set([...b.shortlist, ...m.shortlist, ...t.shortlist])]
+    .filter((id) => (m.shortlist.includes(id) === b.shortlist.includes(id) ? t.shortlist.includes(id) : m.shortlist.includes(id)))
+    .sort();
+
   const plan = {
     profile: /** @type {Snapshot["profile"]} */ (pick("profile")),
     ticks: of("have"),
@@ -178,6 +184,7 @@ export function merge(base, mine, theirs, mineAt, theirsAt) {
     assumptions: /** @type {Required<Snapshot>["assumptions"]} */ (pick("assumptions")),
     house: /** @type {Required<Snapshot>["house"]} */ (pick("house")),
     dependencies: /** @type {Required<Snapshot>["dependencies"]} */ (pick("dependencies")),
+    shortlist: saved,
   };
   return { plan, tookTheirs };
 }

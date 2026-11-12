@@ -88,6 +88,8 @@
                     {
                       <span class="pick__note">@pick.Note</span>
                     }
+                    @* Saved by the offer's number, in this browser with the plan. shortlist.js shows the button where there is a number to save by. *@
+                    <button type="button" class="button button--small button--quiet pick__save" data-shortlist="@KitLinks.OfferOf(pick)" aria-pressed="false" hidden><span data-shortlist-says="off">@Selficient.Web.Pages.Plan.ShortlistCopy.Save</span><span data-shortlist-says="on" hidden>@Selficient.Web.Pages.Plan.ShortlistCopy.Saved</span></button>
                   </li>
                 }
               </ul>

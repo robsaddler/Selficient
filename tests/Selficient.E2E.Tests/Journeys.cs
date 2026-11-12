@@ -579,6 +579,7 @@ public sealed class Journeys
     [InlineData("/terms")]
     [InlineData("/offline")]
     [InlineData("/receive")]
+    [InlineData("/plan/shortlist")]
     [InlineData("/account/sign-in")]
     [InlineData("/account/unavailable")]
     [InlineData("/account/deleted")]

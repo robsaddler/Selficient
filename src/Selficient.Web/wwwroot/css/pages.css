@@ -1496,6 +1496,57 @@
   }
 }
 
+/* Saved for later: one panel a shop, side by side where there is room, each a short list of picks. */
+.shortlist {
+  display: grid;
+  gap: var(--space-5);
+  padding-block: var(--space-6);
+
+  & h1 {
+    font-size: var(--text-2xl);
+  }
+}
+
+.shortlist__lede {
+  max-inline-size: var(--measure);
+}
+
+.shortlist__shops {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.shortlist__shop {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & h2 {
+    font-size: var(--text-l);
+  }
+}
+
+.shortlist__sum {
+  font-size: var(--text-s);
+  color: var(--c-ink-muted);
+}
+
+.shortlist__list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+
+  & .pick {
+    justify-items: start;
+  }
+}
+
 /* The two things an account does, on the sign-in panel. */
 .panel__list {
   margin: 0;
