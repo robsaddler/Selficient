@@ -11,7 +11,7 @@ public sealed class IcsCalendarTests
     [Fact]
     public void The_calendar_has_every_required_property()
     {
-        IReadOnlyList<Reminder> reminders = UpkeepSchedule.For(false, false);
+        IReadOnlyList<Reminder> reminders = UpkeepSchedule.For(new UpkeepFacts(PetrolCar: true));
         IReadOnlyList<(Reminder, DateOnly)> occurrences = UpkeepSchedule.Occurrences(reminders, new DateOnly(2026, 11, 1), 1);
 
         string ics = IcsCalendar.Write(occurrences, Stamp);

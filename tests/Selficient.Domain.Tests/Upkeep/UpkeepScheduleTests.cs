@@ -1,4 +1,6 @@
+using Selficient.Domain.Households;
 using Selficient.Domain.Upkeep;
+using Selficient.TestKit;
 
 namespace Selficient.Domain.Tests.Upkeep;
 
@@ -20,18 +22,57 @@ public sealed class UpkeepScheduleTests
     [Fact]
     public void Decking_and_a_garden_add_their_own_tasks()
     {
-        UpkeepSchedule.For(hasDecking: false, hasGarden: false).Select(r => r.Id).ShouldBe(["water-rotation", "alarm-tests", "battery-top-up", "stored-cells-check", "first-aid-check", "winter-car", "annual-review"]);
-        UpkeepSchedule.For(false, false).Single(r => r.Id == "stored-cells-check").Why.ShouldStartWith("Open the radio and every torch that sits in a drawer and look for leaked cells");
-        UpkeepSchedule.For(hasDecking: true, hasGarden: false).Select(r => r.Id).ShouldContain("deck-leaf-litter");
-        UpkeepSchedule.For(hasDecking: false, hasGarden: true).Select(r => r.Id).ShouldContain("firebreak-and-hose");
-        UpkeepSchedule.For(hasDecking: true, hasGarden: true).Count.ShouldBe(9);
-        UpkeepSchedule.For(true, true).ShouldAllBe(r => r.Why.EndsWith('.') && r.Title.Length > 0);
+        UpkeepSchedule.For(new UpkeepFacts(PetrolCar: true)).Select(r => r.Id).ShouldBe(["water-rotation", "alarm-tests", "battery-top-up", "stored-cells-check", "first-aid-check", "winter-car", "annual-review"]);
+        UpkeepSchedule.For(new UpkeepFacts()).Single(r => r.Id == "stored-cells-check").Why.ShouldStartWith("Open the radio and every torch that sits in a drawer and look for leaked cells");
+        UpkeepSchedule.For(new UpkeepFacts(Decking: true)).Select(r => r.Id).ShouldContain("deck-leaf-litter");
+        UpkeepSchedule.For(new UpkeepFacts(Garden: true)).Select(r => r.Id).ShouldContain("firebreak-and-hose");
+        UpkeepSchedule.For(new UpkeepFacts(Decking: true, Garden: true, PetrolCar: true)).Count.ShouldBe(9);
+        UpkeepSchedule.For(new UpkeepFacts(true, true, true, false, true, true, true)).ShouldAllBe(r => r.Why.EndsWith('.') && r.Title.Length > 0);
+        Should.Throw<ArgumentNullException>(() => UpkeepSchedule.For(null!));
+        Should.Throw<ArgumentNullException>(() => UpkeepFacts.From(null!));
+    }
+
+    [Fact]
+    public void A_task_is_only_there_for_a_home_it_applies_to()
+    {
+        // No car: nothing about a tank. No tree: the yearly review does not send anyone to look at one.
+        IReadOnlyList<Reminder> bare = UpkeepSchedule.For(new UpkeepFacts());
+        bare.Select(r => r.Id).ShouldBe(["water-rotation", "alarm-tests", "battery-top-up", "stored-cells-check", "first-aid-check", "annual-review"]);
+        bare.Single(r => r.Id == "annual-review").Why.ShouldBe("Once a year, walk through the plan and check that the cash limit on the contents policy still matches what is in the box.");
+        bare.ShouldAllBe(r => !r.Why.Contains("tree", StringComparison.Ordinal) && !r.Title.Contains("the car", StringComparison.Ordinal));
+
+        UpkeepSchedule.For(new UpkeepFacts(TallTree: true)).Single(r => r.Id == "annual-review").Why.ShouldEndWith("what is in the box. Look at the tree after the winter storms.");
+
+        // An electric car has a charge to keep, not a tank.
+        IReadOnlyList<Reminder> electric = UpkeepSchedule.For(new UpkeepFacts(ElectricCar: true));
+        electric.Select(r => r.Id).ShouldNotContain("winter-car");
+        electric.Single(r => r.Id == "winter-car-charge").Title.ShouldBe("Keep the car above half charge from now until March");
+
+        // A stove is swept before the autumn; a house the flood map names checks its warnings before the winter.
+        Reminder sweep = UpkeepSchedule.For(new UpkeepFacts(WoodStove: true)).Single(r => r.Id == "flue-sweep");
+        sweep.Title.ShouldBe("Have the stove's flue swept and fill the log store");
+        sweep.Dates.ShouldBe([(9, 1)]);
+        Reminder flood = UpkeepSchedule.For(new UpkeepFacts(FloodRisk: true)).Single(r => r.Id == "flood-plan-check");
+        flood.Title.ShouldBe("Check your flood warnings and walk through the flood plan");
+        flood.Dates.ShouldBe([(10, 1)]);
+    }
+
+    [Fact]
+    public void The_facts_are_read_from_the_plans_own_profile()
+    {
+        UpkeepFacts.From(Profiles.RobsHouse()).ShouldBe(new UpkeepFacts(Decking: true, Garden: true, PetrolCar: true, TallTree: true));
+        UpkeepFacts.From(Profiles.Flat()).ShouldBe(new UpkeepFacts());
+        UpkeepFacts.From(Profiles.FloodZoneBungalow()).ShouldBe(new UpkeepFacts(Garden: true, PetrolCar: true, WoodStove: true, FloodRisk: true), "wood as the main heating is a stove, and high on the flood map is a flood plan to keep");
+
+        HouseholdProfile electric = Profiles.RobsHouse() with { Particulars = new Particulars(ElectricCar: true, WoodStove: true, WaterButt: false, Infants: 0) };
+        UpkeepFacts.From(electric).ShouldBe(new UpkeepFacts(Decking: true, Garden: true, ElectricCar: true, TallTree: true, WoodStove: true));
+        UpkeepFacts.From(Profiles.Flat() with { Particulars = new Particulars(true, false, false, 0) }).ElectricCar.ShouldBeFalse("there is no car to be electric");
     }
 
     [Fact]
     public void Occurrences_cover_the_window_in_date_order_and_follow_the_clock_changes()
     {
-        IReadOnlyList<Reminder> reminders = UpkeepSchedule.For(hasDecking: true, hasGarden: true);
+        IReadOnlyList<Reminder> reminders = UpkeepSchedule.For(new UpkeepFacts(Decking: true, Garden: true, PetrolCar: true));
 
         IReadOnlyList<(Reminder Reminder, DateOnly Date)> occurrences = UpkeepSchedule.Occurrences(reminders, new DateOnly(2026, 11, 1), 2);
 

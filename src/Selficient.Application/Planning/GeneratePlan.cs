@@ -22,7 +22,13 @@ public sealed record GeneratePlanCommand(
     bool HasDecking,
     bool HasTallTreeNearHouse,
     decimal? ElevationMetres,
-    FloodRisk FloodRisk);
+    FloodRisk FloodRisk,
+    bool CarIsElectric = false,
+    bool HasWoodStove = false,
+    bool HasWaterButt = false,
+    int Infants = 0,
+    Nation Nation = Nation.Unknown,
+    FloodWater FloodFrom = FloodWater.NotSaid);
 
 /// <summary>Turns a command into a profile, assesses the risks and builds the plan.</summary>
 public sealed class GeneratePlanHandler
@@ -59,7 +65,8 @@ public sealed class GeneratePlanHandler
 
         return elevation.Bind(e =>
             Household.Create(command.People, command.Children, command.HasVulnerablePerson, command.HasPets, command.RunsBusinessFromHome).Bind(household =>
-                Dwelling.Create(command.DwellingType, command.Storeys, command.Heating, command.Hob, command.HasCar, command.HasGarden, command.HasDecking, command.HasTallTreeNearHouse, e, command.FloodRisk)
-                    .Map(dwelling => new HouseholdProfile(household, dwelling))));
+                Dwelling.Create(command.DwellingType, command.Storeys, command.Heating, command.Hob, command.HasCar, command.HasGarden, command.HasDecking, command.HasTallTreeNearHouse, e, command.FloodRisk).Bind(dwelling =>
+                    Particulars.Create(household, command.CarIsElectric, command.HasWoodStove, command.HasWaterButt, command.Infants)
+                        .Map(particulars => new HouseholdProfile(household, dwelling) { Nation = command.Nation, FloodFrom = command.FloodFrom, Particulars = particulars }))));
     }
 }

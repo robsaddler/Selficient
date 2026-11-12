@@ -49,6 +49,7 @@ public static class ApplicationServiceCollectionExtensions
     [
         new BaselineChecklistRule(),
         new PriorityServicesRule(),
+        new InfantsRule(),
         new TallTreeRule(),
         new GardenFireRule(),
         new CarRule(),
@@ -56,6 +57,7 @@ public static class ApplicationServiceCollectionExtensions
         new WaterStoreRule(),
         new FoodStoreRule(),
         new CookingRule(),
+        new WoodStoveRule(),
         new LanternRule(),
         new DocumentsRule(),
         new SolarQuotesRule(),

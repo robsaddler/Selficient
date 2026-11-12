@@ -9,8 +9,8 @@ internal static class RuleSupport
 {
     internal static IReadOnlySet<RiskKind> Mitigates(params RiskKind[] kinds) => new HashSet<RiskKind>(kinds);
 
-    internal static PlanAction Action(string id, Tier tier, string title, string why, MoneyRange cost, IReadOnlySet<RiskKind> mitigates, Provisions? provides = null) =>
-        new(ActionId.From(id), tier, title, why, cost, mitigates, provides ?? Provisions.None);
+    internal static PlanAction Action(string id, Tier tier, string title, string why, MoneyRange cost, IReadOnlySet<RiskKind> mitigates, Provisions? provides = null, ActionLink? link = null) =>
+        new(ActionId.From(id), tier, title, why, cost, mitigates, provides ?? Provisions.None, link);
 
     /// <summary>Formats a whole number for a sentence, invariant so a comma never becomes a point.</summary>
     internal static string N(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Selficient.Application.Geography;
+using Selficient.Domain.Households;
 using Selficient.Domain.Measures;
 using Selficient.Domain.Primitives;
 using Selficient.Infrastructure.Geography;

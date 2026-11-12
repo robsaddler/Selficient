@@ -227,7 +227,7 @@ public sealed class CarRule : IPlanRule
     public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        if (profile.Dwelling.HasCar)
+        if (profile.HasPetrolCar)
         {
             yield return Action(
                 "car-above-half-a-tank",
@@ -237,10 +237,49 @@ public sealed class CarRule : IPlanRule
                 MoneyRange.Pounds(25m, 35m),
                 Mitigates(RiskKind.WinterAccess, RiskKind.StormPowerCut));
         }
+
+        // An electric car has no tank to keep half full, and what stops it filling is the cut itself.
+        if (profile.HasElectricCar)
+        {
+            yield return Action(
+                "car-above-half-charge",
+                Tier.ThisWeek,
+                "Keep the car above half charge from November to March",
+                "Charging stops with the power, at home and at most public chargers. Half a battery is several days of local driving and a way off the hill before the road closes, and the car's own sockets charge phones and power banks.",
+                MoneyRange.Free,
+                Mitigates(RiskKind.WinterAccess, RiskKind.StormPowerCut));
+        }
     }
 }
 
-/// <summary>Flood warnings and a flood plan, only where the map says so.</summary>
+/// <summary>A baby cannot wait for the shops to reopen: nappies, and formula that needs no boiled water.</summary>
+public sealed class InfantsRule : IPlanRule
+{
+    /// <inheritdoc />
+    public int Order => 112;
+
+    /// <inheritdoc />
+    public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        int infants = profile.Particulars.Infants;
+        if (infants > 0)
+        {
+            yield return Action(
+                "formula-and-nappies",
+                Tier.ThisWeek,
+                "Two weeks of nappies, wipes and, if you use it, formula",
+                "The shops and the deliveries are the first things to stop. Formula made from powder needs boiled water, so it depends on a way to cook: keep some ready-to-feed cartons, which need neither, for the first days.",
+                MoneyRange.Pounds(25m * infants, 70m * infants),
+                Mitigates(RiskKind.StormPowerCut, RiskKind.WinterAccess, RiskKind.RegionalDisruption));
+        }
+    }
+}
+
+/// <summary>
+/// Flood warnings and a flood plan where the map says so; where nobody knows what the map says, the
+/// first thing to do is find out. A house the map calls very low gets nothing, which is the point.
+/// </summary>
 public sealed class FloodRule : IPlanRule
 {
     /// <inheritdoc />
@@ -249,19 +288,37 @@ public sealed class FloodRule : IPlanRule
     /// <inheritdoc />
     public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
     {
+        ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(risks);
+
+        // Not known is not the same as safe: the plan says so, and sends the house to its own nation's map.
+        if (profile.Dwelling.FloodRisk == FloodRisk.Unknown)
+        {
+            yield return Action(
+                "check-flood-risk",
+                Tier.ThisWeek,
+                "Check what the flood map says about your address",
+                "This plan does not know your flood risk yet, and it changes what comes first. The check takes two minutes with your postcode and covers rivers, the sea and surface water. If it says low, medium or high, change your answer and the plan adds what to do about it.",
+                MoneyRange.Free,
+                Mitigates(RiskKind.Flooding),
+                link: FloodServices.Check(profile.Nation));
+            yield break;
+        }
+
         if (!risks.Includes(RiskKind.Flooding))
         {
             yield break;
         }
 
+        (string title, string notice, ActionLink? link) = Warning(profile);
         yield return Action(
             "flood-warnings-and-plan",
             Tier.ThisWeek,
-            "Sign up for free flood warnings and write a one-page flood plan",
-            "Know where the stopcock and the fuse board are, where you would move the car, and what goes upstairs first. Warnings come by phone call, text and email.",
+            title,
+            $"{Know(profile)} {notice} Check that your buildings and contents insurance covers flood.",
             MoneyRange.Free,
-            Mitigates(RiskKind.Flooding));
+            Mitigates(RiskKind.Flooding),
+            link: link);
 
         yield return Action(
             "flood-protection-kit",
@@ -270,5 +327,32 @@ public sealed class FloodRule : IPlanRule
             "Simple products that keep shallow water out of the ground floor for long enough to matter. Fit the air-brick covers before the warning, not during it.",
             MoneyRange.Pounds(100m, 400m),
             Mitigates(RiskKind.Flooding));
+    }
+
+    // What a flood plan is for this house: no car to move where there is none, and nothing goes upstairs in a home with one floor.
+    private static string Know(HouseholdProfile profile)
+    {
+        string car = profile.Dwelling.HasCar ? ", where you would move the car" : string.Empty;
+        string lift = profile.Dwelling.Storeys > 1 ? "what goes upstairs first" : "what is lifted off the floor first";
+        return $"Know where the stopcock and the fuse board are{car}, and {lift}.";
+    }
+
+    // What notice this house can get, and where. The warning services call ahead of rivers and the
+    // sea, in three nations. Surface water comes with the rain and nobody calls ahead of it, and
+    // Northern Ireland has no service to sign up to, so neither is told to sign up for one.
+    private static (string Title, string Notice, ActionLink? Link) Warning(HouseholdProfile profile)
+    {
+        const string RainTitle = "Write a one-page flood plan, and watch the Met Office warnings for heavy rain";
+        if (profile.FloodFrom == FloodWater.SurfaceWater)
+        {
+            return (RainTitle, "The risk here is surface water, which comes with heavy rain, too fast for a flood warning service to call ahead, so a yellow or amber warning for rain is the notice you get.", FloodServices.RainWarnings);
+        }
+
+        if (profile.Nation == Nation.NorthernIreland)
+        {
+            return (RainTitle, "There is no flood warning service to sign up to in Northern Ireland, so the Met Office's warnings for rain are the notice you get.", FloodServices.NorthernIrelandAdvice);
+        }
+
+        return ("Sign up for free flood warnings and write a one-page flood plan", "Warnings come by phone call, text and email.", FloodServices.Warnings(profile.Nation));
     }
 }

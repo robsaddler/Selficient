@@ -36,7 +36,8 @@ public sealed class WaterStoreRule : IPlanRule
             MoneyRange.Pounds(35m, 39m),
             Mitigates(RiskKind.WaterInterruption));
 
-        if (profile.Dwelling.HasGarden)
+        // A garden that has a butt already is not sold another; the board counts the one that is there.
+        if (profile.Dwelling.HasGarden && !profile.Particulars.WaterButt)
         {
             yield return Action(
                 "water-butt",
@@ -60,16 +61,27 @@ public sealed class FoodStoreRule : IPlanRule
     {
         ArgumentNullException.ThrowIfNull(profile);
         int people = profile.Household.Size.Count;
-        string pets = profile.Household.HasPets ? " Include the pets' food." : string.Empty;
 
         yield return Action(
             "food-one-month",
             Tier.ThisMonth,
             "A month of food, built by buying one extra of what you already eat",
-            "Take from the front and restock at the back, and nothing ever goes off. Add a manual tin opener." + pets,
+            "Take from the front and restock at the back, and nothing ever goes off. Add a manual tin opener.",
             MoneyRange.Pounds(35m * people, 60m * people),
             Mitigates(RiskKind.RegionalDisruption, RiskKind.WinterAccess),
             new Provisions(FoodDays: 27m));
+
+        // Pets get a row of their own, which the board counts, in place of a clause on the end of the family's.
+        if (profile.Household.HasPets)
+        {
+            yield return Action(
+                "pet-food-two-weeks",
+                Tier.ThisMonth,
+                "Two weeks of pet food, and any medication, kept ahead of the bag in use",
+                "Buy the next bag or box before the last one is opened, so there is always a fortnight in the house and nothing goes off. Store a few litres of water a day for them as well as your own.",
+                MoneyRange.Pounds(15m, 60m),
+                Mitigates(RiskKind.RegionalDisruption, RiskKind.WinterAccess));
+        }
     }
 }
 
@@ -95,6 +107,19 @@ public sealed class CookingRule : IPlanRule
             yield break;
         }
 
+        // A flat with no garden has nowhere to burn gas safely, and the board will not count a stove there, so the plan does not sell one.
+        if (profile.Dwelling.Type == DwellingType.Flat && !profile.Dwelling.HasGarden)
+        {
+            yield return Action(
+                "flasks-for-hot-food",
+                Tier.ThisMonth,
+                "Two large vacuum flasks, filled from the kettle when a warning comes",
+                "A camping stove is not safe indoors and a flat has nowhere outside to use one, so this plan does not ask you to buy one. Two flasks filled before the power goes are hot drinks and instant meals for most of a day; after that it is the food that needs no cooking.",
+                MoneyRange.Pounds(20m, 40m),
+                Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
+            yield break;
+        }
+
         yield return Action(
             "butane-cartridge-stove",
             Tier.ThisMonth,
@@ -102,6 +127,29 @@ public sealed class CookingRule : IPlanRule
             "About two hours of cooking per cartridge. Use it outside, under an open window, or in the garage with the door open, with the carbon monoxide alarm within reach. Never in a closed room.",
             MoneyRange.Pounds(60m, 100m),
             Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
+    }
+}
+
+/// <summary>A stove that burns logs is the heating that needs nothing from anyone, if the flue is swept and the store is full.</summary>
+public sealed class WoodStoveRule : IPlanRule
+{
+    /// <inheritdoc />
+    public int Order => 225;
+
+    /// <inheritdoc />
+    public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (profile.HasWoodStove)
+        {
+            yield return Action(
+                "wood-stove-ready",
+                Tier.ThisMonth,
+                "Have the flue swept and the log store full before winter",
+                "Your stove is heat, a kettle and a hot meal that need nothing from anyone, for as long as the logs last. A swept flue and dry logs are what make it safe to lean on, and the carbon monoxide alarm belongs in the same room.",
+                MoneyRange.Pounds(60m, 120m),
+                Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
+        }
     }
 }
 
@@ -208,8 +256,9 @@ public sealed class PowerStationRule : IPlanRule
                 MoneyRange.Pounds(100m, 200m),
                 Mitigates(RiskKind.StormPowerCut));
         }
-        else if (profile.Dwelling.HeatingNeedsElectricity)
+        else if (!profile.HasWoodStove)
         {
+            // Electric heating or a heat pump, and no stove to fall back on: a house with a stove has its fallback already.
             yield return Action(
                 "heating-fallback",
                 Tier.ThreeMonths,

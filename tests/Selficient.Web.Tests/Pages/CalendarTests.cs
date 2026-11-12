@@ -40,6 +40,23 @@ public sealed class CalendarTests : IDisposable
         body.ShouldNotContain("firebreak");
         body.ShouldNotContain("<script>");
         body.ShouldContain("SUMMARY:Refill the stored water");
+        body.ShouldNotContain("half a tank", customMessage: "a link that names no car gets no task about one");
+    }
+
+    [Theory]
+    [InlineData("petrol=true", "Keep the car above half a tank from now until March", "half charge")]
+    [InlineData("electric=true", "Keep the car above half charge from now until March", "half a tank")]
+    [InlineData("petrol=true&electric=true", "Keep the car above half a tank from now until March", "half charge")]
+    public async Task The_car_task_is_for_the_car_there_is(string query, string expected, string absent)
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string body = await client.GetStringAsync(new Uri("/plan/calendar.ics?" + query + "&tree=true&stove=true&flood=true", UriKind.Relative));
+
+        body.ShouldContain("SUMMARY:" + expected);
+        body.ShouldNotContain(absent);
+        body.ShouldContain("SUMMARY:Have the stove's flue swept and fill the log store");
+        body.ShouldContain("SUMMARY:Check your flood warnings and walk through the flood plan");
     }
 
     [Fact]
@@ -56,14 +73,15 @@ public sealed class CalendarTests : IDisposable
     }
 
     [Fact]
-    public void The_upkeep_view_links_only_the_two_booleans_and_words_the_cadences()
+    public void The_upkeep_view_links_only_the_yes_or_no_facts_and_words_the_cadences()
     {
-        Dwelling dwelling = Profiles.RobsHouse().Dwelling;
+        HouseholdProfile profile = Profiles.RobsHouse();
 
-        UpkeepView view = new(dwelling);
+        UpkeepView view = new(profile);
 
-        view.CalendarHref.ShouldBe("/plan/calendar.ics?decking=true&garden=true");
+        view.CalendarHref.ShouldBe("/plan/calendar.ics?decking=true&garden=true&petrol=true&electric=false&tree=true&stove=false&flood=false");
         view.Reminders.Count.ShouldBe(9);
+        UpkeepView.When(new UpkeepView(Profiles.FloodZoneBungalow()).Reminders.Single(r => r.Id == "flue-sweep")).ShouldBe("1 September");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "stored-cells-check")).ShouldBe("At the clock changes, March and October");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "water-rotation")).ShouldBe("At the clock changes, March and October");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "alarm-tests")).ShouldBe("Monthly");

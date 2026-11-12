@@ -179,11 +179,21 @@
       </ol>
     </details>
   }
+  @* Which flood band the plan was built on and where it came from, whatever the band: a house the map calls very low is told it was looked at. *@
+  <p class="risks__flood" data-flood-origin="@planned.Flood.Origin" data-flood-band="@planned.Flood.Band">
+    <strong>@Selficient.Web.Pages.Plan.FloodCopy.Heading.</strong>
+    @Selficient.Web.Pages.Plan.FloodCopy.Says(planned.Flood, planned.Locality.Nation)
+    @Selficient.Web.Pages.Plan.FloodCopy.OwnAddress(planned.Flood)
+    @foreach (var check in Selficient.Web.Pages.Plan.FloodCopy.CheckLinks(planned.Locality.Nation))
+    {
+      <a href="@check.Address" rel="noopener noreferrer" target="_blank">@check.Text<span class="sr-only"> (opens in a new tab)</span></a>
+    }
+  </p>
 </section>
 
 @await Html.PartialAsync("_PlanMap", new Selficient.Web.Pages.Plan.HouseMapView(planned.Locality, planned.Elevation))
 
-@await Html.PartialAsync("_PlanUpkeep", new Selficient.Web.Pages.Plan.UpkeepView(planned.Plan.Profile.Dwelling))
+@await Html.PartialAsync("_PlanUpkeep", new Selficient.Web.Pages.Plan.UpkeepView(planned.Plan.Profile))
 
 <section class="plan-tools" aria-labelledby="tools-heading">
   <h2 id="tools-heading">Keep it safe</h2>
@@ -191,7 +201,7 @@
   <p class="cluster">
     <button type="button" class="button" data-export-plan>Export as a file</button>
     <label class="button">Import a file<input type="file" accept="application/json" data-import-plan class="sr-only"></label>
-    <a class="button button--quiet" href="/plan/start">Start again</a>
+    <a class="button button--quiet" href="/plan/start" data-change-answers>@Selficient.Web.Pages.Plan.WizardCopy.ChangeAnswers</a>
   </p>
   <details class="clear" data-clear>
     <summary>Clear my plan from this browser</summary>

@@ -96,7 +96,7 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("data-action-row=\"water-bottled-three-days\"");
         html.ShouldContain("name=\"plan\" value=\"water-bottled-three-days\" data-choice=\"plan\"", customMessage: "each action can be planned");
         html.ShouldContain("name=\"skip\" value=\"water-bottled-three-days\" data-choice=\"skip\"", customMessage: "or ruled out");
-        html.ShouldContain("<span>Have it</span>");
+        html.ShouldContain("<span data-have-says=\"all\">Have it</span><span data-have-says=\"part\" hidden>Have some</span>", customMessage: "a counted action part held says so on its first pill, in place of looking as if nothing is had");
         html.ShouldContain("<span>Plan to</span>");
         html.ShouldContain("<span>Not for me</span>");
         html.ShouldContain("Where your plan stands");
@@ -111,7 +111,7 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("name=\"DwellingType\" value=\"Detached\"");
         html.ShouldContain("Everything together:");
         html.ShouldContain("Keep it going");
-        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true\"");
+        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true&amp;petrol=true&amp;electric=false&amp;tree=true&amp;stove=false&amp;flood=false\"");
         html.ShouldContain("Clear the leaf litter from under the decking");
     }
 

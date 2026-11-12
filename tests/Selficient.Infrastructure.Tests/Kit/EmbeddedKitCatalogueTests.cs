@@ -73,7 +73,8 @@ public sealed class EmbeddedKitCatalogueTests
         EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(new AffiliateOptions());
         HashSet<string> withPicks = [.. catalogue.All.Select(p => p.Action.Value)];
         // Actions whose cost is the household's own money or time, or professional work, rather than a product.
-        HashSet<string> exempt = ["cash-in-small-notes", "tree-work-if-advised", "solar-quotes", "rooftop-solar-and-battery", "boiler-plug-and-socket", "heating-fallback", "lights-out-drill", "priority-services-register", "save-emergency-numbers", "clear-leaf-litter-under-decking", "flood-warnings-and-plan"];
+        // The sweep is a tradesman. Pet food, flasks, and nappies and formula are products with no pick yet: nobody has opened a shop and seen a price for them, and a pick is never guessed.
+        HashSet<string> exempt = ["wood-stove-ready", "pet-food-two-weeks", "flasks-for-hot-food", "formula-and-nappies", "cash-in-small-notes", "tree-work-if-advised", "solar-quotes", "rooftop-solar-and-battery", "boiler-plug-and-socket", "heating-fallback", "lights-out-drill", "priority-services-register", "save-emergency-numbers", "clear-leaf-litter-under-decking", "flood-warnings-and-plan"];
 
         IEnumerable<string> missing = PurchasableActionIds().Where(id => !withPicks.Contains(id) && !exempt.Contains(id));
 

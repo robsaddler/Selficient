@@ -3,6 +3,7 @@ using Selficient.Application.Ai;
 using Selficient.Application.Geography;
 using Selficient.Application.Planning;
 using Selficient.Application.Composition;
+using Selficient.Domain.Households;
 using Selficient.Domain.Plans;
 using Selficient.Domain.Primitives;
 using Selficient.Domain.Risks;
@@ -151,7 +152,7 @@ public sealed class AiTests
         geocoder.LocateAsync(Arg.Any<Domain.Measures.Postcode>(), Arg.Any<CancellationToken>()).Returns(Result.Success(new Locality(new Coordinates(51.6655, -3.2031), Nation.Wales, "NP12", "Wales")));
         IElevationProvider elevation = Substitute.For<IElevationProvider>();
         elevation.ElevationAtAsync(Arg.Any<Coordinates>(), Arg.Any<CancellationToken>()).Returns(Domain.Measures.Elevation.Create(232m));
-        PlanHouseholdHandler plan = new(geocoder, elevation, new GeneratePlanHandler(new RiskAssessmentPipeline(ApplicationServiceCollectionExtensions.Assessors()), new PlanBuilder(ApplicationServiceCollectionExtensions.Rules())));
+        PlanHouseholdHandler plan = new(geocoder, elevation, Substitute.For<IFloodRiskProvider>(), new GeneratePlanHandler(new RiskAssessmentPipeline(ApplicationServiceCollectionExtensions.Assessors()), new PlanBuilder(ApplicationServiceCollectionExtensions.Rules())));
         IAnalysisMeter meter = Substitute.For<IAnalysisMeter>();
         meter.FreePerMonth.Returns(5);
         meter.TryTake("h:abc").Returns(MeterOutcome.Allowed, MeterOutcome.AllowanceUsed, MeterOutcome.SiteBusy);
@@ -186,7 +187,7 @@ public sealed class AiTests
     {
         (AnalysePhotoHandler handler, IImageSanitiser sanitiser, IAnalysisMeter meter, IPhotoAnalyst analyst) = Build();
         IPlanNarrator narrator = Substitute.For<IPlanNarrator>();
-        PlanHouseholdHandler plan = new(Substitute.For<IGeocoder>(), Substitute.For<IElevationProvider>(), new GeneratePlanHandler(new RiskAssessmentPipeline(ApplicationServiceCollectionExtensions.Assessors()), new PlanBuilder(ApplicationServiceCollectionExtensions.Rules())));
+        PlanHouseholdHandler plan = new(Substitute.For<IGeocoder>(), Substitute.For<IElevationProvider>(), Substitute.For<IFloodRiskProvider>(), new GeneratePlanHandler(new RiskAssessmentPipeline(ApplicationServiceCollectionExtensions.Assessors()), new PlanBuilder(ApplicationServiceCollectionExtensions.Rules())));
 
         Should.Throw<ArgumentNullException>(() => new AnalysePhotoHandler(null!, meter, analyst));
         Should.Throw<ArgumentNullException>(() => new AnalysePhotoHandler(sanitiser, null!, analyst));

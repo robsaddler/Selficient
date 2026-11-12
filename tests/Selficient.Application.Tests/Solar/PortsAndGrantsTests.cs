@@ -1,5 +1,6 @@
 using Selficient.Application.Geography;
 using Selficient.Application.Solar;
+using Selficient.Domain.Households;
 using Selficient.Domain.Solar;
 
 namespace Selficient.Application.Tests.Solar;

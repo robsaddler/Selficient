@@ -81,6 +81,9 @@ public sealed class RulesTests
         Run(new GardenFireRule(), Profiles.Flat()).ShouldBeEmpty();
     }
 
+    private static HouseholdProfile With(HouseholdProfile profile, bool electricCar = false, bool woodStove = false, bool waterButt = false, int infants = 0) =>
+        profile with { Particulars = new Particulars(electricCar, woodStove, waterButt, infants) };
+
     [Fact]
     public void A_car_gets_a_half_tank_rule()
     {
@@ -89,10 +92,140 @@ public sealed class RulesTests
     }
 
     [Fact]
+    public void An_electric_car_is_asked_to_keep_its_charge_and_never_a_tank()
+    {
+        PlanAction charge = Run(new CarRule(), With(Profiles.RobsHouse(), electricCar: true)).ShouldHaveSingleItem();
+
+        charge.Id.Value.ShouldBe("car-above-half-charge");
+        charge.Title.ShouldBe("Keep the car above half charge from November to March");
+        charge.Why.ShouldBe("Charging stops with the power, at home and at most public chargers. Half a battery is several days of local driving and a way off the hill before the road closes, and the car's own sockets charge phones and power banks.");
+        charge.Cost.ShouldBe(MoneyRange.Free);
+        charge.Tier.ShouldBe(Tier.ThisWeek);
+        charge.Title.ShouldNotContain("tank");
+        Run(new CarRule(), Profiles.RobsHouse()).Single().Id.Value.ShouldBe("car-above-half-a-tank");
+        Run(new CarRule(), With(Profiles.Flat(), electricCar: true)).ShouldBeEmpty("an electric car in a house that said it has no car is no car");
+    }
+
+    [Fact]
+    public void A_baby_gets_nappies_and_formula_that_needs_no_boiled_water()
+    {
+        PlanAction one = Run(new InfantsRule(), With(Profiles.RobsHouse(), infants: 1)).ShouldHaveSingleItem();
+        PlanAction two = Run(new InfantsRule(), With(Profiles.RobsHouse(), infants: 2)).Single();
+
+        one.Id.Value.ShouldBe("formula-and-nappies");
+        one.Tier.ShouldBe(Tier.ThisWeek);
+        one.Title.ShouldBe("Two weeks of nappies, wipes and, if you use it, formula");
+        one.Why.ShouldBe("The shops and the deliveries are the first things to stop. Formula made from powder needs boiled water, so it depends on a way to cook: keep some ready-to-feed cartons, which need neither, for the first days.");
+        one.Cost.ShouldBe(MoneyRange.Pounds(25m, 70m));
+        two.Cost.ShouldBe(MoneyRange.Pounds(50m, 140m));
+        Run(new InfantsRule(), Profiles.RobsHouse()).ShouldBeEmpty("children who are not infants need nothing a shop of nappies would give");
+        Selficient.Domain.Resilience.Providers.Find("formula-and-nappies").ShouldNotBeNull("so having it moves the board's row for infants and pets");
+    }
+
+    [Fact]
+    public void Infants_cannot_outnumber_the_children()
+    {
+        Household household = Profiles.RobsHouse().Household;
+
+        Particulars.Create(household, true, true, true, 2).Value.ShouldBe(new Particulars(true, true, true, 2));
+        Particulars.Create(household, false, false, false, 3).Error.Code.ShouldBe(Selficient.Domain.Primitives.DomainErrors.InfantsOutOfRange().Code);
+        Particulars.Create(household, false, false, false, -1).IsFailure.ShouldBeTrue();
+        Should.Throw<ArgumentNullException>(() => Particulars.Create(null!, false, false, false, 0));
+        Particulars.None.ShouldBe(new Particulars(false, false, false, 0));
+        Profiles.RobsHouse().Nation.ShouldBe(Nation.Unknown);
+    }
+
+    [Fact]
+    public void A_stove_is_swept_and_stocked_whatever_the_main_heating_is()
+    {
+        PlanAction ready = Run(new WoodStoveRule(), With(Profiles.RobsHouse(), woodStove: true)).ShouldHaveSingleItem();
+
+        ready.Id.Value.ShouldBe("wood-stove-ready");
+        ready.Tier.ShouldBe(Tier.ThisMonth);
+        ready.Title.ShouldBe("Have the flue swept and the log store full before winter");
+        ready.Why.ShouldBe("Your stove is heat, a kettle and a hot meal that need nothing from anyone, for as long as the logs last. A swept flue and dry logs are what make it safe to lean on, and the carbon monoxide alarm belongs in the same room.");
+        ready.Cost.ShouldBe(MoneyRange.Pounds(60m, 120m));
+        Run(new WoodStoveRule(), Profiles.FloodZoneBungalow()).ShouldHaveSingleItem("wood as the main heating is a stove");
+        Run(new WoodStoveRule(), Profiles.RobsHouse()).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Flood_actions_only_when_flooding_is_a_risk()
     {
         Run(new FloodRule(), Profiles.FloodZoneBungalow(), GardenFireAndFlood).Select(a => a.Id.Value).ShouldBe(["flood-warnings-and-plan", "flood-protection-kit"]);
-        Run(new FloodRule(), Profiles.RobsHouse()).ShouldBeEmpty();
+        Run(new FloodRule(), Profiles.RobsHouse()).ShouldBeEmpty("very low on the map is nothing to do, and nothing is said");
+    }
+
+    [Fact]
+    public void A_house_whose_flood_risk_nobody_knows_is_sent_to_its_own_nations_map_first()
+    {
+        PlanAction check = Run(new FloodRule(), Profiles.Flat() with { Nation = Nation.Scotland }).ShouldHaveSingleItem();
+
+        check.Id.Value.ShouldBe("check-flood-risk");
+        check.Tier.ShouldBe(Tier.ThisWeek);
+        check.Title.ShouldBe("Check what the flood map says about your address");
+        check.Why.ShouldBe("This plan does not know your flood risk yet, and it changes what comes first. The check takes two minutes with your postcode and covers rivers, the sea and surface water. If it says low, medium or high, change your answer and the plan adds what to do about it.");
+        check.Cost.ShouldBe(MoneyRange.Free);
+        check.Link.ShouldBe(new ActionLink("Check your address on SEPA's flood maps", new Uri("https://beta.sepa.scot/flooding/flood-maps/")));
+        Run(new FloodRule(), Profiles.Flat() with { Nation = Nation.England }).Single().Link!.Address.ShouldBe(new Uri("https://www.gov.uk/check-long-term-flood-risk"));
+        Run(new FloodRule(), Profiles.Flat() with { Nation = Nation.Wales }).Single().Link!.Text.ShouldBe("Check your address with Natural Resources Wales");
+        Run(new FloodRule(), Profiles.Flat() with { Nation = Nation.NorthernIreland }).Single().Link!.Address.ShouldBe(new Uri("https://www.nidirect.gov.uk/articles/check-risk-flooding-your-area"));
+        Run(new FloodRule(), Profiles.Flat()).Single().Link.ShouldBeNull("with no nation there is no service to name, and the action still stands");
+    }
+
+    [Fact]
+    public void Nobody_is_told_to_sign_up_for_a_flood_warning_they_cannot_get()
+    {
+        static PlanAction Plan(Nation nation, FloodWater from) =>
+            Run(new FloodRule(), Profiles.FloodZoneBungalow() with { Nation = nation, FloodFrom = from }, GardenFireAndFlood)[0];
+
+        // Rivers and the sea, where a nation runs a warning service: sign up, at that nation's own address.
+        PlanAction england = Plan(Nation.England, FloodWater.RiversOrSea);
+        england.Title.ShouldBe("Sign up for free flood warnings and write a one-page flood plan");
+        england.Why.ShouldBe("Know where the stopcock and the fuse board are, where you would move the car, and what is lifted off the floor first. Warnings come by phone call, text and email. Check that your buildings and contents insurance covers flood.");
+        england.Link.ShouldBe(new ActionLink("Sign up for flood warnings on GOV.UK", new Uri("https://www.gov.uk/get-flood-warnings")));
+        Plan(Nation.Wales, FloodWater.NotSaid).Link!.Address.ShouldBe(new Uri("https://naturalresources.wales/flooding/sign-up-to-receive-flood-warnings/"));
+        Plan(Nation.Scotland, FloodWater.RiversOrSea).Link.ShouldBe(new ActionLink("Sign up to SEPA's Floodline", new Uri("https://www.sepa.org.uk/flooding/floodline-register/")));
+        Plan(Nation.Unknown, FloodWater.NotSaid).Link.ShouldBeNull();
+        Plan(Nation.Unknown, FloodWater.NotSaid).Title.ShouldStartWith("Sign up for free flood warnings");
+
+        // Northern Ireland has no warning service, and says so.
+        PlanAction northernIreland = Plan(Nation.NorthernIreland, FloodWater.RiversOrSea);
+        northernIreland.Title.ShouldBe("Write a one-page flood plan, and watch the Met Office warnings for heavy rain");
+        northernIreland.Why.ShouldContain("There is no flood warning service to sign up to in Northern Ireland, so the Met Office's warnings for rain are the notice you get.");
+        northernIreland.Link.ShouldBe(new ActionLink("Preparing for a flood, on nidirect", new Uri("https://www.nidirect.gov.uk/articles/preparing-flood")));
+
+        // Surface water comes with the rain, anywhere, and nobody calls ahead of it.
+        PlanAction rain = Plan(Nation.England, FloodWater.SurfaceWater);
+        rain.Title.ShouldBe("Write a one-page flood plan, and watch the Met Office warnings for heavy rain");
+        rain.Why.ShouldBe("Know where the stopcock and the fuse board are, where you would move the car, and what is lifted off the floor first. The risk here is surface water, which comes with heavy rain, too fast for a flood warning service to call ahead, so a yellow or amber warning for rain is the notice you get. Check that your buildings and contents insurance covers flood.");
+        rain.Link.ShouldBe(new ActionLink("Weather warnings from the Met Office", new Uri("https://weather.metoffice.gov.uk/warnings-and-advice/uk-warnings")));
+        rain.Title.ShouldNotContain("Sign up");
+        Plan(Nation.NorthernIreland, FloodWater.SurfaceWater).Link.ShouldBe(FloodServices.RainWarnings);
+
+        // The plan is for this house: stairs where there are stairs, and no car to move where there is none.
+        HouseholdProfile terrace = Profiles.Build(2, 0, false, false, false, DwellingType.Terrace, 2, HeatingType.GasBoiler, HobType.Gas, car: false, false, false, false, null, FloodRisk.High) with { Nation = Nation.England };
+        Run(new FloodRule(), terrace, GardenFireAndFlood)[0].Why.ShouldStartWith("Know where the stopcock and the fuse board are, and what goes upstairs first. Warnings come");
+        england.Why.ShouldNotContain("upstairs", customMessage: "a bungalow has no upstairs");
+    }
+
+    [Fact]
+    public void Every_official_address_is_https_on_a_government_or_agency_host()
+    {
+        string[] allowed = ["www.gov.uk", "naturalresources.wales", "beta.sepa.scot", "www.sepa.org.uk", "www.nidirect.gov.uk", "weather.metoffice.gov.uk"];
+        IEnumerable<ActionLink?> links = Enum.GetValues<Nation>().SelectMany(nation => new[] { FloodServices.Check(nation), FloodServices.Warnings(nation) })
+            .Append(FloodServices.NorthernIrelandAdvice).Append(FloodServices.RainWarnings);
+
+        foreach (ActionLink link in links.OfType<ActionLink>())
+        {
+            link.Address.Scheme.ShouldBe("https");
+            allowed.ShouldContain(link.Address.Host);
+            link.Text.ShouldNotBeNullOrWhiteSpace();
+        }
+
+        FloodServices.Check(Nation.Unknown).ShouldBeNull();
+        FloodServices.Warnings(Nation.NorthernIreland).ShouldBeNull("there is no service to sign up to");
+        Enum.GetValues<Nation>().Count(nation => FloodServices.Check(nation) is not null).ShouldBe(4);
     }
 
     [Fact]
@@ -106,13 +239,23 @@ public sealed class RulesTests
         house[0].Why.ShouldStartWith("100 litres is about 8 days of drinking water for 4 people.");
         flat.Select(a => a.Id.Value).ShouldBe(["water-cans", "bath-liner"]);
         flat[0].Title.ShouldBe("1 food-grade 25-litre water cans with taps");
+        Run(new WaterStoreRule(), With(Profiles.RobsHouse(), waterButt: true)).Select(a => a.Id.Value).ShouldBe(["water-cans", "bath-liner"], "a garden that has a butt is not sold another");
+        Run(new WaterStoreRule(), With(Profiles.Flat(), waterButt: true)).Select(a => a.Id.Value).ShouldBe(["water-cans", "bath-liner"]);
     }
 
     [Fact]
-    public void A_month_of_food_remembers_the_pets()
+    public void Pets_get_a_row_of_their_own_beside_the_month_of_food()
     {
-        Run(new FoodStoreRule(), Profiles.FloodZoneBungalow()).Single().Why.ShouldEndWith("Include the pets' food.");
-        Run(new FoodStoreRule(), Profiles.RobsHouse()).Single().Why.ShouldEndWith("Add a manual tin opener.");
+        List<PlanAction> withPets = Run(new FoodStoreRule(), Profiles.FloodZoneBungalow());
+
+        withPets.Select(a => a.Id.Value).ShouldBe(["food-one-month", "pet-food-two-weeks"]);
+        withPets[0].Why.ShouldBe("Take from the front and restock at the back, and nothing ever goes off. Add a manual tin opener.");
+        withPets[1].Title.ShouldBe("Two weeks of pet food, and any medication, kept ahead of the bag in use");
+        withPets[1].Why.ShouldBe("Buy the next bag or box before the last one is opened, so there is always a fortnight in the house and nothing goes off. Store a few litres of water a day for them as well as your own.");
+        withPets[1].Cost.ShouldBe(MoneyRange.Pounds(15m, 60m));
+        withPets[1].Tier.ShouldBe(Tier.ThisMonth);
+        Run(new FoodStoreRule(), Profiles.RobsHouse()).Single().Id.Value.ShouldBe("food-one-month");
+        Selficient.Domain.Resilience.Providers.Find("pet-food-two-weeks").ShouldNotBeNull("so having it moves the board's row for infants and pets");
     }
 
     [Fact]
@@ -120,6 +263,23 @@ public sealed class RulesTests
     {
         Run(new CookingRule(), Profiles.FloodZoneBungalow()).Single().Id.Value.ShouldBe("long-reach-lighter-for-gas-hob");
         Run(new CookingRule(), Profiles.RobsHouse()).Single().Id.Value.ShouldBe("butane-cartridge-stove");
+    }
+
+    [Fact]
+    public void A_flat_with_nowhere_outside_is_not_sold_a_stove_it_cannot_use()
+    {
+        PlanAction flasks = Run(new CookingRule(), Profiles.Flat()).ShouldHaveSingleItem();
+
+        flasks.Id.Value.ShouldBe("flasks-for-hot-food");
+        flasks.Title.ShouldBe("Two large vacuum flasks, filled from the kettle when a warning comes");
+        flasks.Why.ShouldBe("A camping stove is not safe indoors and a flat has nowhere outside to use one, so this plan does not ask you to buy one. Two flasks filled before the power goes are hot drinks and instant meals for most of a day; after that it is the food that needs no cooking.");
+        flasks.Cost.ShouldBe(MoneyRange.Pounds(20m, 40m));
+        Selficient.Domain.Resilience.ResilienceProfile.FromProfile(Profiles.Flat()).CanHave(Selficient.Domain.Resilience.Placement.OutdoorsOnly).ShouldBeFalse("the board would not count a stove there, which is why the plan does not sell one");
+
+        HouseholdProfile gardenFlat = Profiles.Build(1, 0, false, false, false, DwellingType.Flat, 1, HeatingType.Electric, HobType.Electric, false, garden: true, false, false, 12m, FloodRisk.Unknown);
+        Run(new CookingRule(), gardenFlat).Single().Id.Value.ShouldBe("butane-cartridge-stove", "a flat with a garden has somewhere to cook");
+        HouseholdProfile gasFlat = Profiles.Build(1, 0, false, false, false, DwellingType.Flat, 1, HeatingType.Electric, HobType.Gas, false, false, false, false, 12m, FloodRisk.Unknown);
+        Run(new CookingRule(), gasFlat).Single().Id.Value.ShouldBe("long-reach-lighter-for-gas-hob");
     }
 
     [Fact]
@@ -145,6 +305,8 @@ public sealed class RulesTests
         Run(new PowerStationRule(), Profiles.RobsHouse()).Select(a => a.Id.Value).ShouldBe(["portable-power-station", "boiler-plug-and-socket"]);
         Run(new PowerStationRule(), Profiles.Flat()).Select(a => a.Id.Value).ShouldBe(["portable-power-station", "heating-fallback"]);
         Run(new PowerStationRule(), Profiles.FloodZoneBungalow()).Select(a => a.Id.Value).ShouldBe(["portable-power-station"]);
+        Run(new PowerStationRule(), With(Profiles.Flat(), woodStove: true)).Select(a => a.Id.Value).ShouldBe(["portable-power-station"], "electric heating with a stove beside it has its fallback already");
+        Run(new PowerStationRule(), With(Profiles.RobsHouse(), woodStove: true)).Select(a => a.Id.Value).ShouldBe(["portable-power-station", "boiler-plug-and-socket"], "a boiler is still worth a plug");
     }
 
     [Fact]
@@ -162,6 +324,7 @@ public sealed class RulesTests
             new BaselineChecklistRule(), new PriorityServicesRule(), new TallTreeRule(), new CarRule(),
             new WaterStoreRule(), new FoodStoreRule(), new CookingRule(), new LanternRule(),
             new SolarQuotesRule(), new PowerStationRule(), new WaterFilterRule(), new BusinessCommsRule(),
+            new InfantsRule(), new WoodStoveRule(),
         ];
         foreach (IPlanRule rule in needProfile)
         {
@@ -171,5 +334,6 @@ public sealed class RulesTests
         Should.Throw<ArgumentNullException>(() => new GardenFireRule().Contribute(null!, NoRisks).ToList());
         Should.Throw<ArgumentNullException>(() => new GardenFireRule().Contribute(Profiles.Flat(), null!).ToList());
         Should.Throw<ArgumentNullException>(() => new FloodRule().Contribute(Profiles.Flat(), null!).ToList());
+        Should.Throw<ArgumentNullException>(() => new FloodRule().Contribute(null!, NoRisks).ToList());
     }
 }

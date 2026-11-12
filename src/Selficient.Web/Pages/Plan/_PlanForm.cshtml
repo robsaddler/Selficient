@@ -88,14 +88,10 @@
       <select asp-for="Hob" asp-items="Selficient.Web.Pages.Plan.PlanForm.HobTypes" class="input"></select>
       <span asp-validation-for="Hob" class="field__error"></span>
     </div>
-    <div class="field field--check">
-      <input asp-for="HasCar">
-      <label asp-for="HasCar"></label>
-    </div>
     <div class="field">
       <label asp-for="Car"></label>
       <select asp-for="Car" asp-items="Selficient.Web.Pages.Plan.PlanForm.CarKinds" class="input">
-        <option value="None">There is no car</option>
+        <option value="None">No</option>
       </select>
       <span asp-validation-for="Car" class="field__error"></span>
     </div>
@@ -158,7 +154,13 @@
       <label asp-for="FloodRisk"></label>
       <select asp-for="FloodRisk" asp-items="Selficient.Web.Pages.Plan.PlanForm.FloodRisks" class="input"></select>
       <span asp-validation-for="FloodRisk" class="field__error"></span>
-      <p class="field__hint">Check in two minutes at the national flood service for <a href="https://check-long-term-flood-risk.service.gov.uk/" rel="noopener noreferrer">England</a>, <a href="https://naturalresources.wales/flooding/check-your-flood-risk-by-postcode/" rel="noopener noreferrer">Wales</a>, <a href="https://www.sepa.org.uk/environment/water/flooding/flood-maps/" rel="noopener noreferrer">Scotland</a> or <a href="https://www.nidirect.gov.uk/articles/check-risk-flooding-your-area" rel="noopener noreferrer">Northern Ireland</a>.</p>
+      <p class="field__hint">@Selficient.Web.Pages.Plan.FloodCopy.FormHint</p>
+      <p class="field__hint">@Selficient.Web.Pages.Plan.FloodCopy.FormOwnAddress
+        @foreach (var (nation, last) in Selficient.Web.Pages.Plan.FloodCopy.Nations)
+        {
+          <a href="@Selficient.Domain.Households.FloodServices.Check(nation)!.Address" rel="noopener noreferrer" target="_blank">@Selficient.Web.Pages.Plan.FloodCopy.NationName(nation)</a>@last
+        }
+      </p>
     </div>
   </fieldset>
 

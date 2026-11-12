@@ -1,4 +1,5 @@
 using Selficient.Application.Geography;
+using Selficient.Domain.Households;
 using Selficient.Domain.Measures;
 using Selficient.Web.Pages.Plan;
 

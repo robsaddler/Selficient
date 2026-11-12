@@ -49,8 +49,8 @@ public sealed class IndexModel : PageModel
     private static Faq Stored(bool accounts) => new(
         "Do you store my address or my answers?",
         accounts
-            ? "Not unless you ask us to. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. You do not need an account and nothing tracks you. If you choose to make an account, so that your plan follows you between devices, we keep your email address and your plan, and you can delete both whenever you like."
-            : "No. Your postcode is sent once to find your area and your height above sea level, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. There is no account to make and nothing tracks you.");
+            ? "Not unless you ask us to. Your postcode is sent once to find your area, your height above sea level and what the flood map says there, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. You do not need an account and nothing tracks you. If you choose to make an account, so that your plan follows you between devices, we keep your email address and your plan, and you can delete both whenever you like."
+            : "No. Your postcode is sent once to find your area, your height above sea level and what the flood map says there, and is not kept. Everything else, including your plan and your ticks, lives in your own browser. There is no account to make and nothing tracks you.");
 
     private static Faq Account(bool accounts) => new(
         "Do I need an account?",

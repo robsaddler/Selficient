@@ -15,9 +15,14 @@ public sealed class StormPowerCutAssessor : IRiskAssessor
             ? "Your house sits high and exposed, on overhead lines, so a winter storm cut of six to forty-eight hours is the most likely disruption you will see."
             : "A winter storm cut of six to forty-eight hours is the most likely disruption any UK house will see.";
 
-        string cost = dwelling.HeatingNeedsElectricity
-            ? " Your heating stops the moment the electricity does, along with the fridge, the lights, the router and the phone masts."
-            : " The fridge, the lights, the router and the phone masts all go with it.";
+        string cost = " The fridge, the lights, the router and the phone masts all go with it.";
+        if (dwelling.HeatingNeedsElectricity)
+        {
+            // A stove beside the boiler is a warm room the cut cannot take, and the sentence should not say otherwise.
+            cost = profile.HasWoodStove
+                ? " Your central heating stops the moment the electricity does, along with the fridge, the lights, the router and the phone masts. The stove keeps one room warm."
+                : " Your heating stops the moment the electricity does, along with the fridge, the lights, the router and the phone masts.";
+        }
 
         return new Risk(
             RiskKind.StormPowerCut,
@@ -97,26 +102,62 @@ public sealed class GardenFireAssessor : IRiskAssessor
             return null;
         }
 
-        return dwelling.HasDecking || dwelling.HasTallTreeNearHouse
-            ? new Risk(RiskKind.GardenFire, Likelihood.Medium, Impact.High, "Dry summers bring grass and hillside fires, and leaf litter under timber decking or a tree belt behind the fence is exactly what an ember looks for.")
-            : new Risk(RiskKind.GardenFire, Likelihood.Low, Impact.Medium, "Dry summers bring garden and grass fires, usually started by a barbecue or a bonfire.");
+        // Named for what this garden has: a house with a tree and no decking is not told about decking.
+        string? fuel = (dwelling.HasDecking, dwelling.HasTallTreeNearHouse) switch
+        {
+            (true, true) => "leaf litter under timber decking and the litter a tall tree drops against the house are",
+            (true, false) => "leaf litter under timber decking is",
+            (false, true) => "the litter a tall tree drops against the house and the fence is",
+            _ => null,
+        };
+
+        return fuel is null
+            ? new Risk(RiskKind.GardenFire, Likelihood.Low, Impact.Medium, "Dry summers bring garden and grass fires, usually started by a barbecue or a bonfire.")
+            : new Risk(RiskKind.GardenFire, Likelihood.Medium, Impact.High, $"Dry summers bring grass and hillside fires, and {fuel} exactly what an ember looks for.");
     }
 }
 
 /// <summary>Flooding only ranks when the agencies say the area is at risk.</summary>
 public sealed class FloodingAssessor : IRiskAssessor
 {
+    // What each band means in a year. Scotland's map draws its bands at different odds from the other
+    // three nations', so a "medium" in Perth is not the "medium" of York and is not described as it.
+    private static readonly Dictionary<(bool Scottish, FloodRisk Band), string> Odds = new()
+    {
+        [(false, FloodRisk.High)] = "at high risk{0}, which means more than a one in thirty chance in any year. Flooding goes to the top of your plan.",
+        [(false, FloodRisk.Medium)] = "at medium risk{0}, between a one in a hundred and a one in thirty chance in any year.",
+        [(false, FloodRisk.Low)] = "at low risk{0}, which is still up to a one in a hundred chance in any year.",
+        [(true, FloodRisk.High)] = "at high risk{0}, which on Scotland's map means a one in ten chance or more in any year. Flooding goes to the top of your plan.",
+        [(true, FloodRisk.Medium)] = "at medium risk{0}, which on Scotland's map is between a one in two hundred and a one in ten chance in any year.",
+        [(true, FloodRisk.Low)] = "at low risk{0}, which on Scotland's map is between a one in a thousand and a one in two hundred chance in any year.",
+    };
+
+    private static readonly Dictionary<FloodWater, string> Waters = new()
+    {
+        [FloodWater.NotSaid] = string.Empty,
+        [FloodWater.RiversOrSea] = " from rivers or the sea",
+        [FloodWater.SurfaceWater] = " from surface water",
+    };
+
+    private static readonly Dictionary<FloodRisk, (Likelihood Likelihood, Impact Impact)> Ratings = new()
+    {
+        [FloodRisk.High] = (Likelihood.High, Impact.Severe),
+        [FloodRisk.Medium] = (Likelihood.Medium, Impact.Severe),
+        [FloodRisk.Low] = (Likelihood.Low, Impact.High),
+    };
+
     /// <inheritdoc />
     public Risk? Assess(HouseholdProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        return profile.Dwelling.FloodRisk switch
+        FloodRisk band = profile.Dwelling.FloodRisk;
+        if (!Ratings.TryGetValue(band, out (Likelihood Likelihood, Impact Impact) rating))
         {
-            FloodRisk.High => new Risk(RiskKind.Flooding, Likelihood.High, Impact.Severe, "The national flood map puts your area at high risk, which means more than a one in thirty chance in any year. Flooding goes to the top of your plan."),
-            FloodRisk.Medium => new Risk(RiskKind.Flooding, Likelihood.Medium, Impact.Severe, "The national flood map puts your area at medium risk, between a one in a hundred and a one in thirty chance in any year."),
-            FloodRisk.Low => new Risk(RiskKind.Flooding, Likelihood.Low, Impact.High, "The national flood map puts your area at low risk, which is still up to a one in a hundred chance in any year."),
-            _ => null,
-        };
+            return null;
+        }
+
+        string says = string.Format(System.Globalization.CultureInfo.InvariantCulture, Odds[(profile.Nation == Nation.Scotland, band)], Waters[profile.FloodFrom]);
+        return new Risk(RiskKind.Flooding, rating.Likelihood, rating.Impact, "The national flood map puts your area " + says);
     }
 }
 

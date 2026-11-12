@@ -1,6 +1,7 @@
 using NSubstitute;
 using Selficient.Application.Geography;
 using Selficient.Application.Solar;
+using Selficient.Domain.Households;
 using Selficient.Domain.Measures;
 using Selficient.Domain.Primitives;
 using Selficient.Domain.Solar;

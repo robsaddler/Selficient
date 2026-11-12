@@ -15,6 +15,12 @@ public static class AmountCopy
     /// <summary>The label on every figure's box.</summary>
     public const string Question = "How much do you have?";
 
+    /// <summary>The first choice on every action.</summary>
+    public const string HaveAll = "Have it";
+
+    /// <summary>The first choice on an action the household counted and has part of: the figure is used, and the pill says so.</summary>
+    public const string HaveSome = "Have some";
+
     private static readonly Dictionary<string, (string Unit, string Short)> Units = new(StringComparer.Ordinal)
     {
         [MeasuredStocks.FoodDays] = ("days of food for the {0} of you", "days of food"),

@@ -1,3 +1,4 @@
+using Selficient.Domain.Households;
 using System.Security.Cryptography;
 using System.Text;
 using Selficient.Application.Geography;
@@ -91,5 +92,46 @@ public sealed class FakeReverseGeocoder : IReverseGeocoder
         }
 
         return Task.FromResult(Postcode.Create("NP12 1GW"));
+    }
+}
+
+/// <summary>
+/// A flood map without a network. Rob's house is very low, as the real map says it is. Northern
+/// Ireland has no map, as in life, and the Shetland point that has no height has no flood answer
+/// either. Everywhere else the band follows the coordinates: most places very low, and one in eight
+/// each low from surface water, medium from a river and high from a river, so every sentence the
+/// plan can say about flooding can be seen from a postcode.
+/// </summary>
+public sealed class FakeFloodRiskProvider : IFloodRiskProvider
+{
+    private static readonly Dictionary<Nation, string> Sources = new()
+    {
+        [Nation.England] = EnvironmentAgencyFloodMap.Source,
+        [Nation.Wales] = NaturalResourcesWalesFloodMap.Source,
+        [Nation.Scotland] = SepaFloodMap.Source,
+    };
+
+    private static readonly (FloodRisk Band, FloodWater From)[] Bands =
+    [
+        (FloodRisk.VeryLow, FloodWater.NotSaid), (FloodRisk.VeryLow, FloodWater.NotSaid), (FloodRisk.VeryLow, FloodWater.NotSaid),
+        (FloodRisk.VeryLow, FloodWater.NotSaid), (FloodRisk.VeryLow, FloodWater.NotSaid),
+        (FloodRisk.Low, FloodWater.SurfaceWater), (FloodRisk.Medium, FloodWater.RiversOrSea), (FloodRisk.High, FloodWater.RiversOrSea),
+    ];
+
+    /// <inheritdoc />
+    public Task<Result<FloodFinding>> AtAsync(Coordinates point, Nation nation, CancellationToken cancellationToken)
+    {
+        if (!Sources.TryGetValue(nation, out string? source) || point == new Coordinates(60.0, -1.0))
+        {
+            return Task.FromResult(Result.Failure<FloodFinding>(DomainErrors.LookupUnavailable()));
+        }
+
+        if (point == new Coordinates(51.6655, -3.2031))
+        {
+            return Task.FromResult(Result.Success(new FloodFinding(FloodRisk.VeryLow, FloodWater.NotSaid, source)));
+        }
+
+        (FloodRisk band, FloodWater from) = Bands[(int)Math.Abs(Math.Round((point.Latitude + point.Longitude) * 10_000)) % Bands.Length];
+        return Task.FromResult(Result.Success(new FloodFinding(band, from, source)));
     }
 }

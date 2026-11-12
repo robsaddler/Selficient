@@ -71,9 +71,11 @@ public sealed class PlanForm
     [Display(Name = "What does the hob run on?")]
     public HobType Hob { get; set; } = HobType.Electric;
 
-    /// <summary>Car.</summary>
-    [Display(Name = "Is there a car?")]
-    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    /// <summary>
+    /// Whether there is a car, as plans made before the one question about the car said it. The form
+    /// no longer asks this on its own: <see cref="Car"/> says whether and what kind in one answer, and
+    /// <see cref="OwnsCar"/> reads either.
+    /// </summary>
     public bool HasCar { get; set; }
 
     /// <summary>Garden.</summary>
@@ -94,7 +96,7 @@ public sealed class PlanForm
     /// <summary>Flood risk as reported by the national map.</summary>
     [Required(ErrorMessage = "This answer is needed to build the plan.")]
     [EnumDataType(typeof(FloodRisk), ErrorMessage = "Choose the flood risk from the list.")]
-    [Display(Name = "What does the national flood map say about your area?")]
+    [Display(Name = "How likely is flooding where you live?")]
     public FloodRisk FloodRisk { get; set; } = FloodRisk.Unknown;
 
     /// <summary>A chest freezer as well as the fridge-freezer.</summary>
@@ -119,7 +121,7 @@ public sealed class PlanForm
 
     /// <summary>What kind of car, when there is one.</summary>
     [EnumDataType(typeof(CarKind), ErrorMessage = "Choose the kind of car from the list.")]
-    [Display(Name = "If there is a car, what kind?")]
+    [Display(Name = "Is there a car?")]
     public CarKind? Car { get; set; }
 
     /// <summary>Children under two.</summary>
@@ -152,10 +154,20 @@ public sealed class PlanForm
     [EnumDataType(typeof(Season), ErrorMessage = "Choose winter or summer.")]
     public Season? Season { get; set; }
 
+    /// <summary>True when the household has a car, said either way: by the kind, or by an older plan's tick.</summary>
+    public bool OwnsCar => HasCar || Car > CarKind.None;
+
+    /// <summary>The car there is: none, or its kind, with an older plan's bare tick read as petrol or diesel.</summary>
+    public CarKind CarOwned => Car > CarKind.None ? Car.Value : HasCar ? CarKind.Petrol : CarKind.None;
+
     /// <summary>The request for the Application layer.</summary>
     public PlanHouseholdRequest ToRequest() => new(
         Postcode,
-        new GeneratePlanCommand(People, Children, HasVulnerablePerson, HasPets, RunsBusinessFromHome, DwellingType, Storeys, Heating, Hob, HasCar, HasGarden, HasDecking, HasTallTreeNearHouse, null, FloodRisk));
+        new GeneratePlanCommand(People, Children, HasVulnerablePerson, HasPets, RunsBusinessFromHome, DwellingType, Storeys, Heating, Hob, OwnsCar, HasGarden, HasDecking, HasTallTreeNearHouse, null, FloodRisk,
+            CarIsElectric: Car >= CarKind.Electric,
+            HasWoodStove: HasWoodStove,
+            HasWaterButt: HasWaterButt,
+            Infants: Infants ?? 0));
 
     /// <summary>
     /// The household as the resilience engine sees it. The newer questions are optional so a profile
@@ -181,16 +193,15 @@ public sealed class PlanForm
             dependencies.Add(dependency.Value);
         }
 
-        CarKind car = !HasCar ? CarKind.None : Car is null or CarKind.None ? CarKind.Petrol : Car.Value;
-        return ResilienceProfile.Create(profile, HasChestFreezer, HasWoodStove, HasWaterButt, Growing ?? Selficient.Domain.Resilience.Growing.None, car, Infants ?? 0, MedicineDaysInStock ?? 7, DwellingType == DwellingType.Flat ? Floor ?? 0 : 0, dependencies);
+        return ResilienceProfile.Create(profile, HasChestFreezer, HasWoodStove, HasWaterButt, Growing ?? Selficient.Domain.Resilience.Growing.None, CarOwned, Infants ?? 0, MedicineDaysInStock ?? 7, DwellingType == DwellingType.Flat ? Floor ?? 0 : 0, dependencies);
     }
 
     /// <summary>The kinds of car.</summary>
     public static IReadOnlyList<SelectListItem> CarKinds { get; } =
     [
-        new("Petrol or diesel", nameof(CarKind.Petrol)),
-        new("Electric", nameof(CarKind.Electric)),
-        new("Electric, and it can power things (vehicle-to-load or vehicle-to-home)", nameof(CarKind.ElectricWithOutput)),
+        new("Yes, petrol or diesel", nameof(CarKind.Petrol)),
+        new("Yes, electric", nameof(CarKind.Electric)),
+        new("Yes, electric, and it can power things (vehicle-to-load or vehicle-to-home)", nameof(CarKind.ElectricWithOutput)),
     ];
 
     /// <summary>Whether and how the household grows food.</summary>
@@ -241,7 +252,7 @@ public sealed class PlanForm
     /// <summary>Flood risk options.</summary>
     public static IReadOnlyList<SelectListItem> FloodRisks { get; } =
     [
-        new("I have not checked yet", nameof(FloodRisk.Unknown)),
+        new("Look it up for me", nameof(FloodRisk.Unknown)),
         new("Very low", nameof(FloodRisk.VeryLow)),
         new("Low", nameof(FloodRisk.Low)),
         new("Medium", nameof(FloodRisk.Medium)),

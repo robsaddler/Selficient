@@ -27,6 +27,18 @@ public sealed class UpstreamOptions : IValidatableObject
     [Required]
     public Uri GoogleSolarBaseUrl { get; init; } = new("https://solar.googleapis.com/");
 
+    /// <summary>The Environment Agency's spatial data services: England's flood map, free and keyless.</summary>
+    [Required]
+    public Uri EnvironmentAgencyBaseUrl { get; init; } = new("https://environment.data.gov.uk/");
+
+    /// <summary>DataMapWales: Natural Resources Wales's flood map, free and keyless.</summary>
+    [Required]
+    public Uri DataMapWalesBaseUrl { get; init; } = new("https://datamap.gov.wales/");
+
+    /// <summary>SEPA's open map services: Scotland's flood map, free and keyless.</summary>
+    [Required]
+    public Uri SepaBaseUrl { get; init; } = new("https://map.sepa.org.uk/");
+
     /// <summary>Per-call timeout.</summary>
     [Range(1, 30)]
     public int TimeoutSeconds { get; init; } = 5;
@@ -40,7 +52,7 @@ public sealed class UpstreamOptions : IValidatableObject
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        foreach ((string name, Uri uri) in new[] { (nameof(PostcodesBaseUrl), PostcodesBaseUrl), (nameof(ElevationBaseUrl), ElevationBaseUrl), (nameof(PvgisBaseUrl), PvgisBaseUrl), (nameof(GoogleSolarBaseUrl), GoogleSolarBaseUrl) })
+        foreach ((string name, Uri uri) in new[] { (nameof(PostcodesBaseUrl), PostcodesBaseUrl), (nameof(ElevationBaseUrl), ElevationBaseUrl), (nameof(PvgisBaseUrl), PvgisBaseUrl), (nameof(GoogleSolarBaseUrl), GoogleSolarBaseUrl), (nameof(EnvironmentAgencyBaseUrl), EnvironmentAgencyBaseUrl), (nameof(DataMapWalesBaseUrl), DataMapWalesBaseUrl), (nameof(SepaBaseUrl), SepaBaseUrl) })
         {
             // https everywhere, except a loopback stub on the developer's own machine or in a test.
             bool allowed = uri.IsAbsoluteUri && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback));

@@ -157,7 +157,7 @@ public static class KeepCopy
     }
 
     /// <summary>What the section says after the cards: the rest of the old promise, unchanged for a guest.</summary>
-    public static string WaysPromise => "Whichever you choose, your postcode is sent once, to find your area and your height above sea level, and is not kept. There is no tracking and no analytics. Install Selficient to your phone and the plan opens without a signal.";
+    public static string WaysPromise => "Whichever you choose, your postcode is sent once, to find your area, your height above sea level and what the flood map says there, and is not kept. There is no tracking and no analytics. Install Selficient to your phone and the plan opens without a signal.";
 
     /// <summary>The heading of the passkeys part of the account's row.</summary>
     public static string PasskeysHeading => "Passkeys";

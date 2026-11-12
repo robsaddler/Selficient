@@ -5,9 +5,11 @@
     ViewData["Description"] = "Answer a few questions about your home and we will work out how many days it could stand on its own.";
 }
 
-<section class="wizard" aria-labelledby="wizard-heading">
+<section class="wizard" aria-labelledby="wizard-heading" data-wizard-start>
   <p class="eyebrow">Your plan</p>
   <h1 id="wizard-heading">A few facts about your home</h1>
-  <p>Nothing here leaves your browser except the postcode, which we use once to find your area and your height above sea level. We do not store it.</p>
+  <p>@Selficient.Web.Pages.Plan.WizardCopy.WhatLeaves</p>
+  @* Shown by wizard.js when this browser already keeps a plan: the form below is filled in with the answers it was built from, so one answer can be changed without typing the rest again. *@
+  <p class="wizard__kept" data-wizard-kept role="status" hidden>@Selficient.Web.Pages.Plan.WizardCopy.KeptAnswers</p>
   @await Html.PartialAsync("_PlanForm", Model.Form, new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { TemplateInfo = { HtmlFieldPrefix = "Form" } })
 </section>

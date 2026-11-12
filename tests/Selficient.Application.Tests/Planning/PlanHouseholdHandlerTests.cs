@@ -17,9 +17,10 @@ public sealed class PlanHouseholdHandlerTests
 
     private readonly IGeocoder _geocoder = Substitute.For<IGeocoder>();
     private readonly IElevationProvider _elevation = Substitute.For<IElevationProvider>();
+    private readonly IFloodRiskProvider _flood = Substitute.For<IFloodRiskProvider>();
 
     private PlanHouseholdHandler Handler() =>
-        new(_geocoder, _elevation, new GeneratePlanHandler(new RiskAssessmentPipeline(ApplicationServiceCollectionExtensions.Assessors()), new PlanBuilder(ApplicationServiceCollectionExtensions.Rules())));
+        new(_geocoder, _elevation, _flood, new GeneratePlanHandler(new RiskAssessmentPipeline(ApplicationServiceCollectionExtensions.Assessors()), new PlanBuilder(ApplicationServiceCollectionExtensions.Rules())));
 
     [Fact]
     public async Task Locates_measures_and_plans()
@@ -33,7 +34,55 @@ public sealed class PlanHouseholdHandlerTests
         result.Value.Locality.ShouldBe(Blackwood);
         result.Value.Elevation!.Value.Metres.ShouldBe(232m);
         result.Value.Plan.Profile.Dwelling.IsExposed.ShouldBeTrue();
+        result.Value.Plan.Profile.Nation.ShouldBe(Nation.Wales, "the plan's rules are told the nation the postcode is in");
         await _geocoder.Received(1).LocateAsync(Arg.Is<Postcode>(p => p.Value == "NP12 1GW"), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task What_the_household_said_about_flooding_stands_and_the_map_is_not_asked()
+    {
+        _geocoder.LocateAsync(Arg.Any<Postcode>(), Arg.Any<CancellationToken>()).Returns(Result.Success(Blackwood));
+        _elevation.ElevationAtAsync(Blackwood.Coordinates, Arg.Any<CancellationToken>()).Returns(Elevation.Create(232m));
+
+        Result<PlannedHousehold> result = await Handler().HandleAsync(new PlanHouseholdRequest("NP12 1GW", Command with { FloodRisk = FloodRisk.Medium }), CancellationToken.None);
+
+        result.Value.Flood.ShouldBe(new FloodAnswer(FloodRisk.Medium, FloodOrigin.Household));
+        result.Value.Plan.Profile.Dwelling.FloodRisk.ShouldBe(FloodRisk.Medium);
+        result.Value.Plan.Profile.FloodFrom.ShouldBe(FloodWater.NotSaid);
+        await _flood.DidNotReceiveWithAnyArgs().AtAsync(default, default, default);
+    }
+
+    [Fact]
+    public async Task Look_it_up_for_me_reads_the_nations_flood_map_and_builds_the_plan_on_what_it_says()
+    {
+        _geocoder.LocateAsync(Arg.Any<Postcode>(), Arg.Any<CancellationToken>()).Returns(Result.Success(Blackwood));
+        _elevation.ElevationAtAsync(Blackwood.Coordinates, Arg.Any<CancellationToken>()).Returns(Elevation.Create(232m));
+        _flood.AtAsync(Blackwood.Coordinates, Nation.Wales, Arg.Any<CancellationToken>()).Returns(Result.Success(new FloodFinding(FloodRisk.High, FloodWater.SurfaceWater, "Natural Resources Wales's flood map")));
+
+        Result<PlannedHousehold> result = await Handler().HandleAsync(new PlanHouseholdRequest("NP12 1GW", Command with { FloodRisk = FloodRisk.Unknown }), CancellationToken.None);
+
+        result.Value.Flood.ShouldBe(new FloodAnswer(FloodRisk.High, FloodOrigin.Map, FloodWater.SurfaceWater, "Natural Resources Wales's flood map"));
+        result.Value.Plan.Profile.Dwelling.FloodRisk.ShouldBe(FloodRisk.High);
+        result.Value.Plan.Profile.FloodFrom.ShouldBe(FloodWater.SurfaceWater);
+        result.Value.Plan.Risks.Includes(RiskKind.Flooding).ShouldBeTrue();
+        result.Value.Plan.Actions.Select(a => a.Id.Value).ShouldContain("flood-protection-kit");
+        result.Value.Elevation!.Value.Metres.ShouldBe(232m, "the height is still found, asked for alongside");
+    }
+
+    [Fact]
+    public async Task A_flood_map_that_cannot_be_read_is_not_a_low_risk_and_the_plan_asks_the_household_to_check()
+    {
+        _geocoder.LocateAsync(Arg.Any<Postcode>(), Arg.Any<CancellationToken>()).Returns(Result.Success(Blackwood));
+        _elevation.ElevationAtAsync(Blackwood.Coordinates, Arg.Any<CancellationToken>()).Returns(Elevation.Create(232m));
+        _flood.AtAsync(Arg.Any<Coordinates>(), Arg.Any<Nation>(), Arg.Any<CancellationToken>()).Returns(Result.Failure<FloodFinding>(DomainErrors.LookupUnavailable()));
+
+        Result<PlannedHousehold> result = await Handler().HandleAsync(new PlanHouseholdRequest("NP12 1GW", Command with { FloodRisk = FloodRisk.Unknown }), CancellationToken.None);
+
+        result.IsSuccess.ShouldBeTrue("the plan is still built");
+        result.Value.Flood.ShouldBe(new FloodAnswer(FloodRisk.Unknown, FloodOrigin.NotKnown));
+        result.Value.Plan.Risks.Includes(RiskKind.Flooding).ShouldBeFalse();
+        PlanAction check = result.Value.Plan.Actions.Single(a => a.Id.Value == "check-flood-risk");
+        check.Link!.Address.ShouldBe(new Uri("https://naturalresources.wales/flooding/check-your-flood-risk-by-postcode/"), "a house in Wales is sent to Wales's own service");
     }
 
     [Fact]
@@ -85,9 +134,10 @@ public sealed class PlanHouseholdHandlerTests
     {
         GeneratePlanHandler engine = new(new RiskAssessmentPipeline([]), new PlanBuilder([]));
 
-        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(null!, _elevation, engine));
-        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(_geocoder, null!, engine));
-        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(_geocoder, _elevation, null!));
+        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(null!, _elevation, _flood, engine));
+        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(_geocoder, null!, _flood, engine));
+        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(_geocoder, _elevation, null!, engine));
+        Should.Throw<ArgumentNullException>(() => new PlanHouseholdHandler(_geocoder, _elevation, _flood, null!));
         await Should.ThrowAsync<ArgumentNullException>(() => Handler().HandleAsync(null!, CancellationToken.None));
     }
 }

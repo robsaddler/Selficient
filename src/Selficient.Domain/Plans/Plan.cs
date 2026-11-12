@@ -59,6 +59,12 @@ public sealed record Provisions(decimal WaterLitres = 0m, decimal FoodDays = 0m,
     }
 }
 
+/// <summary>
+/// The official place an action is done: a government service, never a shop. The address is a
+/// constant in the rules, so nothing a household typed can become a link.
+/// </summary>
+public sealed record ActionLink(string Text, Uri Address);
+
 /// <summary>One thing to buy, do or arrange, with the sentence that says why.</summary>
 public sealed record PlanAction(
     ActionId Id,
@@ -67,7 +73,8 @@ public sealed record PlanAction(
     string Why,
     MoneyRange Cost,
     IReadOnlySet<RiskKind> Mitigates,
-    Provisions Provides);
+    Provisions Provides,
+    ActionLink? Link = null);
 
 /// <summary>Contributes actions for a household. Rules are open for extension: add a class, not a branch.</summary>
 public interface IPlanRule

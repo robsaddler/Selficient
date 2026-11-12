@@ -109,6 +109,7 @@ public static class Providers
         Stocked("car-above-half-a-tank", "A tank kept above half", "Another week of driving from a habit, not a purchase.", [All_(NeedId.Mobility)], new Stock(7m), Placement.NeedsCar, "Plan action"),
         Fixture("forecourt", "The forecourt", "While the pumps have power and the tanker has come.", [All_(NeedId.Mobility)], [Utility.Fuel, Utility.Roads], null, "Plan"),
         new("electric-car", "The electric car on its charge", "About five days of local driving on an ordinary charge, kept back from powering the house.", [All_(NeedId.Mobility)], [Utility.Roads], null, new Stock(5m), null, null, Placement.NeedsCar, "ev-database.org ranges"),
+        Stocked("car-above-half-charge", "A battery kept above half", "Several more days of local driving from a habit, not a purchase.", [All_(NeedId.Mobility)], new Stock(5m), Placement.NeedsCar, "Plan action; ev-database.org ranges"),
         Fixture("ev-charging", "Charging the car", "Seven kilowatts from the wall box while the mains are on.", [All_(NeedId.Mobility)], [Utility.Roads], new Load(7000m, 7000m, 7000m, Hardwired: true), "Plan"),
 
         // Laundry and entertainment.

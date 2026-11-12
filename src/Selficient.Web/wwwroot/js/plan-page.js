@@ -69,7 +69,8 @@ export async function initPlanPage(doc) {
 
   // What an action asks for moved with an assumption, so a count may now reach it, or no longer.
   doc.addEventListener("selficient:targets", () => {
-    void reconcile(doc);
+    // Whether or not a choice changed, a figure may now be part of what is asked where it was all of it.
+    void reconcile(doc).then(() => applyChoices(doc));
   });
 
   // A figure typed into "How much do you have?": the count decides which of its actions are held.
@@ -199,9 +200,31 @@ async function applyChoices(doc) {
     const figure = amounts[counted.dataset.amount ?? ""];
     const held = choices[id] === "have";
     counted.hidden = figure === undefined && !held;
+    showPart(row, !held && figure !== undefined && figure > 0 && figure < Number(counted.dataset.amountTarget));
     // Never under the fingers of someone typing in it.
     if (doc.activeElement !== input) {
       input.value = figure !== undefined ? String(figure) : held ? counted.dataset.amountTarget ?? "" : "";
+    }
+  }
+}
+
+/**
+ * A counted action the household has some of, short of what the plan asks: the first pill reads
+ * "Have some" and its box is in the mixed state, so the figure that is being counted is seen to be.
+ * Pressing it is "I have all of it", which raises the figure to what the action asks.
+ * @param {Element} row
+ * @param {boolean} part
+ */
+function showPart(row, part) {
+  const box = row.querySelector('input[data-choice="have"]');
+  if (!(box instanceof HTMLInputElement)) {
+    return;
+  }
+  box.indeterminate = part;
+  box.closest("[data-choice-pill]")?.toggleAttribute("data-part", part);
+  for (const says of row.querySelectorAll("[data-have-says]")) {
+    if (says instanceof HTMLElement) {
+      says.hidden = (says.dataset.haveSays === "part") !== part;
     }
   }
 }

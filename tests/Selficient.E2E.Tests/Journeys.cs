@@ -169,6 +169,12 @@ public sealed class Journeys
         await Expect(monthBox).ToHaveValueAsync("10");
         await Expect(shelf.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
         await Expect(month.Locator("[data-choice=\"have\"]")).Not.ToBeCheckedAsync();
+        // Part of the month is not nothing: the pill says "Have some" and is half marked, while the shelf it reaches says "Have it".
+        await Expect(month.Locator("[data-choice-pill=\"have\"]")).ToHaveAttributeAsync("data-part", "");
+        await Expect(month.Locator("[data-choice-pill=\"have\"] span:visible")).ToHaveTextAsync("Have some");
+        await Expect(month.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync(new() { Indeterminate = true });
+        await Expect(shelf.Locator("[data-choice-pill=\"have\"] span:visible")).ToHaveTextAsync("Have it");
+        await Expect(shelf.Locator("[data-choice-pill=\"have\"]")).Not.ToHaveAttributeAsync("data-part", "");
         await Expect(whole.Locator("[data-tally-kind=\"have\"] [data-tally-figure]")).ToContainTextAsync("1 of ");
 
         // A month from either box holds both rows.
@@ -223,6 +229,64 @@ public sealed class Journeys
     }
 
     [Fact]
+    public async Task Less_water_than_the_plan_asks_is_still_counted_and_the_pill_says_have_some()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        ILocator water = page.Locator("[data-action-row=\"water-bottled-three-days\"]");
+        ILocator box = page.Locator("#amount-water-bottled-three-days");
+        ILocator pill = water.Locator("[data-choice-pill=\"have\"]");
+        ILocator drinking = page.Locator("[data-board-slot] [data-board-progress] [data-progress-action=\"water-bottled-three-days\"]");
+
+        // "Have it" offers the 36 litres the plan asks four people for.
+        await water.Locator("[data-choice=\"have\"]").CheckAsync();
+        await Expect(box).ToHaveValueAsync("36");
+        await Expect(pill.Locator("span:visible")).ToHaveTextAsync("Have it");
+
+        // Twenty is what is in the house: the pill does not go blank, the figure stays, and the board is drawn from it.
+        await box.FillAsync("20");
+        await box.PressAsync("Tab");
+        await Expect(pill.Locator("span:visible")).ToHaveTextAsync("Have some");
+        await Expect(pill).ToHaveAttributeAsync("data-part", "");
+        await Expect(water.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync(new() { Indeterminate = true });
+        await Expect(box).ToHaveValueAsync("20");
+        await Expect(water.Locator("[data-progress-for]")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^You have 20 of 36 litres of bottled water\\. The rest would cost £[0-9.,]+ to £[0-9.,]+\\.$"));
+        await Expect(drinking).ToHaveCountAsync(1);
+        await water.ScreenshotAsync(new() { Path = Screenshots.Target("have-some-phone-light.png") });
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await water.ScreenshotAsync(new() { Path = Screenshots.Target("have-some-wide-dark.png") });
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await page.SetViewportSizeAsync(390, 844);
+
+        // It can be planned as well: some had, the rest to get.
+        await water.Locator("[data-choice=\"plan\"]").CheckAsync();
+        await Expect(pill.Locator("span:visible")).ToHaveTextAsync("Have some");
+        await Expect(box).ToHaveValueAsync("20");
+        await water.Locator("[data-choice=\"plan\"]").UncheckAsync();
+
+        // Kept across a reload, and pressing the pill is "I have all of it".
+        await page.ReloadAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(pill.Locator("span:visible")).ToHaveTextAsync("Have some");
+        await pill.ClickAsync();
+        await Expect(box).ToHaveValueAsync("36");
+        await Expect(pill.Locator("span:visible")).ToHaveTextAsync("Have it");
+        await Expect(pill).Not.ToHaveAttributeAsync("data-part", "");
+        await Expect(water.Locator("[data-choice=\"have\"]")).ToBeCheckedAsync();
+
+        // None at all is not "some".
+        await box.FillAsync("0");
+        await box.PressAsync("Tab");
+        await Expect(pill.Locator("span:visible")).ToHaveTextAsync("Have it");
+        await Expect(water.Locator("[data-choice=\"have\"]")).Not.ToBeCheckedAsync();
+
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task The_cash_rate_is_the_households_own_and_everything_planned_is_a_board_of_its_own()
     {
         await using IBrowserContext context = await _browser.PhoneAsync();
@@ -253,6 +317,7 @@ public sealed class Journeys
         await rate.PressAsync("Tab");
         await Expect(cash.Locator("[data-progress-for]")).ToHaveTextAsync("You have 200 of 800 pounds in cash.");
         await Expect(cash.Locator("[data-choice=\"have\"]")).Not.ToBeCheckedAsync();
+        await Expect(cash.Locator("[data-choice-pill=\"have\"] span:visible")).ToHaveTextAsync("Have some", new() { Timeout = 10_000 });
 
         // It is kept, a figure out of range is held to the range, and one press puts the plan's back.
         await page.ReloadAsync();
@@ -667,6 +732,127 @@ public sealed class Journeys
         await Expect(page.Locator("[data-tip-outcome=\"taken\"]")).ToContainTextAsync("We will open it tonight");
     }
 
+    [Fact]
+    public async Task One_answer_can_be_changed_without_typing_the_rest_again_and_the_plan_follows_it()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+
+        // A first visit: nothing kept, so nothing filled in and nothing said about it.
+        await page.GotoAsync("/plan/start");
+        await Expect(page.Locator("[data-wizard-kept]")).ToBeHiddenAsync();
+        await Expect(page.GetByLabel("How likely is flooding where you live?")).ToHaveValueAsync("Unknown");
+        await FillRobsHouseAsync(page);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        // The plan says what it found about flooding, whatever it found, and whose map that was.
+        ILocator flood = page.Locator(".risks__flood");
+        await Expect(flood).ToContainTextAsync("We looked the middle of your postcode up on Natural Resources Wales's flood map and it shows a very low risk from rivers, the sea and surface water, so there is nothing about flooding in your plan.");
+        await Expect(flood.GetByRole(AriaRole.Link, new() { Name = "Check your address with Natural Resources Wales" })).ToHaveAttributeAsync("href", "https://naturalresources.wales/flooding/check-your-flood-risk-by-postcode/");
+        await flood.ScreenshotAsync(new() { Path = Screenshots.Target("flood-note-phone-light.png") });
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await flood.ScreenshotAsync(new() { Path = Screenshots.Target("flood-note-wide-dark.png") });
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await page.SetViewportSizeAsync(390, 844);
+        await Expect(page.Locator("[data-action-row=\"pet-food-two-weeks\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"car-above-half-a-tank\"]")).ToHaveCountAsync(1);
+        await page.Locator("[data-action-row=\"water-bottled-three-days\"] [data-choice=\"have\"]").CheckAsync();
+        await Until.TrueAsync(page, "() => import('/js/plan-store.js').then(store => store.getChoices()).then(choices => choices['water-bottled-three-days'] === 'have')", null);
+
+        // Back to the form: every answer is where it was left, and the page says so.
+        await page.GetByRole(AriaRole.Link, new() { Name = "Change your answers" }).ClickAsync();
+        await Expect(page.Locator("[data-wizard-kept]")).ToHaveTextAsync("These are the answers your plan was built from. Change what is different and build it again; what you have ticked stays as it is.");
+        await Expect(page.GetByLabel("Postcode", new() { Exact = true })).ToHaveValueAsync("NP12 1GW");
+        await Expect(page.GetByLabel("How many people live in your home?")).ToHaveValueAsync("4");
+        await Expect(page.GetByLabel("What kind of home is it?")).ToHaveValueAsync("Detached");
+        await Expect(page.GetByLabel("Is there timber decking?")).ToBeCheckedAsync();
+        await Expect(page.GetByLabel("Do you have pets?")).Not.ToBeCheckedAsync();
+        await ShouldNotScrollSidewaysAsync(page);
+        await page.Locator("[data-wizard-start]").ScreenshotAsync(new() { Path = Screenshots.Target("wizard-kept-phone-light.png") });
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await page.Locator("[data-wizard-start]").ScreenshotAsync(new() { Path = Screenshots.Target("wizard-kept-wide-dark.png") });
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await page.SetViewportSizeAsync(390, 844);
+        AxeResult wizard = await page.RunAxe();
+        wizard.Violations.ShouldBeEmpty();
+
+        // Two answers changed, and the plan is the plan for them: pets get their row, and an electric car is never told about a tank.
+        await page.GetByLabel("Do you have pets?").CheckAsync();
+        await page.GetByLabel("Is there a car?").SelectOptionAsync("Electric");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-action-row=\"pet-food-two-weeks\"]")).ToHaveCountAsync(1);
+        await Expect(page.Locator("[data-action-row=\"car-above-half-charge\"] .action__title")).ToHaveTextAsync("Keep the car above half charge from November to March");
+        await Expect(page.Locator("[data-action-row=\"car-above-half-a-tank\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"water-bottled-three-days\"] [data-choice=\"have\"]")).ToBeCheckedAsync(new() { Timeout = 10_000 });
+        await ShouldNotScrollSidewaysAsync(page);
+        AxeResult plan = await RunAxeWhenSettledAsync(page);
+        plan.Violations.ShouldBeEmpty();
+
+        // A different postcode typed on the landing page is a different house: the form is not filled in from this one.
+        await page.GotoAsync("/plan/start?postcode=SW1A+1AA");
+        await Expect(page.GetByLabel("Postcode", new() { Exact = true })).ToHaveValueAsync("SW1A 1AA");
+        await page.WaitForFunctionAsync("() => document.readyState === 'complete'");
+        await Expect(page.Locator("[data-wizard-kept]")).ToBeHiddenAsync();
+        await Expect(page.GetByLabel("How many people live in your home?")).ToHaveValueAsync("2");
+
+        // The same postcode, however it was typed, is this house.
+        await page.GotoAsync("/plan/start?postcode=np121gw");
+        await Expect(page.Locator("[data-wizard-kept]")).ToBeVisibleAsync();
+        await Expect(page.GetByLabel("How many people live in your home?")).ToHaveValueAsync("4");
+        await Expect(page.GetByLabel("Is there a car?")).ToHaveValueAsync("Electric");
+    }
+
+    [Fact]
+    public async Task A_postcode_the_flood_map_calls_high_gets_its_nations_warnings_as_a_link_on_the_action()
+    {
+        // A York postcode the stand-in map answers as high from a river, found the way the site finds it.
+        Selficient.Infrastructure.Geography.FakeGeocoder geocoder = new();
+        Selficient.Infrastructure.Geography.FakeFloodRiskProvider map = new();
+        string postcode = string.Empty;
+        for (int district = 1; district < 60 && postcode.Length == 0; district++)
+        {
+            string candidate = $"YO{district} 1AA";
+            Selficient.Application.Geography.Locality place = (await geocoder.LocateAsync(Selficient.Domain.Measures.Postcode.Create(candidate).Value, CancellationToken.None)).Value;
+            Selficient.Domain.Primitives.Result<Selficient.Application.Geography.FloodFinding> found = await map.AtAsync(place.Coordinates, place.Nation, CancellationToken.None);
+            if (found.IsSuccess && found.Value.Band == Selficient.Domain.Households.FloodRisk.High)
+            {
+                postcode = candidate;
+            }
+        }
+
+        postcode.ShouldNotBeEmpty();
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await FillRobsHouseAsync(page);
+        await page.GetByLabel("Postcode", new() { Exact = true }).FillAsync(postcode);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        ILocator action = page.Locator("[data-action-row=\"flood-warnings-and-plan\"]");
+        await Expect(action.Locator(".action__title")).ToHaveTextAsync("Sign up for free flood warnings and write a one-page flood plan");
+        ILocator official = action.Locator("[data-official-link]");
+        await Expect(official).ToHaveAttributeAsync("href", "https://www.gov.uk/get-flood-warnings");
+        await Expect(official).ToHaveAttributeAsync("target", "_blank");
+        await Expect(official).ToContainTextAsync("Sign up for flood warnings on GOV.UK");
+        await Expect(page.Locator(".risks__flood")).ToContainTextAsync("it shows a high risk from rivers or the sea, so flooding is in your plan.");
+        await Expect(page.Locator("[data-action-row=\"flood-protection-kit\"]")).ToHaveCountAsync(1);
+        await ShouldNotScrollSidewaysAsync(page);
+        await action.ScreenshotAsync(new() { Path = Screenshots.Target("flood-action-phone-light.png") });
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await action.ScreenshotAsync(new() { Path = Screenshots.Target("flood-action-wide-dark.png") });
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await page.SetViewportSizeAsync(390, 844);
+
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+    }
+
     private static async Task BuildPlanAsync(IPage page)
     {
         await page.GotoAsync("/plan/start");
@@ -686,7 +872,7 @@ public sealed class Journeys
         await page.GetByLabel("Does anyone's income depend on being online at home?").CheckAsync();
         await page.GetByLabel("What kind of home is it?").SelectOptionAsync("Detached");
         await page.GetByLabel("How many storeys, counting rooms in the roof?").FillAsync("3");
-        await page.GetByLabel("Is there a car?").CheckAsync();
+        await page.GetByLabel("Is there a car?").SelectOptionAsync("Petrol");
         await page.GetByLabel("Is there a garden?").CheckAsync();
         await page.GetByLabel("Is there timber decking?").CheckAsync();
         await page.GetByLabel("Is there a tree tall enough to reach the house if it fell?").CheckAsync();

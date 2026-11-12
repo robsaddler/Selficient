@@ -29,14 +29,44 @@ public sealed record Reminder(string Id, string Title, string Why, Cadence Caden
 }
 
 /// <summary>
-/// The upkeep schedule for a household. Only facts that change the list are consulted: decking
-/// and a garden add tasks; nothing else about the household is needed.
+/// The facts about a home that change its upkeep, and nothing else: seven yes-or-no answers, which
+/// is all the calendar's address carries.
+/// </summary>
+/// <param name="Decking">Timber decking.</param>
+/// <param name="Garden">A garden.</param>
+/// <param name="PetrolCar">A car with a tank.</param>
+/// <param name="ElectricCar">A car with a battery.</param>
+/// <param name="TallTree">A tree tall enough to reach the house.</param>
+/// <param name="WoodStove">A stove that burns logs.</param>
+/// <param name="FloodRisk">The flood map puts the home at low risk or more.</param>
+public sealed record UpkeepFacts(bool Decking = false, bool Garden = false, bool PetrolCar = false, bool ElectricCar = false, bool TallTree = false, bool WoodStove = false, bool FloodRisk = false)
+{
+    /// <summary>The facts as a plan's profile gives them.</summary>
+    public static UpkeepFacts From(HouseholdProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        Dwelling dwelling = profile.Dwelling;
+        return new UpkeepFacts(dwelling.HasDecking, dwelling.HasGarden, profile.HasPetrolCar, profile.HasElectricCar, dwelling.HasTallTreeNearHouse, profile.HasWoodStove, dwelling.FloodRisk >= Households.FloodRisk.Low);
+    }
+}
+
+/// <summary>
+/// The upkeep schedule for a household. Only facts that change the list are consulted, and a task
+/// is only there for a home it applies to: no tank to keep half full in a house with no car, and no
+/// tree to look at where there is none.
 /// </summary>
 public static class UpkeepSchedule
 {
     /// <summary>Builds the schedule.</summary>
-    public static IReadOnlyList<Reminder> For(bool hasDecking, bool hasGarden)
+    public static IReadOnlyList<Reminder> For(UpkeepFacts facts)
     {
+        ArgumentNullException.ThrowIfNull(facts);
+        string review = "Once a year, walk through the plan and check that the cash limit on the contents policy still matches what is in the box.";
+        if (facts.TallTree)
+        {
+            review += " Look at the tree after the winter storms.";
+        }
+
         List<Reminder> reminders =
         [
             new("water-rotation", "Refill the stored water", "Empty, rinse and refill the water cans, add a purifying tablet, and swap the bottled water. Tied to the clock changes so it is never forgotten.", Cadence.OnDates, [(3, 29), (10, 25)]),
@@ -44,18 +74,38 @@ public static class UpkeepSchedule
             new("battery-top-up", "Top up the power banks and the power station", "Charge them to between half and three-quarters full, and check the stove cartridges and candles.", Cadence.Quarterly),
             new("stored-cells-check", "Check the cells in the radio and the torches", "Open the radio and every torch that sits in a drawer and look for leaked cells, because a leaked cell ruins the thing it was meant to power. Store the spare cells beside each one, not inside it, and switch the radio on to hear that it works.", Cadence.OnDates, [(3, 29), (10, 25)]),
             new("first-aid-check", "Check the first-aid kit and medicines", "Replace anything used or out of date, and make sure there are two weeks of any prescription.", Cadence.OnDates, [(3, 29), (10, 25)]),
-            new("winter-car", "Keep the car above half a tank from now until March", "Fuel pumps need electricity too, and a charged car is a charger and a way off the hill.", Cadence.OnDates, [(11, 1)]),
-            new("annual-review", "Review the plan, the prices and the insurance limits", "Once a year, walk through the plan, check that the cash limit on the contents policy still matches what is in the box, and look at the tree after the winter storms.", Cadence.Yearly),
         ];
 
-        if (hasDecking)
+        if (facts.PetrolCar)
+        {
+            reminders.Add(new("winter-car", "Keep the car above half a tank from now until March", "Fuel pumps need electricity too, and a charged car is a charger and a way off the hill.", Cadence.OnDates, [(11, 1)]));
+        }
+
+        if (facts.ElectricCar)
+        {
+            reminders.Add(new("winter-car-charge", "Keep the car above half charge from now until March", "Charging stops with the power, at home and at most public chargers, and a charged car is a charger and a way off the hill.", Cadence.OnDates, [(11, 1)]));
+        }
+
+        reminders.Add(new("annual-review", "Review the plan, the prices and the insurance limits", review, Cadence.Yearly));
+
+        if (facts.Decking)
         {
             reminders.Add(new("deck-leaf-litter", "Clear the leaf litter from under the decking", "After leaf-fall and again in late spring. A leaf blower through the gaps, or lift two boards and rake.", Cadence.OnDates, [(11, 15), (5, 1)]));
         }
 
-        if (hasGarden)
+        if (facts.Garden)
         {
             reminders.Add(new("firebreak-and-hose", "Walk the firebreak and check the hose and outside tap", "Keep a metre clear at the boundary before summer, and drain the outside tap before the first frost.", Cadence.OnDates, [(5, 1), (11, 1)]));
+        }
+
+        if (facts.WoodStove)
+        {
+            reminders.Add(new("flue-sweep", "Have the stove's flue swept and fill the log store", "Before the first fire of the autumn. A swept flue and a store of dry logs are what make the stove safe to lean on when the power is off.", Cadence.OnDates, [(9, 1)]));
+        }
+
+        if (facts.FloodRisk)
+        {
+            reminders.Add(new("flood-plan-check", "Check your flood warnings and walk through the flood plan", "Make sure the phone numbers and addresses on the warning service are current, and that everyone knows where the stopcock is and what is moved out of the water's way first.", Cadence.OnDates, [(10, 1)]));
         }
 
         return reminders;

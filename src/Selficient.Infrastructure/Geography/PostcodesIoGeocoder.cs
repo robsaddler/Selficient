@@ -1,3 +1,4 @@
+using Selficient.Domain.Households;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -78,4 +79,6 @@ public sealed record ElevationEnvelope([property: JsonPropertyName("elevation")]
 [JsonSerializable(typeof(PostcodeEnvelope))]
 [JsonSerializable(typeof(NearestEnvelope))]
 [JsonSerializable(typeof(ElevationEnvelope))]
+[JsonSerializable(typeof(FloodFeatures))]
+[JsonSerializable(typeof(FeatureCount))]
 public sealed partial class UpstreamJson : JsonSerializerContext;

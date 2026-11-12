@@ -506,7 +506,7 @@ public sealed class BoardPagesTests : IDisposable
     public void The_form_maps_the_newer_answers_with_their_defaults()
     {
         PlanForm form = new() { Postcode = "NP12 1GW", People = 4, Children = 2, HasCar = true, DwellingType = Selficient.Domain.Households.DwellingType.Detached, Storeys = 3 };
-        PlanForm flat = new() { Postcode = "NP12 1GW", People = 1, HasCar = false, Car = CarKind.ElectricWithOutput, DwellingType = Selficient.Domain.Households.DwellingType.Flat, Floor = 5, Infants = 0 };
+        PlanForm flat = new() { Postcode = "NP12 1GW", People = 1, HasCar = false, Car = CarKind.None, DwellingType = Selficient.Domain.Households.DwellingType.Flat, Floor = 5, Infants = 0 };
         form.Dependencies.Add(new DependencyForm { Name = " " });
         form.Dependencies.Add(new DependencyForm { Name = "Insulin", Kind = DependencyKind.Medicine, DaysOfStock = 28, MustStayCold = true });
 
@@ -519,7 +519,7 @@ public sealed class BoardPagesTests : IDisposable
         rob.Floor.ShouldBe(0, "a house has no floor to speak of");
         rob.Dependencies.Count.ShouldBe(1, "the blank row is ignored");
         rob.Dependencies[0].MustStayCold.ShouldBeTrue();
-        flatProfile.Car.ShouldBe(CarKind.None, "the plan said no car, whatever the kind field says");
+        flatProfile.Car.ShouldBe(CarKind.None);
         flatProfile.Floor.ShouldBe(5);
         flatProfile.WaterIsPumped.ShouldBeTrue();
 
@@ -535,7 +535,20 @@ public sealed class BoardPagesTests : IDisposable
         badRow.ToResilienceProfile(Profiles.RobsHouse()).Error.Code.ShouldBe("dependency.power", "a device that draws nothing is refused by the domain");
         nullName.ToResilienceProfile(Profiles.RobsHouse()).Value.Dependencies.ShouldBeEmpty("a row with no name is a blank row");
         new DependencyForm { Name = null }.ToDependency().Error.Code.ShouldBe("dependency.name");
-        IndexModel.Echo(form).ShouldContain((nameof(PlanForm.Car), "None"));
+        // One question now says whether there is a car and what kind. A plan from before it, with a bare tick, is read as petrol and kept that way.
+        IndexModel.Echo(form).ShouldContain((nameof(PlanForm.Car), "Petrol"));
+        IndexModel.Echo(form).ShouldContain((nameof(PlanForm.HasCar), "true"));
+        PlanForm kindOnly = new() { Postcode = "NP12 1GW", People = 4, Children = 2, Car = CarKind.ElectricWithOutput, DwellingType = Selficient.Domain.Households.DwellingType.Detached, Storeys = 3 };
+        kindOnly.OwnsCar.ShouldBeTrue("the kind alone says there is a car");
+        kindOnly.CarOwned.ShouldBe(CarKind.ElectricWithOutput);
+        kindOnly.ToRequest().Command.HasCar.ShouldBeTrue();
+        kindOnly.ToRequest().Command.CarIsElectric.ShouldBeTrue();
+        IndexModel.Echo(kindOnly).ShouldContain((nameof(PlanForm.HasCar), "true"));
+        flat.OwnsCar.ShouldBeFalse();
+        flat.CarOwned.ShouldBe(CarKind.None);
+        IndexModel.Echo(flat).ShouldContain((nameof(PlanForm.Car), "None"));
+        new PlanForm().OwnsCar.ShouldBeFalse("no answer is no car");
+        form.ToRequest().Command.CarIsElectric.ShouldBeFalse();
         IndexModel.Echo(form).ShouldContain((nameof(PlanForm.MedicineDaysInStock), "7"));
         IndexModel.FormFields.ShouldContain(nameof(PlanForm.Floor));
     }

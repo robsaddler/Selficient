@@ -97,7 +97,7 @@ public sealed partial class MarketingPagesTests : IDisposable
 
         KeepCopy.Ways(accounts: true)[2].Sentence.ShouldBe("Keeps every device you sign in on in step, and keeps your plan if a device is lost. An email address, no password, and you can delete it at any time.");
         KeepCopy.Ways(accounts: true)[1].Sentence.ShouldBe("Move your plan to your phone or another computer by scanning a code. It is a one-off copy: the two do not stay in step.");
-        landing.ShouldContain("Whichever you choose, your postcode is sent once, to find your area and your height above sea level, and is not kept. There is no tracking and no analytics.");
+        landing.ShouldContain("Whichever you choose, your postcode is sent once, to find your area, your height above sea level and what the flood map says there, and is not kept. There is no tracking and no analytics.");
         landing.ShouldContain("<summary>Do I need an account?</summary>");
         landing.ShouldContain("If you want one, an account does two things: it keeps every device you sign in on in step, and it keeps your plan if a device is lost.");
         backOffice.ShouldNotContain("keep-chip", customMessage: "the back office is not a household's page");

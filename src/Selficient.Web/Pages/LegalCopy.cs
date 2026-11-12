@@ -29,7 +29,7 @@ public static class LegalCopy
         ("An account is yours to make and to delete", "If you make one, we keep your email address and your plan and nothing else. Deleting it removes both, straight away."),
         ("No tracking, no analytics", "Nobody is counting you, here or anywhere else. The only cookies are the ones that protect a form and keep you signed in."),
         ("Your plan stays on your device", "Your answers, your ticks and the pin on your map live in your own browser's storage. Clearing your browser clears them."),
-        ("Your postcode goes once", "It goes to a public lookup to find your area and your height above sea level, and it is not kept afterwards."),
+        ("Your postcode goes once", "It goes to public lookups to find your area, your height above sea level and what the flood map says there, and it is not kept afterwards."),
         ("Photographs never touch our disk", "A photo is re-encoded in memory, read, and discarded in the same request."),
     ];
 
@@ -48,6 +48,7 @@ public static class LegalCopy
         ("postcodes.io", "your postcode", "to find your area, your nation and the coordinates of your postcode's centre"),
         ("postcodes.io", "your location, rounded to about ten metres, only when you press \"Use my location\"", "to find the postcode you are standing in and put it in the box for you; it is not kept"),
         ("Open-Meteo", "the coordinates of your postcode's centre", "to find your height above sea level"),
+        ("The Environment Agency, Natural Resources Wales or SEPA, whichever keeps the flood map for your nation", "a box fifty metres across round your postcode's centre", "to read the flood map there, only when you leave the flood question for us to look up; Northern Ireland has no such service, so nothing is sent for a postcode there"),
         ("PVGIS, from the European Commission", "the coordinates of your postcode's centre, your roof's direction and pitch", "to find what a kilowatt of panels would make on your roof, only when you use the solar estimator"),
         ("Google Solar API", "the coordinates of your postcode's centre", "to describe the slopes of the nearest roof, only when you tick the consent box on the solar estimator and only if this site has a key for it"),
         ("Selficient, when you send a copy to another device", "an encrypted copy of your plan that we cannot read, because the key stays in the code on your screen", "to hand it to your other device, once; it is deleted as it is collected, or after ten minutes if it never is"),

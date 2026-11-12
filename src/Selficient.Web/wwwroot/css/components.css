@@ -246,6 +246,11 @@ progress.tier-progress {
     font-size: var(--text-s);
   }
 
+  /* The official service an action is done at, after its sentence: a link that reads as one. */
+  & .action__official {
+    font-weight: 600;
+  }
+
   & > .action__cost {
     grid-area: price;
   }
@@ -343,6 +348,22 @@ progress.tier-progress {
   &[data-choice-pill="have"]:has(.choice__input:checked) {
     background: var(--c-pine-tint);
     border-color: var(--c-pine);
+  }
+
+  /* Some of it, short of what the plan asks: half the mark and half the colour, and the words say so. */
+  &[data-part] {
+    font-weight: 600;
+    border-color: var(--c-pine);
+    background: color-mix(in oklab, var(--c-pine-tint) 45%, var(--c-paper));
+  }
+
+  &[data-part]::before {
+    content: "";
+    inline-size: 0.7rem;
+    block-size: 0.7rem;
+    border: 2px solid currentcolor;
+    border-radius: 50%;
+    background: linear-gradient(to right, currentcolor 50%, transparent 50%);
   }
 
   &[data-choice-pill="plan"]:has(.choice__input:checked) {

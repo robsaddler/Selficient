@@ -204,6 +204,7 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<IGeocoder, FakeGeocoder>();
             services.AddSingleton<IReverseGeocoder, FakeReverseGeocoder>();
             services.AddSingleton<IElevationProvider, FakeElevationProvider>();
+            services.AddSingleton<IFloodRiskProvider, FakeFloodRiskProvider>();
             services.AddSingleton<ISolarYieldProvider, FakeSolarYieldProvider>();
             services.AddSingleton<IRoofInsightsProvider, FakeRoofInsights>();
             services.AddSingleton<FakeAssistant>();
@@ -249,6 +250,13 @@ public static class InfrastructureServiceCollectionExtensions
         AddUpstreamClient<PostcodesIoReverseGeocoder>(services, static o => o.PostcodesBaseUrl);
         AddUpstreamClient<OpenMeteoElevationProvider>(services, static o => o.ElevationBaseUrl);
         AddUpstreamClient<PvgisYieldProvider>(services, static o => o.PvgisBaseUrl);
+        // The three flood maps there are. Northern Ireland has none we may ask, and the plan says so by sending a household there to look.
+        AddUpstreamClient<EnvironmentAgencyFloodMap>(services, static o => o.EnvironmentAgencyBaseUrl);
+        AddUpstreamClient<NaturalResourcesWalesFloodMap>(services, static o => o.DataMapWalesBaseUrl);
+        AddUpstreamClient<SepaFloodMap>(services, static o => o.SepaBaseUrl);
+        services.AddSingleton<IFloodRiskProvider>(static provider => new CachedFloodRiskProvider(
+            new NationalFloodMaps([provider.GetRequiredService<EnvironmentAgencyFloodMap>(), provider.GetRequiredService<NaturalResourcesWalesFloodMap>(), provider.GetRequiredService<SepaFloodMap>()]),
+            provider.GetRequiredService<HybridCache>()));
 
         services.AddSingleton<IGeocoder>(static provider => new CachedGeocoder(provider.GetRequiredService<PostcodesIoGeocoder>(), provider.GetRequiredService<HybridCache>()));
         // Not cached: a location is a point, not a key anyone types twice, and keeping it anywhere is the thing we promised not to do.
