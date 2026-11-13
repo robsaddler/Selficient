@@ -98,6 +98,15 @@ public sealed class AdminFiguresTests : IDisposable
         }
 
         work.ShouldContain("data-group=\"Scenario: ");
+        // A heading is drawn once, and the needs come in the board's order whatever order the engine tries their providers in.
+        string[] headings = [.. System.Text.RegularExpressions.Regex.Matches(work, "data-group=\"([^\"]+)\"").Select(match => match.Groups[1].Value)];
+        headings.ShouldBeUnique();
+        headings[0].ShouldBe("What people need");
+        string[] needs = [.. headings.Where(heading => Selficient.Domain.Resilience.Needs.All.Any(need => need.Name == heading))];
+        needs.ShouldBe([.. Selficient.Domain.Resilience.Needs.All.Select(need => need.Name).Where(needs.Contains)], "rung by rung, as the board draws them");
+        needs.Length.ShouldBeGreaterThan(15);
+        Array.IndexOf(headings, "Sources of electricity").ShouldBeGreaterThan(Array.IndexOf(headings, needs[^1]));
+        System.Text.RegularExpressions.Regex.Count(work, "<h3>The water butt</h3>").ShouldBe(1, "and a thing has one card");
         work.ShouldContain("<h3>The stairlift's own batteries</h3>");
         work.ShouldContain("<p class=\"figure-card__says\" data-says>About two days of trips to bed and the bathroom on healthy batteries, fewer on a long stair or an old set.</p>");
         work.ShouldNotContain("data-drafted-says");

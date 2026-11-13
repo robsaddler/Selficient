@@ -80,26 +80,39 @@ public static class FigureSheet
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(desk);
         Dictionary<string, FigureDraft> drafts = desk.Drafts.ToDictionary(static draft => draft.ParameterId, StringComparer.Ordinal);
+        // A heading is drawn once, however the figures under it are scattered through the registry: the things
+        // that meet a need are listed in the order the engine tries them, which is not need by need.
         List<(string Group, List<(Subject Subject, List<FigureRow> Rows)> Cards)> groups = [];
+        Dictionary<string, int> groupAt = new(StringComparer.Ordinal);
+        Dictionary<(string Group, string Subject), int> cardAt = [];
         foreach (ParameterDefinition parameter in parameters)
         {
             Subject subject = SubjectOf(parameter, desk);
-            if (groups.Count == 0 || groups[^1].Group != parameter.Group)
+            if (!groupAt.TryGetValue(parameter.Group, out int group))
             {
+                group = groupAt[parameter.Group] = groups.Count;
                 groups.Add((parameter.Group, []));
             }
 
-            List<(Subject Subject, List<FigureRow> Rows)> cards = groups[^1].Cards;
-            if (cards.Count == 0 || cards[^1].Subject.Key != subject.Key)
+            List<(Subject Subject, List<FigureRow> Rows)> cards = groups[group].Cards;
+            if (!cardAt.TryGetValue((parameter.Group, subject.Key), out int card))
             {
+                card = cardAt[(parameter.Group, subject.Key)] = cards.Count;
                 cards.Add((subject, []));
             }
 
-            cards[^1].Rows.Add(Row(parameter, subject, desk, drafts.GetValueOrDefault(parameter.Id), refused));
+            cards[card].Rows.Add(Row(parameter, subject, desk, drafts.GetValueOrDefault(parameter.Id), refused));
         }
 
-        return [.. groups.Select(static group => new FigureGroup(group.Group, [.. group.Cards.Select(static card => new FigureCard(card.Subject.Title, card.Subject.Sentence, card.Subject.Drafted, card.Rows))]))];
+        // The needs come in the board's own order, rung by rung, wherever each first turned up; every other heading keeps its place.
+        return [.. groups
+            .Select(static (group, at) => (Group: group, At: at))
+            .OrderBy(static placed => NeedOrder.GetValueOrDefault(placed.Group.Group, placed.At == 0 ? -1 : int.MaxValue))
+            .ThenBy(static placed => placed.At)
+            .Select(static placed => new FigureGroup(placed.Group.Group, [.. placed.Group.Cards.Select(static card => new FigureCard(card.Subject.Title, card.Subject.Sentence, card.Subject.Drafted, card.Rows))]))];
     }
+
+    private static readonly Dictionary<string, int> NeedOrder = Needs.All.Select(static (need, at) => (need.Name, at)).ToDictionary(static need => need.Name, static need => need.at, StringComparer.Ordinal);
 
     private static FigureRow Row(ParameterDefinition parameter, Subject subject, DeskView desk, FigureDraft? draft, RefusedCorrection? refused)
     {
