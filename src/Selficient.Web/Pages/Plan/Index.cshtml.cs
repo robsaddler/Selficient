@@ -63,6 +63,9 @@ public sealed class IndexModel : PageModel
         nameof(PlanForm.HasGasHeater),
     ];
 
+    /// <summary>Said at the head of the form when what was posted with the answers could not be read.</summary>
+    public const string NotUnderstood = "Something sent with your answers could not be read, so no plan was built. Check your answers and build the plan again.";
+
     /// <summary>The most ticks a request may carry.</summary>
     public const int MaxTicks = 200;
 
@@ -125,6 +128,13 @@ public sealed class IndexModel : PageModel
         if (!ModelState.IsValid)
         {
             ShowForm = true;
+            // A fault in an answer is said beside the answer. A fault in what rode along with the answers (a count that is
+            // not a number, which no page of ours sends) has no box to be said beside, so it is said at the head of the form.
+            if (!ModelState.Any(static entry => entry.Key.StartsWith(nameof(Form), StringComparison.Ordinal) && entry.Value!.Errors.Count > 0))
+            {
+                ModelState.AddModelError(nameof(Form), NotUnderstood);
+            }
+
             return Page();
         }
 
@@ -141,9 +151,10 @@ public sealed class IndexModel : PageModel
         if (result.IsFailure)
         {
             ShowForm = true;
+            // Beside the postcode when it is about the postcode; otherwise under the form's own name, which is where the form's summary looks.
             string field = result.Error.Code.StartsWith("postcode", StringComparison.Ordinal) || result.Error.Code == "lookup.unavailable"
                 ? $"{nameof(Form)}.{nameof(PlanForm.Postcode)}"
-                : string.Empty;
+                : nameof(Form);
             ModelState.AddModelError(field, result.Error.Message);
             return Page();
         }
@@ -152,7 +163,7 @@ public sealed class IndexModel : PageModel
         if (board.IsFailure)
         {
             ShowForm = true;
-            ModelState.AddModelError(string.Empty, board.Error.Message);
+            ModelState.AddModelError(nameof(Form), board.Error.Message);
             return Page();
         }
 

@@ -68,6 +68,9 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
         results.Where(r => r.Verdict == "fail").ShouldBeEmpty(report);
     }
 
+    /// <summary>How the note of a pick begins when its price is a guide and not one the linked page shows.</summary>
+    private const string GuidePrice = "The price is yours to ask.";
+
     private static async Task<(KitPick, string, string)> CheckAsync(IBrowserContext context, KitPick pick, bool retried = false)
     {
         IPage page = await context.NewPageAsync();
@@ -107,6 +110,13 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
                 return (pick, "fail", $"nothing on the page names the item (looked for {string.Join(", ", words)}; title {Trim(title)}; the page begins: {flat[..Math.Min(flat.Length, 240)]})");
             }
 
+            // A directory of tradespeople shows no price: the pick's figure is a guide from elsewhere and its note says so in
+            // these words. Reported as what it is, so the list of drifted picks holds only picks to open.
+            if (pick.Note.StartsWith(GuidePrice, StringComparison.Ordinal))
+            {
+                return (pick, "guide", $"{Trim(title)}; the price is a guide the note gives the source of, not one this page shows");
+            }
+
             if (!PriceShown(flat, pick.Price.Pence))
             {
                 return (pick, "drift", $"the page does not show {Pounds(pick.Price.Pence)} any more; open it and see what the item costs now ({Trim(title)})");
@@ -114,9 +124,15 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
 
             return (pick, "ok", $"{Trim(title)}; {page.Url}");
         }
+        catch (PlaywrightException) when (!retried)
+        {
+            // A shop that hangs up once (a reset connection, a slow first byte) is asked once more after a pause before it is called a failure.
+            await Task.Delay(8_000);
+            return await CheckAsync(context, pick, retried: true);
+        }
         catch (PlaywrightException exception)
         {
-            return (pick, "fail", $"did not load: {exception.Message.Split('\n')[0]}");
+            return (pick, "fail", $"did not load, twice: {exception.Message.Split('\n')[0]}");
         }
         finally
         {
@@ -163,7 +179,7 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
         StringBuilder report = new();
         report.AppendLine(CultureInfo.InvariantCulture, $"# Catalogue links, checked {DateTime.UtcNow:d MMM yyyy HH:mm} UTC");
         report.AppendLine();
-        report.AppendLine(CultureInfo.InvariantCulture, $"{results.Count(r => r.Verdict == "ok")} of {results.Count} land on the item; {results.Count(r => r.Verdict == "blocked")} could not be seen past a robot wall and need a hand; {results.Count(r => r.Verdict == "drift")} no longer show the price the pick gives and need opening.");
+        report.AppendLine(CultureInfo.InvariantCulture, $"{results.Count(r => r.Verdict == "ok")} of {results.Count} land on the item; {results.Count(r => r.Verdict == "blocked")} could not be seen past a robot wall and need a hand; {results.Count(r => r.Verdict == "drift")} no longer show the price the pick gives and need opening; {results.Count(r => r.Verdict == "guide")} are directories whose price is a guide.");
         report.AppendLine();
         report.AppendLine("| | Action | Pick | Shop | Detail |");
         report.AppendLine("|---|---|---|---|---|");

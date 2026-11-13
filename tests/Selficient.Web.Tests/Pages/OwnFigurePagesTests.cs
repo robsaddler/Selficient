@@ -188,6 +188,45 @@ public sealed partial class OwnFigurePagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Every_refusal_of_a_post_made_by_hand_says_its_sentence_at_the_head_of_the_form()
+    {
+        using HttpClient client = _factory.CreateClient();
+        const string Head = "<div class=\"callout callout--warning validation-summary-errors\" role=\"alert\"";
+
+        string badTick = WebUtility.HtmlDecode(await PageAsync(client, "/plan", House(("Ticks", "not an action!"))));
+        string tooMany = WebUtility.HtmlDecode(await PageAsync(client, "/plan", House([.. Enumerable.Range(0, Selficient.Web.Pages.Plan.IndexModel.MaxTicks + 1).Select(static i => ($"Ticks[{i}]", "water-cans"))])));
+        string badAmount = WebUtility.HtmlDecode(await PageAsync(client, "/plan", House(("Amounts[no-such-stock]", "4"))));
+        string badRate = WebUtility.HtmlDecode(await PageAsync(client, "/plan", House(("CashRate", "plenty"))));
+        string notANumber = WebUtility.HtmlDecode(await PageAsync(client, "/plan", House(("Amounts[water-bottled-three-days]", "lots"))));
+        Dictionary<string, string> noPostcode = House(("Amounts[water-bottled-three-days]", "lots"));
+        noPostcode["Form.Postcode"] = string.Empty;
+        string besideItsBox = WebUtility.HtmlDecode(await PageAsync(client, "/plan", noPostcode));
+
+        foreach ((string html, string sentence) in new[]
+        {
+            (badTick, "One of the ticks is not a plan action."),
+            (tooMany, "That is more ticks than the plan has actions."),
+            (notANumber, Selficient.Web.Pages.Plan.IndexModel.NotUnderstood),
+        })
+        {
+            html.ShouldContain("Check your answers");
+            html.ShouldContain(Head, customMessage: sentence);
+            html[html.IndexOf(Head, StringComparison.Ordinal)..].ShouldContain($"<li>{sentence}</li>");
+            html.ShouldNotContain("data-plan ", customMessage: "no plan is built from a post that was refused");
+        }
+
+        foreach (string html in new[] { badAmount, badRate })
+        {
+            html.ShouldContain(Head, customMessage: "a figure the plan cannot count is refused where it can be read");
+            html.ShouldNotContain("<li></li>");
+        }
+
+        besideItsBox.ShouldNotContain(Selficient.Web.Pages.Plan.IndexModel.NotUnderstood, customMessage: "a fault in an answer is said beside the answer, and that is enough");
+        besideItsBox.ShouldNotContain("The value 'lots' is not valid", customMessage: "the framework's own words are never shown");
+        notANumber.ShouldNotContain("The value 'lots' is not valid");
+    }
+
+    [Fact]
     public void The_words_and_the_questions_are_decided_in_one_place()
     {
         OwnFigureCopy.Summary(1).ShouldBe("One figure you can change to your own");
