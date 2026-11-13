@@ -18,6 +18,7 @@ public static class Providers
     private const string Ofcom = "Ofcom resilience guidance on mast and exchange batteries";
     private const string Cmo = "UK Chief Medical Officers, water and sanitation advice for a national power outage, December 2025";
     private const string Acorn = "Acorn Stairlifts: more than ten return journeys on a charge, about two days at four or five a day";
+    private const string Calor = "Calor: a 15 kg butane cylinder is about 150 hours on a cabinet heater's low setting; twelve hours a day";
     private const string Rhs = "Royal Horticultural Society yields; a 250 square metre plot feeds a family a third of its vegetables";
 
     private static readonly IReadOnlyList<Utility> Nothing = [];
@@ -73,6 +74,7 @@ public static class Providers
 Fixture("heating-fallback", "Sleeping bags and one warm room", "Everyone in one room with the door shut, in sleeping bags: enough to get healthy adults through a night, and not enough for a baby or someone frail.", [Part(NeedId.Warmth)], Nothing, null, "Plan action; UKHSA cold weather guidance"),
         Fixture("log-deliveries", "The log merchant", "While the roads are open and the merchant delivers, the log store is kept up.", [All_(NeedId.Warmth), All_(NeedId.HeatingSystem)], [Utility.Deliveries, Utility.Roads], null, "Plan"),
         new("wood-stove", "The wood stove and the log store", "Warmth without the mains for as long as the logs last, about three weeks from a full store, and a kettle on the top.", [All_(NeedId.Warmth), All_(NeedId.HeatingSystem), Part(NeedId.Cooking)], Nothing, null, new Stock(21m, Shared: true), null, null, Placement.Anywhere, "Stove Industry Alliance"),
+        Stocked("portable-gas-heater", "A portable gas heater and its cylinder", "One room kept properly warm with no electricity for as long as the cylinder lasts, on the low setting from morning to bedtime.", [All_(NeedId.Warmth)], new Stock(12m), Placement.Anywhere, Calor),
         Fixture("blankets", "Blankets, duvets and one room", "Everyone warm enough in one closed room under duvets. Not enough for a baby or someone frail, which is why the board scores it lost for them.", [Part(NeedId.Warmth)], Nothing, null, "UKHSA cold weather guidance"),
 
         // Health and dependants. The pharmacy while it dispenses, then the stock in the house.

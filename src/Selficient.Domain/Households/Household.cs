@@ -62,6 +62,9 @@ public sealed record Household
 /// <param name="Infants">Children under two.</param>
 public sealed record Particulars(bool ElectricCar, bool WoodStove, bool WaterButt, int Infants)
 {
+    /// <summary>There is a portable gas heater with a cylinder of its own, which needs no electricity.</summary>
+    public bool GasHeater { get; init; }
+
     /// <summary>Nothing said: a petrol car where there is one, no stove, no butt, no infants.</summary>
     public static Particulars None { get; } = new(false, false, false, 0);
 
@@ -203,6 +206,16 @@ public sealed record HouseholdProfile(Household Household, Dwelling Dwelling)
 
     /// <summary>A car that runs on a tank.</summary>
     public bool HasPetrolCar => Dwelling.HasCar && !Particulars.ElectricCar;
+
+    /// <summary>A portable gas heater on a cylinder: one room kept properly warm with the power off.</summary>
+    public bool HasGasHeater => Particulars.GasHeater;
+
+    /// <summary>
+    /// Whether a portable gas heater is something to recommend here. The makers say not in high-rise
+    /// flats, and leases often forbid a cylinder, so a flat is offered one only on the lowest floors,
+    /// as many of them as the figure in force says; a house always is.
+    /// </summary>
+    public bool MayBeOfferedGasHeater => Dwelling.Type != DwellingType.Flat || Circumstances.Floor < Figures[Selficient.Domain.Plans.Rules.RuleFigures.GasHeaterFloors];
 
     /// <summary>A stove that burns logs, as the main heating or beside it.</summary>
     public bool HasWoodStove => Particulars.WoodStove || Dwelling.Heating == HeatingType.Wood;

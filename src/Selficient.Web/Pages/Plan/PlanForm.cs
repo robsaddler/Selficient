@@ -114,6 +114,11 @@ public sealed class PlanForm
     [Required(ErrorMessage = "This answer is needed to build the plan.")]
     public bool HasWoodStove { get; set; }
 
+    /// <summary>A portable gas heater on a cylinder, which heats a room with the power off.</summary>
+    [Display(Name = "Is there a portable gas heater with its own cylinder?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool HasGasHeater { get; set; }
+
     /// <summary>A water butt.</summary>
     [Display(Name = "Is there a water butt?")]
     [Required(ErrorMessage = "This answer is needed to build the plan.")]
@@ -222,7 +227,7 @@ public sealed class PlanForm
             HasCellar: HasCellar,
             SleepsDownstairs: SleepsDownstairs,
             Floor: FloorOfFlat,
-            Stairlift: Stairlift ?? Selficient.Domain.Households.Stairlift.None) { OwnFigures = ownFigures });
+            Stairlift: Stairlift ?? Selficient.Domain.Households.Stairlift.None) { OwnFigures = ownFigures, HasGasHeater = HasGasHeater });
 
     /// <summary>
     /// The household as the resilience engine sees it. The newer questions are optional so a profile

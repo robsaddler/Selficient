@@ -65,6 +65,7 @@ public static class ApplicationServiceCollectionExtensions
         new FoodStoreRule(),
         new CookingRule(),
         new WoodStoveRule(),
+        new GasHeaterRule(),
         new LanternRule(),
         new DocumentsRule(),
         new SolarQuotesRule(),

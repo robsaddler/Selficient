@@ -77,7 +77,7 @@ public sealed class ParameterTests
         ParameterRegistry.Find("medicine-stock.stock").ShouldBeNull();
         ParameterRegistry.Find("gravity-water-filter.per-day")!.Unit.ShouldBe("litres a day");
         ParameterRegistry.Find("water-butt.lead-days")!.WholeNumber.ShouldBeTrue();
-        ParameterRegistry.All.Count(p => p.HouseholdMayOverride).ShouldBe(8);
+        ParameterRegistry.All.Count(p => p.HouseholdMayOverride).ShouldBe(9);
     }
 
     [Fact]

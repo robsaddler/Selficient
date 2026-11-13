@@ -71,7 +71,7 @@ public sealed class GeneratePlanHandlerTests
         GeneratePlanHandler handler = provider.GetRequiredService<GeneratePlanHandler>();
         handler.Handle(Robs).IsSuccess.ShouldBeTrue();
         ApplicationServiceCollectionExtensions.Assessors().Count.ShouldBe(9);
-        ApplicationServiceCollectionExtensions.Rules().Count.ShouldBe(22);
+        ApplicationServiceCollectionExtensions.Rules().Count.ShouldBe(23);
         ApplicationServiceCollectionExtensions.Rules().Select(r => r.Order).ShouldBeUnique();
         Should.Throw<ArgumentNullException>(() => ApplicationServiceCollectionExtensions.AddSelficientApplication(null!));
     }

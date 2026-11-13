@@ -39,6 +39,9 @@ public sealed record GeneratePlanCommand(
     int Floor = 0,
     Stairlift Stairlift = Stairlift.None)
 {
+    /// <summary>There is a portable gas heater with a cylinder of its own.</summary>
+    public bool HasGasHeater { get; init; }
+
     /// <summary>The figures this household gave for itself, by the figure's id: how long its own stairlift runs, what its own water butt holds. Used for its plan only.</summary>
     public IReadOnlyDictionary<string, decimal> OwnFigures { get; init; } = new Dictionary<string, decimal>();
 }
@@ -91,7 +94,7 @@ public sealed class GeneratePlanHandler
         return elevation.Bind(e =>
             Household.Create(command.People, command.Children, command.HasVulnerablePerson, command.HasPets, command.RunsBusinessFromHome).Bind(household =>
                 Dwelling.Create(command.DwellingType, command.Storeys, command.Heating, command.Hob, command.HasCar, command.HasGarden, command.HasDecking, command.HasTallTreeNearHouse, e, command.FloodRisk).Bind(dwelling =>
-                    Particulars.Create(household, command.CarIsElectric, command.HasWoodStove, command.HasWaterButt, command.Infants).Bind(particulars =>
+                    Particulars.Create(household, command.CarIsElectric, command.HasWoodStove, command.HasWaterButt, command.Infants).Map(said => said with { GasHeater = command.HasGasHeater }).Bind(particulars =>
                         Circumstances.Create(command.Tenure, command.Water, command.OwnDrains, command.PrepaymentMeter, command.NeedsHelpToLeave, command.HasCellar, command.SleepsDownstairs, command.Floor, command.Stairlift)
                             .Map(circumstances => new HouseholdProfile(household, dwelling) { Nation = command.Nation, FloodFrom = command.FloodFrom, Particulars = particulars, Circumstances = circumstances, Figures = figures })))));
     }

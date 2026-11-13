@@ -30,6 +30,7 @@ public sealed class AffiliateOptions
         "www.starlink.com",
         "www.trees.org.uk",
         "www.hetas.co.uk",
+        "shop.calor.co.uk",
     ];
 
     /// <summary>Amazon Associates tag, appended as <c>tag=</c> on amazon.co.uk links when set.</summary>

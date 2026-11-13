@@ -193,6 +193,48 @@ public sealed class WoodStoveRule : IPlanRule
     }
 }
 
+/// <summary>
+/// A portable gas heater is the one fallback that keeps a room warm enough for a baby or someone
+/// frail with the power off, which sleeping bags do not. A household that has one is told how to
+/// lean on it safely; one that needs full warmth, has no stove and lives where a cylinder may be
+/// kept is offered one.
+/// </summary>
+public sealed class GasHeaterRule : IPlanRule
+{
+    private const string Safely = "Use it in a living room with a window open a crack and a carbon monoxide alarm in the same room, never in a bedroom or a bathroom, and turn it off before anyone sleeps.";
+
+    /// <inheritdoc />
+    public int Order => 226;
+
+    /// <inheritdoc />
+    public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        string lasts = Say.Days(profile.Figures["portable-gas-heater.stock"]);
+        if (profile.HasGasHeater)
+        {
+            yield return Action(
+                "gas-heater-ready",
+                Tier.ThisMonth,
+                "Keep a full spare cylinder for the gas heater, and have the heater checked before winter",
+                $"Your heater is warmth that needs nothing from anyone: about {lasts} of one warm room on a full cylinder. A spare means a cut that outlasts the first is still a warm one. Have the hose and regulator looked at each autumn. {Safely}",
+                Price(profile, "gas-heater-ready"),
+                Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
+        }
+        else if (profile.NeedsFullWarmth && !profile.HasWoodStove && profile.MayBeOfferedGasHeater)
+        {
+            string tenancy = profile.IsTenant ? " Check that your tenancy allows a gas cylinder before you buy." : string.Empty;
+            yield return Action(
+                "portable-gas-heater",
+                Tier.ThisMonth,
+                "A portable gas heater and a full cylinder, for one properly warm room",
+                $"A cabinet heater on a butane cylinder needs no electricity and keeps one room warm enough for a baby or for someone frail, which blankets and sleeping bags do not: about {lasts} on a full cylinder, on its low setting from morning to bedtime. {Safely}{tenancy}",
+                Price(profile, "portable-gas-heater"),
+                Mitigates(RiskKind.StormPowerCut));
+        }
+    }
+}
+
 /// <summary>Lanterns for the rooms people sit in.</summary>
 public sealed class LanternRule : IPlanRule
 {

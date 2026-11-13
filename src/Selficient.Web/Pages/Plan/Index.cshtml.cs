@@ -60,6 +60,7 @@ public sealed class IndexModel : PageModel
         nameof(PlanForm.Car), nameof(PlanForm.Infants), nameof(PlanForm.MedicineDaysInStock), nameof(PlanForm.Floor),
         nameof(PlanForm.NeedsHelpToLeave), nameof(PlanForm.Tenure), nameof(PlanForm.HasCellar), nameof(PlanForm.SleepsDownstairs),
         nameof(PlanForm.Water), nameof(PlanForm.OwnDrains), nameof(PlanForm.PrepaymentMeter), nameof(PlanForm.Stairlift),
+        nameof(PlanForm.HasGasHeater),
     ];
 
     /// <summary>The most ticks a request may carry.</summary>
@@ -253,6 +254,7 @@ public sealed class IndexModel : PageModel
         (nameof(PlanForm.OwnDrains), Flag(form.OwnDrains)),
         (nameof(PlanForm.PrepaymentMeter), Flag(form.PrepaymentMeter)),
         (nameof(PlanForm.Stairlift), (form.Stairlift ?? Selficient.Domain.Households.Stairlift.None).ToString()),
+        (nameof(PlanForm.HasGasHeater), Flag(form.HasGasHeater)),
     ];
 
     private static string Flag(bool value) => value ? "true" : "false";

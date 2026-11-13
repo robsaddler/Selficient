@@ -42,6 +42,7 @@ internal static class ProviderWords
         ["formula-and-nappies"] = static (p, d) => Capital($"{Days(p.Stock!.Quantity)} of nappies and formula. Formula needs boiled water, so this depends on cooking."),
         ["pet-food-two-weeks"] = static (p, d) => Capital($"{Days(p.Stock!.Quantity)} of food, with a bag and a box kept ahead of the one in use."),
         ["stairlift-charger"] = static (p, d) => $"The lift tops its batteries up from an ordinary socket whenever it is parked, from the mains or from any source that can give {Power(p.Load!.BurstW)}; about {Energy(p.Load.WinterWhPerDay)} a day.",
+        ["portable-gas-heater"] = static (p, d) => $"One room kept properly warm with no electricity for about {Days(p.Stock!.Quantity)} on a full cylinder, on the low setting from morning to bedtime. A window open a crack, a carbon monoxide alarm in the same room, and off before anyone sleeps.",
         ["stairlift-batteries"] = static (p, d) => $"About {Days(p.Stock!.Quantity)} of trips to bed and the bathroom on healthy batteries, fewer on a long stair or an old set.",
         ["stairlift-on-the-mains"] = static (p, d) => $"A lift with no batteries of its own is wired in, needs {Power(p.Load!.BurstW)} and stops with the power; only a whole-house battery carries it.",
         ["mains-lighting"] = static (p, d) => $"LED lighting in the rooms in use is about {Energy(p.Load!.WinterWhPerDay)} a winter night.",

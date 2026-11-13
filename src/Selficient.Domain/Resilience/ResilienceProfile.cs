@@ -252,6 +252,11 @@ public sealed record ResilienceProfile
                 fixtures.Add("log-deliveries");
             }
 
+            if (Profile.HasGasHeater)
+            {
+                fixtures.Add("portable-gas-heater");
+            }
+
             if (Dwelling.Hob == HobType.Gas)
             {
                 fixtures.Add("gas-hob");

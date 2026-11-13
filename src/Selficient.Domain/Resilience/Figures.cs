@@ -92,6 +92,7 @@ public static class ProviderFigures
         ["petrol-car.stock"] = "How many days of your usual driving is half a tank?",
         ["electric-car.stock"] = "How many days of your usual driving is an ordinary charge?",
         ["wood-stove.stock"] = "How many days of fires does a full log store give you?",
+        ["portable-gas-heater.stock"] = "How many days does your gas heater run on the cylinders you keep, at twelve hours a day?",
         ["water-butt.stock"] = "How many litres does your water butt hold?",
     };
 

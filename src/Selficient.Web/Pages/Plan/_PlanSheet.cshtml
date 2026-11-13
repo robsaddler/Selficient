@@ -70,6 +70,8 @@
   {
     @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier], amounts))
   }
+  @* The sum of the four stretches above it, at their foot and to the right, where the total of a column of figures goes. *@
+  <p class="plan__total"><span class="plan__total-label">Everything together:</span> <span class="plan__total-figure data">@MoneyFormat.Range(planned.Plan.Cost)</span></p>
   @* The figures the plan had to choose for itself, each open to the household's own, all asked the same way in one place: the cash a person needs, and a figure for each thing this household has. Shut until opened, so a new plan is not met with a row of boxes, and open once one has been answered. The script keeps each choice in this browser; the cash figure redraws the board and the others build the plan again. *@
   <section class="assumptions" aria-labelledby="assumptions-heading">
     <h3 id="assumptions-heading">What the plan assumes</h3>
@@ -109,7 +111,6 @@
       }
     </ul>
   </section>
-  <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
   @if (planned.Plan.Profile.Dwelling.HasOwnRoof)
   {
     <p class="plan__solar">The biggest line is the roof. <a href="/plan/solar">Estimate what solar and a battery would make, save and cost for your house</a>, with the backup that keeps the lights on.</p>

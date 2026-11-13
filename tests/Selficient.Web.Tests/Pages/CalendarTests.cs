@@ -79,7 +79,7 @@ public sealed class CalendarTests : IDisposable
 
         UpkeepView view = new(profile);
 
-        view.CalendarHref.ShouldBe("/plan/calendar.ics?decking=true&garden=true&petrol=true&electric=false&tree=true&stove=false&flood=false&meter=false&supply=false&tank=false&lift=false");
+        view.CalendarHref.ShouldBe("/plan/calendar.ics?decking=true&garden=true&petrol=true&electric=false&tree=true&stove=false&flood=false&meter=false&supply=false&tank=false&lift=false&heater=false");
         view.Reminders.Count.ShouldBe(9);
         UpkeepView.When(new UpkeepView(Profiles.FloodZoneBungalow()).Reminders.Single(r => r.Id == "flue-sweep")).ShouldBe("1 September");
         UpkeepView.When(view.Reminders.Single(r => r.Id == "stored-cells-check")).ShouldBe("At the clock changes, March and October");

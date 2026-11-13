@@ -1195,8 +1195,32 @@ progress.tier-progress {
   gap: var(--space-5);
 }
 
+/* The total of the four stretches, at their foot and to the right, where the total of a column of
+   figures goes. It is a cell of the same paper and border as the stretches it adds up, and no rules:
+   ruled above and double-ruled below was tried and read as fussy. */
 .plan__total {
-  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  margin-inline-start: auto;
+  padding: var(--space-3) var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & .plan__total-label {
+    color: var(--c-ink-muted);
+    font-weight: 600;
+  }
+
+  & .plan__total-figure {
+    font-size: var(--text-xl);
+    font-weight: 600;
+  }
 }
 
 .sheet__empty {

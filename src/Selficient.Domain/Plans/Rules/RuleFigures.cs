@@ -16,6 +16,9 @@ public static class RuleFigures
     /// <summary>The size of the bottle the plan counts bottled water in, in litres.</summary>
     public const string BottleLitres = "plan.bottle-litres";
 
+    /// <summary>How many floors of a block of flats, counted up from the ground, the plan recommends a portable gas heater on.</summary>
+    public const string GasHeaterFloors = "plan.gas-heater-floors";
+
     private const string PriceGroup = "What things cost";
     private const string PlanGroup = "What the plan asks for";
     private const string Seen = "Shop prices seen at the catalogue's last review";
@@ -51,6 +54,8 @@ public static class RuleFigures
         ("flasks-for-hot-food", "Two large vacuum flasks", 50m, 95m),
         ("butane-cartridge-stove", "A cartridge stove and its cartridges", 60m, 100m),
         ("wood-stove-ready", "A chimney sweep", 75m, 250m),
+        ("portable-gas-heater", "A portable gas heater and its first cylinder of gas", 184m, 234m),
+        ("gas-heater-ready", "A spare cylinder of gas for the heater", 58m, 108m),
         ("rechargeable-lanterns", "A rechargeable lantern", 36m, 90m),
         ("fire-box-for-cash-and-documents", "A fire-rated box", 45m, 55m),
         ("rooftop-solar-and-battery", "Rooftop solar with a battery and backup", 9000m, 17000m),
@@ -71,6 +76,10 @@ public static class RuleFigures
         }),
         new(WaterCanLitres, PlanGroup, "The size of a water can the plan asks for", "litres", 25m, 5m, 50m, "The common food-grade can", "In the plan, in the water cans action and the figure a household gives for them"),
         new(BottleLitres, PlanGroup, "The size of the bottle the plan counts bottled water in", "litres", 2m, 0.5m, 10m, "The large supermarket bottle", "In the plan, in the bottled water action"),
+        new(GasHeaterFloors, PlanGroup, "Floors of a block of flats, counted up from the ground, on which the plan recommends a portable gas heater; none means no flat is offered one, one means the ground floor only", "whole floors", 1m, 0m, 41m, "Makers' instructions (Calor, Sealey, Clarke): not in high-rise flats; and many leases forbid a gas cylinder", "In the plan, in whether a household in a flat is offered the gas heater")
+        {
+            WholeNumber = true,
+        },
     ];
 
     /// <summary>What an action costs under these figures: the price of one, as many times as the household needs.</summary>

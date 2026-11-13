@@ -991,7 +991,7 @@ public sealed class Journeys
         await Expect(says).ToBeHiddenAsync();
         await Expect(page.Locator("[data-plan]")).ToHaveAttributeAsync("data-figures-version", "0");
         (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().version)")).ShouldBe(0);
-        (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().figures.length)")).ShouldBe(8, "the shipped figures are in the script itself");
+        (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().figures.length)")).ShouldBe(9, "the shipped figures are in the script itself");
 
         // A server that cannot be reached changes nothing: the plan on the screen stands.
         await page.RouteAsync("**/api/figures", route => route.AbortAsync());
@@ -1103,6 +1103,32 @@ public sealed class Journeys
         await page.WaitForTimeoutAsync(1_500);
         await Expect(declined).ToBeVisibleAsync();
         await Expect(page.Locator("#own-closed-freezer-stock")).ToHaveValueAsync("2");
+    }
+
+    [Fact]
+    public async Task A_household_with_a_gas_heater_says_so_once_and_the_plan_and_the_questionnaire_remember_it()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await FillRobsHouseAsync(page);
+        await page.GetByLabel("Is there a portable gas heater with its own cylinder?").CheckAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        // It has one, so it is told how to lean on it and is not sold another.
+        await Expect(page.Locator("[data-action-row=\"gas-heater-ready\"]")).ToContainTextAsync("Keep a full spare cylinder for the gas heater");
+        await Expect(page.Locator("[data-action-row=\"portable-gas-heater\"]")).ToHaveCountAsync(0);
+        await page.Locator("[data-own-figures] summary").ClickAsync();
+        await Expect(page.Locator("#own-portable-gas-heater-stock")).ToHaveValueAsync("12");
+        await ShouldNotScrollSidewaysAsync(page);
+
+        // Opened again from what the browser keeps, and changed from the questionnaire, the answer is still there.
+        await page.GotoAsync("/plan");
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-action-row=\"gas-heater-ready\"]")).ToBeVisibleAsync();
+        await page.GotoAsync("/plan/start");
+        await Expect(page.GetByLabel("Is there a portable gas heater with its own cylinder?")).ToBeCheckedAsync();
     }
 
     private static async Task BuildPlanAsync(IPage page)

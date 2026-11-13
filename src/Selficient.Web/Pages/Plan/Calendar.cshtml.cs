@@ -28,12 +28,12 @@ public sealed class CalendarModel : PageModel
     }
 
     /// <summary>Returns the calendar file.</summary>
-    public IActionResult OnGet(bool decking = false, bool garden = false, bool petrol = false, bool electric = false, bool tree = false, bool stove = false, bool flood = false, bool meter = false, bool supply = false, bool tank = false, bool lift = false)
+    public IActionResult OnGet(bool decking = false, bool garden = false, bool petrol = false, bool electric = false, bool tree = false, bool stove = false, bool flood = false, bool meter = false, bool supply = false, bool tank = false, bool lift = false, bool heater = false)
     {
         DateTimeOffset now = _clock.GetUtcNow();
         DateOnly today = DateOnly.FromDateTime(now.UtcDateTime);
         // One car at most: a link that claims both is given the tank, which is what an old link meant.
-        IReadOnlyList<Reminder> reminders = UpkeepSchedule.For(new UpkeepFacts(decking, garden, petrol, electric && !petrol, tree, stove, flood, meter, supply, tank, lift));
+        IReadOnlyList<Reminder> reminders = UpkeepSchedule.For(new UpkeepFacts(decking, garden, petrol, electric && !petrol, tree, stove, flood, meter, supply, tank, lift, heater));
         string calendar = IcsCalendar.Write(UpkeepSchedule.Occurrences(reminders, today, Years), now);
 
         return File(System.Text.Encoding.UTF8.GetBytes(calendar), "text/calendar; charset=utf-8", "selficient-calendar.ics");

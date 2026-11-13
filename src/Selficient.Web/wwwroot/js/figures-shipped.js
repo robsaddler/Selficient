@@ -18,6 +18,7 @@ export const SHIPPED = {
     { "id": "water-butt.stock", "question": "How many litres does your water butt hold?", "unit": "litres", "min": 0, "max": 4200, "whole": false, "value": 210 },
     { "id": "closed-freezer.stock", "question": "How many days does your freezer keep its cold with the door shut?", "unit": "days", "min": 0, "max": 100, "whole": false, "value": 2 },
     { "id": "wood-stove.stock", "question": "How many days of fires does a full log store give you?", "unit": "days", "min": 0, "max": 420, "whole": false, "value": 21 },
+    { "id": "portable-gas-heater.stock", "question": "How many days does your gas heater run on the cylinders you keep, at twelve hours a day?", "unit": "days", "min": 0, "max": 240, "whole": false, "value": 12 },
     { "id": "stairlift-batteries.stock", "question": "How many days of trips to bed and the bathroom does your stairlift make in a power cut?", "unit": "days", "min": 0, "max": 100, "whole": false, "value": 2 },
     { "id": "petrol-car.stock", "question": "How many days of your usual driving is half a tank?", "unit": "days", "min": 0, "max": 140, "whole": false, "value": 7 },
     { "id": "electric-car.stock", "question": "How many days of your usual driving is an ordinary charge?", "unit": "days", "min": 0, "max": 100, "whole": false, "value": 5 },

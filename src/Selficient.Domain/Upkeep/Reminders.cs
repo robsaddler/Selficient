@@ -43,7 +43,8 @@ public sealed record Reminder(string Id, string Title, string Why, Cadence Caden
 /// <param name="OwnWater">The water is the home's own supply.</param>
 /// <param name="OwnDrains">The waste goes to the home's own tank.</param>
 /// <param name="Stairlift">There is a stairlift.</param>
-public sealed record UpkeepFacts(bool Decking = false, bool Garden = false, bool PetrolCar = false, bool ElectricCar = false, bool TallTree = false, bool WoodStove = false, bool FloodRisk = false, bool PrepaymentMeter = false, bool OwnWater = false, bool OwnDrains = false, bool Stairlift = false)
+/// <param name="GasHeater">There is a portable gas heater.</param>
+public sealed record UpkeepFacts(bool Decking = false, bool Garden = false, bool PetrolCar = false, bool ElectricCar = false, bool TallTree = false, bool WoodStove = false, bool FloodRisk = false, bool PrepaymentMeter = false, bool OwnWater = false, bool OwnDrains = false, bool Stairlift = false, bool GasHeater = false)
 {
     /// <summary>The facts as a plan's profile gives them.</summary>
     public static UpkeepFacts From(HouseholdProfile profile)
@@ -51,7 +52,7 @@ public sealed record UpkeepFacts(bool Decking = false, bool Garden = false, bool
         ArgumentNullException.ThrowIfNull(profile);
         Dwelling dwelling = profile.Dwelling;
         Circumstances circumstances = profile.Circumstances;
-        return new UpkeepFacts(dwelling.HasDecking, dwelling.HasGarden, profile.HasPetrolCar, profile.HasElectricCar, dwelling.HasTallTreeNearHouse, profile.HasWoodStove, dwelling.FloodRisk >= Households.FloodRisk.Low, circumstances.PrepaymentMeter, profile.HasOwnWater, circumstances.OwnDrains, profile.HasStairlift);
+        return new UpkeepFacts(dwelling.HasDecking, dwelling.HasGarden, profile.HasPetrolCar, profile.HasElectricCar, dwelling.HasTallTreeNearHouse, profile.HasWoodStove, dwelling.FloodRisk >= Households.FloodRisk.Low, circumstances.PrepaymentMeter, profile.HasOwnWater, circumstances.OwnDrains, profile.HasStairlift, profile.HasGasHeater);
     }
 }
 
@@ -106,6 +107,11 @@ public static class UpkeepSchedule
         if (facts.WoodStove)
         {
             reminders.Add(new("flue-sweep", "Have the stove's flue swept and fill the log store", "Before the first fire of the autumn. A swept flue and a store of dry logs are what make the stove safe to lean on when the power is off.", Cadence.OnDates, [(9, 1)]));
+        }
+
+        if (facts.GasHeater)
+        {
+            reminders.Add(new("gas-heater-check", "Check the gas heater, its hose and the spare cylinder", "Before the cold. Light it with a window open and watch that every panel glows evenly, look along the hose for cracks, and make sure the spare cylinder is full. A heater that smells, soots or burns yellow is one to have serviced before it is used.", Cadence.OnDates, [(9, 1)]));
         }
 
         if (facts.FloodRisk)

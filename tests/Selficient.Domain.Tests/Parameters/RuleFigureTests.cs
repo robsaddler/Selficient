@@ -32,8 +32,8 @@ public sealed class RuleFigureTests
         low.ShouldBe(new ParameterDefinition("price.headtorches.low", "What things cost", "A headtorch: the least it costs", "pounds", 14m, 0m, 280m, "Shop prices seen at the catalogue's last review", "In the plan, as the cost of \"headtorches\""));
         (high.Name, high.Default, high.Max).ShouldBe(("Rooftop solar with a battery and backup: the most it costs", 17000m, 170_000m));
         ParameterRegistry.Find("price.long-reach-lighter-for-gas-hob.high")!.Max.ShouldBe(100m, "a cheap thing still has room to be corrected");
-        ParameterRegistry.All.Count(p => p.Group == "What things cost").ShouldBe(72);
-        ParameterRegistry.All.Count(p => p.Group == "What the plan asks for").ShouldBe(2);
+        ParameterRegistry.All.Count(p => p.Group == "What things cost").ShouldBe(76);
+        ParameterRegistry.All.Count(p => p.Group == "What the plan asks for").ShouldBe(3);
 
         ParameterSet.Create(1, new Dictionary<string, decimal> { ["price.headtorches.low"] = 40m }).Error.Message.ShouldBe("A headtorch cannot cost more at its least than at its most.");
         ParameterSet.Create(1, new Dictionary<string, decimal> { ["price.headtorches.low"] = 28m }).IsSuccess.ShouldBeTrue("the same at both ends is a fixed price");

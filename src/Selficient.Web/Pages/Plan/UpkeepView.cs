@@ -12,7 +12,7 @@ public sealed class UpkeepView
         ArgumentNullException.ThrowIfNull(profile);
         UpkeepFacts facts = UpkeepFacts.From(profile);
         Reminders = UpkeepSchedule.For(facts);
-        CalendarHref = $"/plan/calendar.ics?decking={Flag(facts.Decking)}&garden={Flag(facts.Garden)}&petrol={Flag(facts.PetrolCar)}&electric={Flag(facts.ElectricCar)}&tree={Flag(facts.TallTree)}&stove={Flag(facts.WoodStove)}&flood={Flag(facts.FloodRisk)}&meter={Flag(facts.PrepaymentMeter)}&supply={Flag(facts.OwnWater)}&tank={Flag(facts.OwnDrains)}&lift={Flag(facts.Stairlift)}";
+        CalendarHref = $"/plan/calendar.ics?decking={Flag(facts.Decking)}&garden={Flag(facts.Garden)}&petrol={Flag(facts.PetrolCar)}&electric={Flag(facts.ElectricCar)}&tree={Flag(facts.TallTree)}&stove={Flag(facts.WoodStove)}&flood={Flag(facts.FloodRisk)}&meter={Flag(facts.PrepaymentMeter)}&supply={Flag(facts.OwnWater)}&tank={Flag(facts.OwnDrains)}&lift={Flag(facts.Stairlift)}&heater={Flag(facts.GasHeater)}";
     }
 
     /// <summary>The reminders, in schedule order.</summary>

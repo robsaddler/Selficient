@@ -111,7 +111,7 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("name=\"DwellingType\" value=\"Detached\"");
         html.ShouldContain("Everything together:");
         html.ShouldContain("Keep it going");
-        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true&amp;petrol=true&amp;electric=false&amp;tree=true&amp;stove=false&amp;flood=false&amp;meter=false&amp;supply=false&amp;tank=false&amp;lift=false\"");
+        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true&amp;petrol=true&amp;electric=false&amp;tree=true&amp;stove=false&amp;flood=false&amp;meter=false&amp;supply=false&amp;tank=false&amp;lift=false&amp;heater=false\"");
         html.ShouldContain("Clear the leaf litter from under the decking");
     }
 

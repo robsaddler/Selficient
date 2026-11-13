@@ -223,6 +223,7 @@ public sealed class EmbeddedKitCatalogueTests
         Profiles.RobsHouse(), Profiles.Flat(), Profiles.FloodZoneBungalow(),
         Profiles.RobsHouse() with { Particulars = new Particulars(ElectricCar: false, WoodStove: false, WaterButt: false, Infants: 1) },
         Profiles.RobsHouse() with { Circumstances = Circumstances.None with { Stairlift = Stairlift.MainsOnly } },
+        Profiles.RobsHouse() with { Particulars = Particulars.None with { GasHeater = true } },
     ];
 
     private static IEnumerable<string> PurchasableActionIds()

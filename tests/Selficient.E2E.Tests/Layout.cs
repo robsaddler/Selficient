@@ -174,6 +174,42 @@ public sealed class Layout
             : "{\"inside\":true,\"pressable\":true,\"beside\":true,\"below\":false,\"oneLine\":true}");
     }
 
+    [Theory]
+    [InlineData(390, true)]
+    [InlineData(1440, false)]
+    [InlineData(2000, false)]
+    public async Task The_plans_total_stands_at_the_foot_of_its_four_stretches_set_to_the_right_as_a_column_total_is(int width, bool mobile)
+    {
+        await using IBrowserContext context = await _browser.SizedAsync(width, 900, mobile, theme: "light");
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await Journeys.FillRobsHouseAsync(page);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        string measured = await page.EvaluateAsync<string>(
+            """
+            () => {
+              const box = selector => document.querySelector(selector).getBoundingClientRect();
+              const total = box(".plan__total"), figure = box(".plan__total-figure"), assumes = box(".assumptions");
+              const tiers = [...document.querySelectorAll(".plan [data-tier]")].map(tier => tier.getBoundingClientRect());
+              const plan = box(".plan");
+              return JSON.stringify({
+                tiers: tiers.length,
+                underTheStretches: tiers.every(tier => tier.bottom <= total.top + 1),
+                aboveWhatIsAssumed: total.bottom <= assumes.top + 1,
+                toTheRight: Math.abs(plan.right - total.right) < 2 && total.right - figure.right < 40,
+                noWiderThanItsWords: total.width < plan.width || plan.width < 500,
+                oneLineOfWords: !document.querySelector(".plan__total").textContent.trim().endsWith("."),
+              });
+            }
+            """);
+
+        measured.ShouldBe("{\"tiers\":4,\"underTheStretches\":true,\"aboveWhatIsAssumed\":true,\"toTheRight\":true,\"noWiderThanItsWords\":true,\"oneLineOfWords\":true}");
+        await page.Locator(".plan__total").ScrollIntoViewIfNeededAsync();
+        await page.ScreenshotAsync(new() { Path = Screenshots.Target($"plan-total-{width}.png") });
+    }
+
     [Fact]
     public async Task The_phone_hero_is_one_column()
     {
