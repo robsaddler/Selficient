@@ -200,6 +200,60 @@ public sealed class CatalogueTests
     }
 
     [Fact]
+    public async Task A_release_that_corrects_a_pick_rewrites_the_offer_held_at_its_link_and_hides_what_it_withdrew()
+    {
+        ICatalogueStore store = Substitute.For<ICatalogueStore>();
+        IKitCatalogue shipped = Substitute.For<IKitCatalogue>();
+        DateOnly then = new(2026, 10, 29);
+        DateOnly now = new(2026, 11, 13);
+        static Uri Link(string words) => new("https://www.amazon.co.uk/s?k=" + words);
+        KitPick renamed = KitPick.Create("headtorches", "Petzl Tikkina headtorch, 300 lumens", "Amazon", 19.99m, now, Link("renamed"), "Why.").Value;
+        KitPick repriced = KitPick.Create("headtorches", "Petzl Tikkina headtorch", "Amazon", 19.99m, now, Link("repriced"), "Why.").Value;
+        KitPick unchanged = KitPick.Create("headtorches", "Petzl Tikkina headtorch", "Amazon", 22m, now, Link("unchanged"), "Why.").Value;
+        KitPick checkedSince = KitPick.Create("headtorches", "Petzl Tikkina headtorch", "Amazon", 19.99m, then, Link("checked-since"), "Why.").Value;
+        shipped.All.Returns([renamed, repriced, unchanged, checkedSince]);
+        store.AllAsync(Arg.Any<CancellationToken>()).Returns([
+            AnOffer(1) with { Link = renamed.Link },
+            AnOffer(2) with { Link = repriced.Link },
+            AnOffer(3) with { Link = unchanged.Link },
+            AnOffer(4) with { Link = checkedSince.Link, Seen = now },
+            AnOffer(5) with { Link = Link("withdrawn") },
+            AnOffer(6, status: OfferStatus.Hidden) with { Link = Link("withdrawn-and-hidden-already") },
+            AnOffer(7) with { Link = Link("a-readers-tip") },
+            AnOffer(8) with { Link = renamed.Link },
+        ]);
+        store.ShownAsync(Arg.Any<CancellationToken>()).Returns([]);
+        RetiredPick[] retired = [new(ActionId.From("headtorches"), Link("withdrawn")), new(ActionId.From("headtorches"), Link("withdrawn-and-hidden-already")), new(ActionId.From("water-cans"), Link("a-readers-tip"))];
+        using StoredCatalogue catalogue = new(store, shipped, retired);
+
+        await catalogue.ReloadAsync(CancellationToken.None);
+
+        await store.Received(1).ReviseAsync(1, renamed, Arg.Any<CancellationToken>());
+        await store.Received(1).ReviseAsync(2, repriced, Arg.Any<CancellationToken>());
+        await store.Received(2).ReviseAsync(Arg.Any<long>(), Arg.Any<KitPick>(), Arg.Any<CancellationToken>());
+        await store.DidNotReceive().SeedAsync(Arg.Any<IReadOnlyList<KitPick>>(), Arg.Any<CancellationToken>());
+        await store.Received(1).SetStatusAsync(5, OfferStatus.Hidden, Arg.Any<CancellationToken>());
+        await store.Received(1).SetStatusAsync(Arg.Any<long>(), Arg.Any<OfferStatus>(), Arg.Any<CancellationToken>());
+        Should.Throw<ArgumentNullException>(() => new StoredCatalogue(store, shipped, null!));
+    }
+
+    [Fact]
+    public void A_shipped_pick_corrects_an_offer_when_its_words_changed_or_its_price_was_seen_later()
+    {
+        Offer held = AnOffer();
+        KitPick Pick(string name = "Petzl Tikkina headtorch", string retailer = "Amazon", decimal price = 22m, int day = 29, string note = "Why.") =>
+            KitPick.Create("headtorches", name, retailer, price, new DateOnly(2026, 10, day), held.Link, note).Value;
+
+        StoredCatalogue.Corrects(Pick(), held).ShouldBeFalse("the same pick is no correction");
+        StoredCatalogue.Corrects(Pick(name: "Petzl Tikkina, 300 lumens"), held).ShouldBeTrue();
+        StoredCatalogue.Corrects(Pick(retailer: "Petzl"), held).ShouldBeTrue();
+        StoredCatalogue.Corrects(Pick(note: "A better reason."), held).ShouldBeTrue();
+        StoredCatalogue.Corrects(Pick(price: 19.99m, day: 30), held).ShouldBeTrue("a price seen later stands");
+        StoredCatalogue.Corrects(Pick(price: 19.99m), held).ShouldBeFalse("a price seen no later than the nightly check's does not undo it");
+        StoredCatalogue.Corrects(Pick(day: 30), held).ShouldBeFalse("the same price on a later day changes nothing");
+    }
+
+    [Fact]
     public async Task The_operations_verify_reload_and_know_when_the_night_is_due()
     {
         ICatalogueStore store = Substitute.For<ICatalogueStore>();

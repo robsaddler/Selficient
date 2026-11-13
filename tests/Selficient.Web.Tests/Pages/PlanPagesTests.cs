@@ -111,7 +111,7 @@ public sealed partial class PlanPagesTests : IDisposable
         html.ShouldContain("name=\"DwellingType\" value=\"Detached\"");
         html.ShouldContain("Everything together:");
         html.ShouldContain("Keep it going");
-        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true&amp;petrol=true&amp;electric=false&amp;tree=true&amp;stove=false&amp;flood=false\"");
+        html.ShouldContain("href=\"/plan/calendar.ics?decking=true&amp;garden=true&amp;petrol=true&amp;electric=false&amp;tree=true&amp;stove=false&amp;flood=false&amp;meter=false&amp;supply=false&amp;tank=false\"");
         html.ShouldContain("Clear the leaf litter from under the decking");
     }
 
@@ -258,7 +258,8 @@ public sealed partial class PlanPagesTests : IDisposable
 
             response.StatusCode.ShouldBe(HttpStatusCode.OK);
             html.ShouldContain("232 m above sea level");
-            upstream.LogEntries.Count.ShouldBe(2, "both real adapters must have been used; saw: " + string.Join(" | ", upstream.LogEntries.Select(e => (e.RequestMessage?.Path ?? "?") + " -> " + (e.ResponseMessage?.StatusCode ?? "?"))));
+            // By path, not by count: on a loaded machine the resilience pipeline times an attempt out and asks again, and a second request is not a second adapter.
+            upstream.LogEntries.Select(e => e.RequestMessage?.Path).Distinct().ShouldBe(["/postcodes/NP12 1GW", "/v1/elevation"], ignoreOrder: true, "both real adapters must have been used");
             // The tap is process-wide, so other tests' hosts contribute too; every message still has to be clean.
             sink.Messages.ShouldContain(m => m.Contains("\"POST\"", StringComparison.Ordinal) && m.Contains("/plan", StringComparison.Ordinal), "request logging must record the plan POST for this test to mean anything");
             sink.Messages.ShouldAllBe(m =>

@@ -144,7 +144,7 @@ public sealed class RulesTests
         ready.Tier.ShouldBe(Tier.ThisMonth);
         ready.Title.ShouldBe("Have the flue swept and the log store full before winter");
         ready.Why.ShouldBe("Your stove is heat, a kettle and a hot meal that need nothing from anyone, for as long as the logs last. A swept flue and dry logs are what make it safe to lean on, and the carbon monoxide alarm belongs in the same room.");
-        ready.Cost.ShouldBe(MoneyRange.Pounds(60m, 120m));
+        ready.Cost.ShouldBe(MoneyRange.Pounds(75m, 250m));
         Run(new WoodStoveRule(), Profiles.FloodZoneBungalow()).ShouldHaveSingleItem("wood as the main heating is a stove");
         Run(new WoodStoveRule(), Profiles.RobsHouse()).ShouldBeEmpty();
     }
@@ -152,7 +152,7 @@ public sealed class RulesTests
     [Fact]
     public void Flood_actions_only_when_flooding_is_a_risk()
     {
-        Run(new FloodRule(), Profiles.FloodZoneBungalow(), GardenFireAndFlood).Select(a => a.Id.Value).ShouldBe(["flood-warnings-and-plan", "flood-protection-kit"]);
+        Run(new FloodRule(), Profiles.FloodZoneBungalow(), GardenFireAndFlood).Select(a => a.Id.Value).ShouldBe(["flood-warnings-and-plan", "flood-protection-kit", "flood-water-alarm"]);
         Run(new FloodRule(), Profiles.RobsHouse()).ShouldBeEmpty("very low on the map is nothing to do, and nothing is said");
     }
 
@@ -182,7 +182,7 @@ public sealed class RulesTests
         // Rivers and the sea, where a nation runs a warning service: sign up, at that nation's own address.
         PlanAction england = Plan(Nation.England, FloodWater.RiversOrSea);
         england.Title.ShouldBe("Sign up for free flood warnings and write a one-page flood plan");
-        england.Why.ShouldBe("Know where the stopcock and the fuse board are, where you would move the car, and what is lifted off the floor first. Warnings come by phone call, text and email. Check that your buildings and contents insurance covers flood.");
+        england.Why.ShouldBe("Know where the stopcock and the fuse board are, where you would move the car, and what is lifted off the floor first. There is no upstairs to go to, so decide now where you would go and when. Warnings come by phone call, text and email. Check that your buildings and contents insurance covers flood.");
         england.Link.ShouldBe(new ActionLink("Sign up for flood warnings on GOV.UK", new Uri("https://www.gov.uk/get-flood-warnings")));
         Plan(Nation.Wales, FloodWater.NotSaid).Link!.Address.ShouldBe(new Uri("https://naturalresources.wales/flooding/sign-up-to-receive-flood-warnings/"));
         Plan(Nation.Scotland, FloodWater.RiversOrSea).Link.ShouldBe(new ActionLink("Sign up to SEPA's Floodline", new Uri("https://www.sepa.org.uk/flooding/floodline-register/")));
@@ -198,7 +198,7 @@ public sealed class RulesTests
         // Surface water comes with the rain, anywhere, and nobody calls ahead of it.
         PlanAction rain = Plan(Nation.England, FloodWater.SurfaceWater);
         rain.Title.ShouldBe("Write a one-page flood plan, and watch the Met Office warnings for heavy rain");
-        rain.Why.ShouldBe("Know where the stopcock and the fuse board are, where you would move the car, and what is lifted off the floor first. The risk here is surface water, which comes with heavy rain, too fast for a flood warning service to call ahead, so a yellow or amber warning for rain is the notice you get. Check that your buildings and contents insurance covers flood.");
+        rain.Why.ShouldBe("Know where the stopcock and the fuse board are, where you would move the car, and what is lifted off the floor first. There is no upstairs to go to, so decide now where you would go and when. The risk here is surface water, which comes with heavy rain, too fast for a flood warning service to call ahead, so a yellow or amber warning for rain is the notice you get. Check that your buildings and contents insurance covers flood.");
         rain.Link.ShouldBe(new ActionLink("Weather warnings from the Met Office", new Uri("https://weather.metoffice.gov.uk/warnings-and-advice/uk-warnings")));
         rain.Title.ShouldNotContain("Sign up");
         Plan(Nation.NorthernIreland, FloodWater.SurfaceWater).Link.ShouldBe(FloodServices.RainWarnings);
@@ -206,7 +206,7 @@ public sealed class RulesTests
         // The plan is for this house: stairs where there are stairs, and no car to move where there is none.
         HouseholdProfile terrace = Profiles.Build(2, 0, false, false, false, DwellingType.Terrace, 2, HeatingType.GasBoiler, HobType.Gas, car: false, false, false, false, null, FloodRisk.High) with { Nation = Nation.England };
         Run(new FloodRule(), terrace, GardenFireAndFlood)[0].Why.ShouldStartWith("Know where the stopcock and the fuse board are, and what goes upstairs first. Warnings come");
-        england.Why.ShouldNotContain("upstairs", customMessage: "a bungalow has no upstairs");
+        england.Why.ShouldNotContain("goes upstairs", customMessage: "a bungalow has no upstairs to carry things to");
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public sealed class RulesTests
         flasks.Id.Value.ShouldBe("flasks-for-hot-food");
         flasks.Title.ShouldBe("Two large vacuum flasks, filled from the kettle when a warning comes");
         flasks.Why.ShouldBe("A camping stove is not safe indoors and a flat has nowhere outside to use one, so this plan does not ask you to buy one. Two flasks filled before the power goes are hot drinks and instant meals for most of a day; after that it is the food that needs no cooking.");
-        flasks.Cost.ShouldBe(MoneyRange.Pounds(20m, 40m));
+        flasks.Cost.ShouldBe(MoneyRange.Pounds(50m, 95m));
         Selficient.Domain.Resilience.ResilienceProfile.FromProfile(Profiles.Flat()).CanHave(Selficient.Domain.Resilience.Placement.OutdoorsOnly).ShouldBeFalse("the board would not count a stove there, which is why the plan does not sell one");
 
         HouseholdProfile gardenFlat = Profiles.Build(1, 0, false, false, false, DwellingType.Flat, 1, HeatingType.Electric, HobType.Electric, false, garden: true, false, false, 12m, FloodRisk.Unknown);

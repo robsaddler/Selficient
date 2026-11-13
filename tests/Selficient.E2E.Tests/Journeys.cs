@@ -853,6 +853,88 @@ public sealed class Journeys
         axe.Violations.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task A_rented_home_on_its_own_water_gets_a_plan_it_can_act_on_and_the_answers_are_kept()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await FillRobsHouseAsync(page);
+
+        // The seven answers that decide what this household can do at all.
+        await page.GetByLabel("Is the home yours or rented?").SelectOptionAsync("Tenant");
+        await page.GetByLabel("Where does your water come from?").SelectOptionAsync("OwnPumped");
+        await page.GetByLabel("Does the waste go to a septic tank, cesspit or treatment plant, and not a sewer?").CheckAsync();
+        await page.GetByLabel("Is the gas or electricity on a prepayment meter?").CheckAsync();
+        await page.GetByLabel("Would anyone need help to get downstairs or out of the home in an emergency?").CheckAsync();
+        await page.GetByLabel("Is there a cellar or basement?").CheckAsync();
+        await page.GetByLabel("How likely is flooding where you live?").SelectOptionAsync("Medium");
+        await ShouldNotScrollSidewaysAsync(page);
+        await page.Locator("[data-wizard-start]").ScreenshotAsync(new() { Path = Screenshots.Target("wizard-circumstances-phone-light.png") });
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await page.Locator("[data-wizard-start]").ScreenshotAsync(new() { Path = Screenshots.Target("wizard-circumstances-wide-dark.png") });
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await page.SetViewportSizeAsync(390, 844);
+        AxeResult wizard = await page.RunAxe();
+        wizard.Violations.ShouldBeEmpty();
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        // Nothing that is the landlord's to do, and the tree becomes a letter.
+        await Expect(page.Locator("[data-action-row=\"solar-quotes\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"rooftop-solar-and-battery\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"arborist-survey\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"tree-tell-landlord\"] .action__title")).ToHaveTextAsync("Tell your landlord in writing about the tall tree");
+        await Expect(page.Locator("[data-action-row=\"boiler-plug-and-socket\"] .action__title")).ToHaveTextAsync("Ask your landlord to have an electrician fit a plug-and-socket on the boiler's spur");
+
+        // Its own water and its own tank, the meter, and the person who would need help.
+        await Expect(page.Locator("[data-action-row=\"own-water-in-a-power-cut\"] .action__title")).ToHaveTextAsync("Find out what your water supply does in a power cut");
+        await Expect(page.Locator("[data-action-row=\"own-drains-in-a-power-cut\"]")).ToHaveCountAsync(1);
+        await Expect(page.Locator("[data-action-row=\"no-flush-toilet-kit\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"prepayment-credit-ahead\"] .action__title")).ToHaveTextAsync("Keep a week of credit on the prepayment meter through the winter");
+        await Expect(page.Locator("[data-action-row=\"help-to-leave-plan\"] .action__title")).ToHaveTextAsync("Agree who helps whom to get out, and walk it through once");
+
+        // The flood plan is for a house with a cellar and someone who cannot leave alone.
+        ILocator flood = page.Locator("[data-action-row=\"flood-warnings-and-plan\"]");
+        await Expect(flood).ToContainTextAsync("A cellar fills first, often up through its own floor");
+        await Expect(flood).ToContainTextAsync("Someone here needs help to leave, so go when the warning comes and not when the water does.");
+        await Expect(flood).ToContainTextAsync("Check that your contents insurance covers flood; the building is your landlord's to insure.");
+        ILocator alarm = page.Locator("[data-action-row=\"flood-water-alarm\"]");
+        await Expect(alarm.Locator(".action__title")).ToHaveTextAsync("A battery water alarm on the cellar floor");
+        await ShouldNotScrollSidewaysAsync(page);
+        await alarm.ScreenshotAsync(new() { Path = Screenshots.Target("water-alarm-phone-light.png") });
+        await page.Locator("[data-action-row=\"tree-tell-landlord\"]").ScreenshotAsync(new() { Path = Screenshots.Target("tenant-tree-phone-light.png") });
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await page.Locator("[data-action-row=\"help-to-leave-plan\"]").ScreenshotAsync(new() { Path = Screenshots.Target("help-to-leave-wide-dark.png") });
+        // Twice: the first brings the row into view and the rows above it settle to their drawn heights; the second is the picture.
+        await flood.ScreenshotAsync(new() { Path = Screenshots.Target("flood-plan-circumstances-wide-dark.png") });
+        await flood.ScreenshotAsync(new() { Path = Screenshots.Target("flood-plan-circumstances-wide-dark.png") });
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await page.SetViewportSizeAsync(390, 844);
+        AxeResult plan = await RunAxeWhenSettledAsync(page);
+        plan.Violations.ShouldBeEmpty();
+
+        // Back at the form the answers are where they were left.
+        await page.GetByRole(AriaRole.Link, new() { Name = "Change your answers" }).ClickAsync();
+        await Expect(page.Locator("[data-wizard-kept]")).ToBeVisibleAsync();
+        await Expect(page.GetByLabel("Is the home yours or rented?")).ToHaveValueAsync("Tenant");
+        await Expect(page.GetByLabel("Where does your water come from?")).ToHaveValueAsync("OwnPumped");
+        await Expect(page.GetByLabel("Is the gas or electricity on a prepayment meter?")).ToBeCheckedAsync();
+        await Expect(page.GetByLabel("Is there a cellar or basement?")).ToBeCheckedAsync();
+        await Expect(page.GetByLabel("Does anyone sleep on the ground floor or below it?")).Not.ToBeCheckedAsync();
+
+        // An owner again, and the roof is theirs to put panels on.
+        await page.GetByLabel("Is the home yours or rented?").SelectOptionAsync("Owner");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-action-row=\"solar-quotes\"]")).ToHaveCountAsync(1);
+        await Expect(page.Locator("[data-action-row=\"arborist-survey\"]")).ToHaveCountAsync(1);
+        await Expect(page.Locator("[data-action-row=\"tree-tell-landlord\"]")).ToHaveCountAsync(0);
+    }
+
     private static async Task BuildPlanAsync(IPage page)
     {
         await page.GotoAsync("/plan/start");

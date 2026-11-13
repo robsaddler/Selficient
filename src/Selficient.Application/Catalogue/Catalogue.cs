@@ -71,6 +71,9 @@ public interface ICatalogueStore
     /// <summary>Puts shipped picks in as live offers. The caller passes only the picks the store has never held.</summary>
     Task SeedAsync(IReadOnlyList<KitPick> picks, CancellationToken cancellationToken);
 
+    /// <summary>Rewrites a held offer from the shipped pick that has replaced it at the same link: what it is called, who sells it, what it costs and when that was seen. Where it stands is left alone.</summary>
+    Task ReviseAsync(long id, KitPick pick, CancellationToken cancellationToken);
+
     /// <summary>Every offer a household may see, cheapest first within each action.</summary>
     Task<IReadOnlyList<Offer>> ShownAsync(CancellationToken cancellationToken);
 

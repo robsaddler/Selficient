@@ -316,6 +316,12 @@ public static class OutageBoard
                 availability = Math.Min(availability, _electricity);
             }
 
+            // A home on its own supply has no main to burst: what it asks of the water main it asks of its own tap, which the tap's fixture answers.
+            if (utility == Utility.MainsWater && _profile.Profile.HasOwnWater)
+            {
+                availability = 1m;
+            }
+
             return availability;
         }
 
@@ -354,7 +360,7 @@ public static class OutageBoard
                 foreach (Provider candidate in _stores)
                 {
                     EnergyStore store = candidate.Store!;
-                    bool eligible = store.CeilingW >= load.BurstW && (!load.Hardwired || store.WholeHouse || plugged) && _energy[candidate.Id] > 0m;
+                    bool eligible = store.CeilingW >= load.BurstW && (!load.Hardwired || store.WholeHouse || (plugged && load.BoilerPlugFrees)) && _energy[candidate.Id] > 0m;
                     if (eligible && (fullest is null || _energy[candidate.Id] > _energy[fullest.Id]))
                     {
                         fullest = candidate;
@@ -454,7 +460,8 @@ public static class OutageBoard
 
             // Context: in a wide outage the sewers stop with the power, so water in a cistern is no way to
             // flush. Only something that needs no sewer, a bag in the bowl, meets sanitation on those days.
-            if (need == NeedId.Sanitation && _scenario.SewersStopWithThePower && !provision.WorksWithoutSewers && _scenario.Availability(Utility.Electricity, day) < 1m)
+            // A home with a tank of its own is not on the sewers, so water is still a way to flush there.
+            if (need == NeedId.Sanitation && _scenario.SewersStopWithThePower && !_profile.Profile.Circumstances.OwnDrains && !provision.WorksWithoutSewers && _scenario.Availability(Utility.Electricity, day) < 1m)
             {
                 return false;
             }

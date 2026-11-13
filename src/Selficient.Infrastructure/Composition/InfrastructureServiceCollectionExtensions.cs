@@ -137,7 +137,7 @@ public static class InfrastructureServiceCollectionExtensions
             .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])
             .AddCheck<CatalogueHealthCheck>("catalogue", tags: ["ready"])
             .AddCheck<BasemapHealthCheck>("basemap", tags: ["ready"]);
-        services.AddSingleton(static provider => new StoredCatalogue(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<EmbeddedKitCatalogue>()));
+        services.AddSingleton(static provider => new StoredCatalogue(provider.GetRequiredService<ICatalogueStore>(), provider.GetRequiredService<EmbeddedKitCatalogue>(), EmbeddedKitCatalogue.Retired(provider.GetRequiredService<IOptions<AffiliateOptions>>().Value)));
         services.AddSingleton<IKitCatalogue>(static provider => provider.GetRequiredService<StoredCatalogue>());
         services.AddHttpClient<HttpPageReader>(static client =>
             {

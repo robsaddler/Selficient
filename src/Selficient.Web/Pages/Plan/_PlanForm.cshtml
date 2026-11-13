@@ -57,6 +57,10 @@
       <label asp-for="HasVulnerablePerson"></label>
     </div>
     <div class="field field--check">
+      <input asp-for="NeedsHelpToLeave">
+      <label asp-for="NeedsHelpToLeave"></label>
+    </div>
+    <div class="field field--check">
       <input asp-for="HasPets">
       <label asp-for="HasPets"></label>
     </div>
@@ -72,6 +76,12 @@
       <label asp-for="DwellingType"></label>
       <select asp-for="DwellingType" asp-items="Selficient.Web.Pages.Plan.PlanForm.DwellingTypes" class="input"></select>
       <span asp-validation-for="DwellingType" class="field__error"></span>
+    </div>
+    <div class="field">
+      <label asp-for="Tenure"></label>
+      <select asp-for="Tenure" asp-items="Selficient.Web.Pages.Plan.PlanForm.Tenures" class="input"></select>
+      <span asp-validation-for="Tenure" class="field__error"></span>
+      <p class="field__hint">A rented home is not offered what only its owner can do, such as panels on the roof.</p>
     </div>
     <div class="field">
       <label asp-for="Storeys"></label>
@@ -102,12 +112,37 @@
       <p class="field__hint">Above the third floor, the water is pumped and stops with the power.</p>
     </div>
     <div class="field field--check">
+      <input asp-for="HasCellar">
+      <label asp-for="HasCellar"></label>
+    </div>
+    <div class="field field--check">
+      <input asp-for="SleepsDownstairs">
+      <label asp-for="SleepsDownstairs"></label>
+    </div>
+    <div class="field field--check">
       <input asp-for="HasChestFreezer">
       <label asp-for="HasChestFreezer"></label>
     </div>
     <div class="field field--check">
       <input asp-for="HasWoodStove">
       <label asp-for="HasWoodStove"></label>
+    </div>
+  </fieldset>
+
+  <fieldset class="form-section">
+    <legend>Water, drains and the meter</legend>
+    <div class="field">
+      <label asp-for="Water"></label>
+      <select asp-for="Water" asp-items="Selficient.Web.Pages.Plan.PlanForm.WaterSupplies" class="input"></select>
+      <span asp-validation-for="Water" class="field__error"></span>
+    </div>
+    <div class="field field--check">
+      <input asp-for="OwnDrains">
+      <label asp-for="OwnDrains"></label>
+    </div>
+    <div class="field field--check">
+      <input asp-for="PrepaymentMeter">
+      <label asp-for="PrepaymentMeter"></label>
     </div>
   </fieldset>
 

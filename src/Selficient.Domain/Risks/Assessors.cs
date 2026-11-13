@@ -49,13 +49,25 @@ public sealed class FallingTreeAssessor : IRiskAssessor
     }
 }
 
-/// <summary>Bursts and treatment faults stop the water for a day or three.</summary>
+/// <summary>Bursts and treatment faults stop the water for a day or three; a home's own supply stops for its own reasons.</summary>
 public sealed class WaterInterruptionAssessor : IRiskAssessor
 {
+    private const string NobodyBrings = " No water company brings bottled water to a private supply, so what you have stored is what you have.";
+
     /// <inheritdoc />
     public Risk? Assess(HouseholdProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        if (profile.Circumstances.Water == WaterSupply.OwnPumped)
+        {
+            return new Risk(RiskKind.WaterInterruption, Likelihood.High, Impact.High, "Your water is lifted by an electric pump, so every power cut is a water cut as well." + NobodyBrings);
+        }
+
+        if (profile.Circumstances.Water == WaterSupply.OwnGravity)
+        {
+            return new Risk(RiskKind.WaterInterruption, Likelihood.Medium, Impact.Medium, "Your own supply runs without a pump, so a power cut does not stop it, but a hard frost, a dry summer or a fouled source can." + NobodyBrings);
+        }
+
         string note = profile.Dwelling.IsExposed
             ? " The water company will bring bottled water, but it takes time to reach a hill."
             : " The water company will bring bottled water, but it takes time to arrive.";

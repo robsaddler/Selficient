@@ -1,0 +1,15 @@
+[
+  {"action":"water-bottled-three-days","link":"https://www.costco.co.uk/search?text=still+water","note":"A members' warehouse, and the search showed fruit juice."},
+  {"action":"food-no-cook-three-days","link":"https://www.costco.co.uk/search?text=tinned+fish","note":"A basket with a price nobody saw, at a members' warehouse."},
+  {"action":"food-one-month","link":"https://www.costco.co.uk/search?text=tinned+food","note":"A basket with a price nobody saw, at a members' warehouse."},
+  {"action":"headtorches","link":"https://www.amazon.co.uk/s?k=Petzl+Tikkina","note":"The search no longer shows a Tikkina."},
+  {"action":"headtorches","link":"https://www.ledlenser.co.uk/search?q=MH3","note":"£44.95 at the maker's own shop against £28.06 elsewhere."},
+  {"action":"power-banks","link":"https://www.ankersolix.com/search?q=power+bank+25K","note":"The link opened the maker's American shop, priced in dollars."},
+  {"action":"candles-and-matches","link":"https://www.wickes.co.uk/search?text=tea+lights","note":"The shop sells no tea lights; the search showed firelighters and bulbs."},
+  {"action":"flood-protection-kit","link":"https://www.toolstation.com/search?q=air+brick+cover","note":"Mesh covers that keep mice out, not water."},
+  {"action":"flood-protection-kit","link":"https://www.toolstation.com/search?q=flood+sacks","note":"The search showed rubble sacks."},
+  {"action":"bath-liner","link":"https://www.amazon.co.uk/s?k=WaterBOB","note":"The WaterBOB is not sold here."},
+  {"action":"portable-power-station","link":"https://uk.ecoflow.com/search?q=220W+solar+panel","note":"The search no longer shows the panel on its own."},
+  {"action":"gravity-water-filter","link":"https://www.thebugout.co.uk/search?q=Berkefeld","note":"The shop's search shows the filter with no price."},
+  {"action":"satellite-internet-on-standby","link":"https://www.starlink.com/gb/residential","note":"The address now opens the front page, and the kit's price is not shown without a home address."}
+]

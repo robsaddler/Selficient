@@ -71,7 +71,7 @@ public sealed class GeneratePlanHandlerTests
         GeneratePlanHandler handler = provider.GetRequiredService<GeneratePlanHandler>();
         handler.Handle(Robs).IsSuccess.ShouldBeTrue();
         ApplicationServiceCollectionExtensions.Assessors().Count.ShouldBe(9);
-        ApplicationServiceCollectionExtensions.Rules().Count.ShouldBe(18);
+        ApplicationServiceCollectionExtensions.Rules().Count.ShouldBe(21);
         ApplicationServiceCollectionExtensions.Rules().Select(r => r.Order).ShouldBeUnique();
         Should.Throw<ArgumentNullException>(() => ApplicationServiceCollectionExtensions.AddSelficientApplication(null!));
     }
@@ -102,5 +102,32 @@ public sealed class GeneratePlanHandlerTests
         plain.ShouldNotContain("pet-food-two-weeks");
 
         Handler().Handle(Robs with { Infants = 3 }).Error.Code.ShouldBe("household.infants", "more infants than children is refused before any rule runs");
+    }
+
+    [Fact]
+    public void Whose_home_it_is_and_what_it_is_connected_to_reaches_the_rules()
+    {
+        GeneratePlanCommand answered = Robs with
+        {
+            Tenure = Selficient.Domain.Households.Tenure.Tenant, Water = Selficient.Domain.Households.WaterSupply.OwnPumped, OwnDrains = true,
+            PrepaymentMeter = true, NeedsHelpToLeave = true, HasCellar = true, SleepsDownstairs = true, Floor = 2,
+        };
+
+        Selficient.Domain.Plans.Plan plan = Handler().Handle(answered).Value;
+        HashSet<string> ids = [.. plan.Actions.Select(a => a.Id.Value)];
+
+        plan.Profile.Circumstances.ShouldBe(new Selficient.Domain.Households.Circumstances(Selficient.Domain.Households.Tenure.Tenant, Selficient.Domain.Households.WaterSupply.OwnPumped, true, true, true, true, true, 2));
+        ids.ShouldContain("tree-tell-landlord");
+        ids.ShouldNotContain("arborist-survey", "the tree is the landlord's");
+        ids.ShouldNotContain("solar-quotes");
+        ids.ShouldNotContain("no-flush-toilet-kit");
+        ids.ShouldContain("own-water-in-a-power-cut");
+        ids.ShouldContain("own-drains-in-a-power-cut");
+        ids.ShouldContain("prepayment-credit-ahead");
+        ids.ShouldContain("help-to-leave-plan");
+
+        Handler().Handle(Robs).Value.Profile.Circumstances.ShouldBe(Selficient.Domain.Households.Circumstances.None);
+        Handler().Handle(Robs with { Floor = 41 }).Error.Code.ShouldBe(Selficient.Domain.Primitives.DomainErrors.FloorOutOfRange().Code, "a floor no block has is refused before any rule runs");
+        Handler().Handle(Robs with { Tenure = (Selficient.Domain.Households.Tenure)9 }).IsFailure.ShouldBeTrue();
     }
 }

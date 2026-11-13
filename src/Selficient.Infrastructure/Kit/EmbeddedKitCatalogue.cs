@@ -16,6 +16,7 @@ namespace Selficient.Infrastructure.Kit;
 public sealed class EmbeddedKitCatalogue : IKitCatalogue
 {
     private const string ResourceName = "Selficient.Infrastructure.Kit.kit-catalogue.json";
+    private const string RetiredResourceName = "Selficient.Infrastructure.Kit.kit-retired.json";
 
     private readonly Dictionary<ActionId, IReadOnlyList<KitPick>> _byAction;
 
@@ -32,6 +33,43 @@ public sealed class EmbeddedKitCatalogue : IKitCatalogue
 
     /// <inheritdoc />
     public IReadOnlyList<KitPick> PicksFor(ActionId action) => _byAction.TryGetValue(action, out IReadOnlyList<KitPick>? picks) ? picks : [];
+
+    /// <summary>
+    /// The picks earlier releases shipped and this one has withdrawn, with the tag their links were
+    /// stored under. Throws on an entry with no action or no link, so a bad line stops a deploy.
+    /// </summary>
+    public static IReadOnlyList<RetiredPick> Retired(AffiliateOptions options) => Retired(options, RetiredResourceName);
+
+    internal static IReadOnlyList<RetiredPick> Retired(AffiliateOptions options, string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        using Stream stream = typeof(EmbeddedKitCatalogue).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException("The list of withdrawn picks is missing from the build.");
+        return ParseRetired(stream, options);
+    }
+
+    /// <summary>Parses the list of withdrawn picks from JSON, for tests and for the loader.</summary>
+    public static IReadOnlyList<RetiredPick> ParseRetired(Stream json, AffiliateOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        ArgumentNullException.ThrowIfNull(options);
+        CatalogueEntry[] entries = JsonSerializer.Deserialize(json, CatalogueJson.Default.CatalogueEntryArray)
+            ?? throw new InvalidOperationException("The list of withdrawn picks is empty.");
+
+        List<RetiredPick> retired = new(entries.Length);
+        foreach (CatalogueEntry entry in entries)
+        {
+            Uri? link = Uri.TryCreate(entry.Link, UriKind.Absolute, out Uri? parsed) ? Tagged(parsed, options.AmazonTag) : null;
+            if (link is null || !ActionId.IsValid(entry.Action ?? string.Empty))
+            {
+                throw new InvalidOperationException($"A withdrawn pick has no valid action or link: '{entry.Action}', '{entry.Link}'.");
+            }
+
+            retired.Add(new RetiredPick(ActionId.From(entry.Action!), link));
+        }
+
+        return retired;
+    }
 
     /// <summary>Loads and validates the embedded catalogue. Throws on any invalid entry.</summary>
     public static EmbeddedKitCatalogue Load(AffiliateOptions options) => Load(options, ResourceName);

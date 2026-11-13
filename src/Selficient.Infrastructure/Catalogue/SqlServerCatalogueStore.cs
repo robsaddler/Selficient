@@ -41,6 +41,16 @@ public sealed class SqlServerCatalogueStore : ICatalogueStore
     }
 
     /// <inheritdoc />
+    public async Task ReviseAsync(long id, KitPick pick, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(pick);
+        await using SqlConnection connection = await OpenAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            "UPDATE dbo.offers SET name = @name, retailer = @retailer, price_pence = @price, seen = @seen, note = @note WHERE id = @id",
+            new { id, name = pick.Name, retailer = pick.Retailer, price = pick.Price.Pence, seen = Day(pick.Seen), note = pick.Note });
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Offer>> ShownAsync(CancellationToken cancellationToken)
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);

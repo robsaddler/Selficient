@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Kit/kit-catalogue.json" LogicalName="Selficient.Infrastructure.Kit.kit-catalogue.json" />
+    <EmbeddedResource Include="Kit/kit-retired.json" LogicalName="Selficient.Infrastructure.Kit.kit-retired.json" />
     <EmbeddedResource Include="Data/Migrations/*.sql" LogicalName="Selficient.Infrastructure.Data.Migrations.%(Filename)%(Extension)" />
   </ItemGroup>
 

@@ -58,6 +58,8 @@ public sealed class IndexModel : PageModel
         nameof(PlanForm.HasDecking), nameof(PlanForm.HasTallTreeNearHouse), nameof(PlanForm.FloodRisk),
         nameof(PlanForm.HasChestFreezer), nameof(PlanForm.HasWoodStove), nameof(PlanForm.HasWaterButt), nameof(PlanForm.Growing),
         nameof(PlanForm.Car), nameof(PlanForm.Infants), nameof(PlanForm.MedicineDaysInStock), nameof(PlanForm.Floor),
+        nameof(PlanForm.NeedsHelpToLeave), nameof(PlanForm.Tenure), nameof(PlanForm.HasCellar), nameof(PlanForm.SleepsDownstairs),
+        nameof(PlanForm.Water), nameof(PlanForm.OwnDrains), nameof(PlanForm.PrepaymentMeter),
     ];
 
     /// <summary>The most ticks a request may carry.</summary>
@@ -222,6 +224,13 @@ public sealed class IndexModel : PageModel
         (nameof(PlanForm.Infants), (form.Infants ?? 0).ToString(CultureInfo.InvariantCulture)),
         (nameof(PlanForm.MedicineDaysInStock), (form.MedicineDaysInStock ?? 7).ToString(CultureInfo.InvariantCulture)),
         (nameof(PlanForm.Floor), (form.Floor ?? 0).ToString(CultureInfo.InvariantCulture)),
+        (nameof(PlanForm.NeedsHelpToLeave), Flag(form.NeedsHelpToLeave)),
+        (nameof(PlanForm.Tenure), (form.Tenure ?? Selficient.Domain.Households.Tenure.Owner).ToString()),
+        (nameof(PlanForm.HasCellar), Flag(form.HasCellar)),
+        (nameof(PlanForm.SleepsDownstairs), Flag(form.SleepsDownstairs)),
+        (nameof(PlanForm.Water), (form.Water ?? Selficient.Domain.Households.WaterSupply.Mains).ToString()),
+        (nameof(PlanForm.OwnDrains), Flag(form.OwnDrains)),
+        (nameof(PlanForm.PrepaymentMeter), Flag(form.PrepaymentMeter)),
     ];
 
     private static string Flag(bool value) => value ? "true" : "false";

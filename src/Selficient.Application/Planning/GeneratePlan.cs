@@ -28,7 +28,15 @@ public sealed record GeneratePlanCommand(
     bool HasWaterButt = false,
     int Infants = 0,
     Nation Nation = Nation.Unknown,
-    FloodWater FloodFrom = FloodWater.NotSaid);
+    FloodWater FloodFrom = FloodWater.NotSaid,
+    Tenure Tenure = Tenure.Owner,
+    WaterSupply Water = WaterSupply.Mains,
+    bool OwnDrains = false,
+    bool PrepaymentMeter = false,
+    bool NeedsHelpToLeave = false,
+    bool HasCellar = false,
+    bool SleepsDownstairs = false,
+    int Floor = 0);
 
 /// <summary>Turns a command into a profile, assesses the risks and builds the plan.</summary>
 public sealed class GeneratePlanHandler
@@ -66,7 +74,8 @@ public sealed class GeneratePlanHandler
         return elevation.Bind(e =>
             Household.Create(command.People, command.Children, command.HasVulnerablePerson, command.HasPets, command.RunsBusinessFromHome).Bind(household =>
                 Dwelling.Create(command.DwellingType, command.Storeys, command.Heating, command.Hob, command.HasCar, command.HasGarden, command.HasDecking, command.HasTallTreeNearHouse, e, command.FloodRisk).Bind(dwelling =>
-                    Particulars.Create(household, command.CarIsElectric, command.HasWoodStove, command.HasWaterButt, command.Infants)
-                        .Map(particulars => new HouseholdProfile(household, dwelling) { Nation = command.Nation, FloodFrom = command.FloodFrom, Particulars = particulars }))));
+                    Particulars.Create(household, command.CarIsElectric, command.HasWoodStove, command.HasWaterButt, command.Infants).Bind(particulars =>
+                        Circumstances.Create(command.Tenure, command.Water, command.OwnDrains, command.PrepaymentMeter, command.NeedsHelpToLeave, command.HasCellar, command.SleepsDownstairs, command.Floor)
+                            .Map(circumstances => new HouseholdProfile(household, dwelling) { Nation = command.Nation, FloodFrom = command.FloodFrom, Particulars = particulars, Circumstances = circumstances })))));
     }
 }

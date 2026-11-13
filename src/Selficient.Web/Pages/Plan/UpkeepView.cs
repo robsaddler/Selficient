@@ -12,13 +12,13 @@ public sealed class UpkeepView
         ArgumentNullException.ThrowIfNull(profile);
         UpkeepFacts facts = UpkeepFacts.From(profile);
         Reminders = UpkeepSchedule.For(facts);
-        CalendarHref = $"/plan/calendar.ics?decking={Flag(facts.Decking)}&garden={Flag(facts.Garden)}&petrol={Flag(facts.PetrolCar)}&electric={Flag(facts.ElectricCar)}&tree={Flag(facts.TallTree)}&stove={Flag(facts.WoodStove)}&flood={Flag(facts.FloodRisk)}";
+        CalendarHref = $"/plan/calendar.ics?decking={Flag(facts.Decking)}&garden={Flag(facts.Garden)}&petrol={Flag(facts.PetrolCar)}&electric={Flag(facts.ElectricCar)}&tree={Flag(facts.TallTree)}&stove={Flag(facts.WoodStove)}&flood={Flag(facts.FloodRisk)}&meter={Flag(facts.PrepaymentMeter)}&supply={Flag(facts.OwnWater)}&tank={Flag(facts.OwnDrains)}";
     }
 
     /// <summary>The reminders, in schedule order.</summary>
     public IReadOnlyList<Reminder> Reminders { get; }
 
-    /// <summary>The download link, carrying only the seven yes-or-no facts that change the list.</summary>
+    /// <summary>The download link, carrying only the ten yes-or-no facts that change the list.</summary>
     public string CalendarHref { get; }
 
     /// <summary>When a reminder comes round, in the interface's voice.</summary>

@@ -25,8 +25,8 @@ public sealed partial class KitPicksTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         html.ShouldContain("Where to look");
-        html.ShouldContain("Roberts SolarDAB 99 with crank, solar and USB-C");
-        html.ShouldContain("seen 29 Oct 2026");
+        html.ShouldContain("Roberts SolarDAB 99, refurbished by Roberts");
+        html.ShouldContain("seen 13 Nov 2026");
         html.ShouldContain("some links earn Selficient a small commission at no cost to you");
         html.ShouldContain("Cheapest first. Each does what the action asks; the dearer ones last longer or do more.");
         html.ShouldContain("<span class=\"pick__value\">Lowest price that does the job</span>");

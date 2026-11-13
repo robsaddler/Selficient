@@ -33,19 +33,57 @@ public sealed class WaterStoreRule : IPlanRule
             Tier.ThisMonth,
             "A food-grade bath liner to fill when a warning comes",
             "It holds about 380 litres and fills from the tap in twenty minutes, which is the bath-full-of-water idea without the stale water, the lost bathroom or the drowning risk. Keep it with the bath, not filled.",
-            MoneyRange.Pounds(35m, 39m),
+            MoneyRange.Pounds(15m, 42m),
             Mitigates(RiskKind.WaterInterruption));
 
         // A garden that has a butt already is not sold another; the board counts the one that is there.
         if (profile.Dwelling.HasGarden && !profile.Particulars.WaterButt)
         {
+            string ask = profile.IsTenant ? " Ask your landlord before a diverter is cut into the downpipe." : string.Empty;
             yield return Action(
                 "water-butt",
                 Tier.ThisMonth,
                 "A 200-litre water butt on a downpipe",
-                "For flushing and washing when the mains is off. Never drink it untreated.",
+                $"For flushing and washing when the {(profile.HasOwnWater ? "supply" : "mains")} is off. Never drink it untreated.{ask}",
                 MoneyRange.Pounds(50m, 80m),
                 Mitigates(RiskKind.WaterInterruption));
+        }
+    }
+}
+
+/// <summary>
+/// A home on its own water or its own drains is its own utility: nobody brings bottles to the door,
+/// and what stops in a power cut depends on a pump the household has to know about.
+/// </summary>
+public sealed class OwnSuppliesRule : IPlanRule
+{
+    /// <inheritdoc />
+    public int Order => 205;
+
+    /// <inheritdoc />
+    public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (profile.Circumstances.Water == WaterSupply.OwnPumped)
+        {
+            yield return Action(
+                "own-water-in-a-power-cut",
+                Tier.ThisMonth,
+                "Find out what your water supply does in a power cut",
+                "A borehole or well pump stops with the electricity, and so does an ultraviolet filter, so in a cut you have what is in the pressure vessel and what you have stored. Run a tap with the pump switched off to see how much that is, and ask whoever services the pump what could run it. Your stored water matters more than it does on the mains.",
+                MoneyRange.Free,
+                Mitigates(RiskKind.WaterInterruption, RiskKind.StormPowerCut));
+        }
+
+        if (profile.Circumstances.OwnDrains)
+        {
+            yield return Action(
+                "own-drains-in-a-power-cut",
+                Tier.ThisMonth,
+                "Find out whether your tank or treatment plant needs power",
+                "A septic tank that drains by gravity carries on through a power cut and does not depend on the sewers, so you can flush with stored water when the taps are dry. A treatment plant or a pumped system stops with the electricity and can only take so much: ask whoever empties it how long, and flush as little as you can during a cut.",
+                MoneyRange.Free,
+                Mitigates(RiskKind.StormPowerCut, RiskKind.RegionalDisruption));
         }
     }
 }
@@ -115,7 +153,7 @@ public sealed class CookingRule : IPlanRule
                 Tier.ThisMonth,
                 "Two large vacuum flasks, filled from the kettle when a warning comes",
                 "A camping stove is not safe indoors and a flat has nowhere outside to use one, so this plan does not ask you to buy one. Two flasks filled before the power goes are hot drinks and instant meals for most of a day; after that it is the food that needs no cooking.",
-                MoneyRange.Pounds(20m, 40m),
+                MoneyRange.Pounds(50m, 95m),
                 Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
             yield break;
         }
@@ -147,7 +185,7 @@ public sealed class WoodStoveRule : IPlanRule
                 Tier.ThisMonth,
                 "Have the flue swept and the log store full before winter",
                 "Your stove is heat, a kettle and a hot meal that need nothing from anyone, for as long as the logs last. A swept flue and dry logs are what make it safe to lean on, and the carbon monoxide alarm belongs in the same room.",
-                MoneyRange.Pounds(60m, 120m),
+                MoneyRange.Pounds(75m, 250m),
                 Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
         }
     }
@@ -204,7 +242,8 @@ public sealed class SolarQuotesRule : IPlanRule
     public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        if (!profile.Dwelling.HasOwnRoof)
+        // Panels go on a roof the household owns: a flat has none, and a tenant's is the landlord's to decide about.
+        if (!profile.Dwelling.HasOwnRoof || profile.IsTenant)
         {
             yield break;
         }
@@ -241,19 +280,25 @@ public sealed class PowerStationRule : IPlanRule
             "portable-power-station",
             Tier.ThreeMonths,
             "A 1 to 2 kWh portable power station and a 200 W folding solar panel",
-            "Runs the fridge-freezer for fourteen hours and the router and lights for a day, and acts as a UPS. Buy the 1 kWh size if rooftop solar with backup is coming within a year; otherwise the 2 kWh size.",
+            profile.IsTenant
+                ? "Runs the fridge-freezer for fourteen hours and the router and lights for a day, and acts as a UPS. It needs nothing fitted and goes with you when you move, which makes it the backup a rented home can have: buy the 2 kWh size if you can."
+                : "Runs the fridge-freezer for fourteen hours and the router and lights for a day, and acts as a UPS. Buy the 1 kWh size if rooftop solar with backup is coming within a year; otherwise the 2 kWh size.",
             MoneyRange.Pounds(720m, 1250m),
             Mitigates(RiskKind.StormPowerCut, RiskKind.CommsLoss),
             new Provisions(LightHours: 100m));
 
         if (profile.Dwelling.Heating is HeatingType.GasBoiler or HeatingType.Oil or HeatingType.Lpg)
         {
+            // The boiler at a rented home is the landlord's, and so is the decision to change its wiring.
+            (string title, string consent, decimal least) = profile.IsTenant
+                ? ("Ask your landlord to have an electrician fit a plug-and-socket on the boiler's spur", " The boiler is your landlord's, so get their agreement in writing first; some will pay for it.", 0m)
+                : ("Have an electrician fit a plug-and-socket on the boiler's spur", string.Empty, 100m);
             yield return Action(
                 "boiler-plug-and-socket",
                 Tier.ThreeMonths,
-                "Have an electrician fit a plug-and-socket on the boiler's spur",
-                "A boiler draws about a hundred watts, so the power station runs it for a day. Only if the boiler manual allows it, and never by backfeeding a wall socket.",
-                MoneyRange.Pounds(100m, 200m),
+                title,
+                $"A boiler draws about a hundred watts, so the power station runs it for a day. Only if the boiler manual allows it, and never by backfeeding a wall socket.{consent}",
+                MoneyRange.Pounds(least, 200m),
                 Mitigates(RiskKind.StormPowerCut));
         }
         else if (!profile.HasWoodStove)

@@ -73,8 +73,7 @@ public sealed class EmbeddedKitCatalogueTests
         EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(new AffiliateOptions());
         HashSet<string> withPicks = [.. catalogue.All.Select(p => p.Action.Value)];
         // Actions whose cost is the household's own money or time, or professional work, rather than a product.
-        // The sweep is a tradesman. Pet food, flasks, and nappies and formula are products with no pick yet: nobody has opened a shop and seen a price for them, and a pick is never guessed.
-        HashSet<string> exempt = ["wood-stove-ready", "pet-food-two-weeks", "flasks-for-hot-food", "formula-and-nappies", "cash-in-small-notes", "tree-work-if-advised", "solar-quotes", "rooftop-solar-and-battery", "boiler-plug-and-socket", "heating-fallback", "lights-out-drill", "priority-services-register", "save-emergency-numbers", "clear-leaf-litter-under-decking", "flood-warnings-and-plan"];
+        HashSet<string> exempt = ["cash-in-small-notes", "tree-work-if-advised", "solar-quotes", "rooftop-solar-and-battery", "boiler-plug-and-socket", "lights-out-drill", "priority-services-register", "save-emergency-numbers", "clear-leaf-litter-under-decking", "flood-warnings-and-plan"];
 
         IEnumerable<string> missing = PurchasableActionIds().Where(id => !withPicks.Contains(id) && !exempt.Contains(id));
 
@@ -147,6 +146,54 @@ public sealed class EmbeddedKitCatalogueTests
     }
 
     [Fact]
+    public void Withdrawn_picks_are_read_with_the_tag_their_links_were_stored_under()
+    {
+        const string File = """[{"action":"candles-and-matches","link":"https://www.wickes.co.uk/search?text=tea+lights"},{"action":"bath-liner","link":"https://www.amazon.co.uk/s?k=WaterBOB"}]""";
+
+        IReadOnlyList<Selficient.Application.Kit.RetiredPick> retired = EmbeddedKitCatalogue.ParseRetired(Json(File), new AffiliateOptions { AmazonTag = "selficient-21" });
+
+        retired.ShouldBe([
+            new(ActionId.From("candles-and-matches"), new Uri("https://www.wickes.co.uk/search?text=tea+lights")),
+            new(ActionId.From("bath-liner"), new Uri("https://www.amazon.co.uk/s?k=WaterBOB&tag=selficient-21")),
+        ]);
+        EmbeddedKitCatalogue.ParseRetired(Json("[]"), new AffiliateOptions()).ShouldBeEmpty();
+        Should.Throw<InvalidOperationException>(() => EmbeddedKitCatalogue.ParseRetired(Json("null"), new AffiliateOptions())).Message.ShouldBe("The list of withdrawn picks is empty.");
+        Should.Throw<InvalidOperationException>(() => EmbeddedKitCatalogue.ParseRetired(Json("""[{"action":"bath-liner","link":"not a link"}]"""), new AffiliateOptions())).Message.ShouldBe("A withdrawn pick has no valid action or link: 'bath-liner', 'not a link'.");
+        Should.Throw<InvalidOperationException>(() => EmbeddedKitCatalogue.ParseRetired(Json("""[{"action":"Not An Action","link":"https://www.amazon.co.uk/s?k=x"}]"""), new AffiliateOptions())).Message.ShouldStartWith("A withdrawn pick has no valid action or link");
+        Should.Throw<InvalidOperationException>(() => EmbeddedKitCatalogue.ParseRetired(Json("""[{"link":"https://www.amazon.co.uk/s?k=x"}]"""), new AffiliateOptions()));
+        Should.Throw<InvalidOperationException>(() => EmbeddedKitCatalogue.Retired(new AffiliateOptions(), "Selficient.Infrastructure.Kit.no-such-file.json")).Message.ShouldBe("The list of withdrawn picks is missing from the build.");
+        Should.Throw<ArgumentNullException>(() => EmbeddedKitCatalogue.Retired(null!));
+        Should.Throw<ArgumentNullException>(() => EmbeddedKitCatalogue.ParseRetired(null!, new AffiliateOptions()));
+        Should.Throw<ArgumentNullException>(() => EmbeddedKitCatalogue.ParseRetired(Json("[]"), null!));
+    }
+
+    [Fact]
+    public void Nothing_withdrawn_is_still_shipped_and_everything_withdrawn_was_a_real_action()
+    {
+        AffiliateOptions options = new();
+        EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(options);
+        IReadOnlyList<Selficient.Application.Kit.RetiredPick> retired = EmbeddedKitCatalogue.Retired(options);
+        HashSet<(string, string)> shipped = [.. catalogue.All.Select(p => (p.Action.Value, p.Link.ToString()))];
+
+        retired.ShouldNotBeEmpty();
+        retired.ShouldAllBe(pick => !shipped.Contains(ValueTuple.Create(pick.Action.Value, pick.Link.ToString())), "a pick cannot be shipped and withdrawn in the same release");
+        retired.Select(pick => (pick.Action, pick.Link)).ShouldBeUnique();
+    }
+
+    [Fact]
+    public void Nothing_in_the_catalogue_promotes_infant_formula()
+    {
+        EmbeddedKitCatalogue catalogue = EmbeddedKitCatalogue.Load(new AffiliateOptions());
+
+        IReadOnlyList<KitPick> infants = catalogue.PicksFor(ActionId.From("formula-and-nappies"));
+
+        infants.ShouldNotBeEmpty();
+        catalogue.All.Where(pick => Formula(pick.Name) || Formula(pick.Note) || Formula(Uri.UnescapeDataString(pick.Link.ToString()))).ShouldBeEmpty("promoting formula for babies under six months is restricted in law, and a tagged link is a promotion");
+
+        static bool Formula(string text) => text.Contains("formula", StringComparison.OrdinalIgnoreCase) || text.Contains("first milk", StringComparison.OrdinalIgnoreCase) || text.Contains("infant milk", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Guards_reject_nulls()
     {
         Should.Throw<ArgumentNullException>(() => EmbeddedKitCatalogue.Load(null!));
@@ -159,7 +206,7 @@ public sealed class EmbeddedKitCatalogueTests
         HashSet<string> ids = [];
         PlanBuilder builder = new(ApplicationServiceCollectionExtensions.Rules());
         RiskAssessmentPipeline risks = new(ApplicationServiceCollectionExtensions.Assessors());
-        foreach (HouseholdProfile profile in new[] { Profiles.RobsHouse(), Profiles.Flat(), Profiles.FloodZoneBungalow() })
+        foreach (HouseholdProfile profile in Households())
         {
             foreach (PlanAction action in builder.Build(profile, risks.Run(profile)).Value.Actions)
             {
@@ -170,11 +217,18 @@ public sealed class EmbeddedKitCatalogueTests
         return ids;
     }
 
+    /// <summary>Households that between them are offered every action the plan can sell: a house, a flat, a bungalow in a flood zone with pets and a stove, and a house with a baby.</summary>
+    private static HouseholdProfile[] Households() =>
+    [
+        Profiles.RobsHouse(), Profiles.Flat(), Profiles.FloodZoneBungalow(),
+        Profiles.RobsHouse() with { Particulars = new Particulars(ElectricCar: false, WoodStove: false, WaterButt: false, Infants: 1) },
+    ];
+
     private static IEnumerable<string> PurchasableActionIds()
     {
         PlanBuilder builder = new(ApplicationServiceCollectionExtensions.Rules());
         RiskAssessmentPipeline risks = new(ApplicationServiceCollectionExtensions.Assessors());
-        return new[] { Profiles.RobsHouse(), Profiles.Flat(), Profiles.FloodZoneBungalow() }
+        return Households()
             .SelectMany(profile => builder.Build(profile, risks.Run(profile)).Value.Actions)
             .Where(a => a.Cost.To.Pence > 0)
             .Select(a => a.Id.Value)

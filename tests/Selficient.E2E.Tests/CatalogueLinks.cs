@@ -9,7 +9,11 @@ namespace Selficient.E2E.Tests;
 
 /// <summary>
 /// Every link in the kit catalogue, opened in a real browser, must land on the item: a page that
-/// answers, that does not say it found nothing, and that names what the pick names. This is the
+/// answers, that does not say it found nothing, and that names what the pick names. A page that does
+/// all that and no longer shows the pick's price anywhere is reported as drifted: the link has not
+/// failed, but the pick is no longer something anybody has seen, and it is the list of what to open
+/// by hand. (Every link "landed" on 13 Nov 2026 while a third of the picks named a product or a
+/// price the page did not show; the search box echoes the words whatever the shop sells.) This is the
 /// commercial surface of the site, so it runs on a schedule as well as on demand, and never in
 /// the ordinary gate because it depends on thirty-odd shops being up. The report it writes is the
 /// list of what to fix.
@@ -75,7 +79,7 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
             await Task.Delay(pick.Link.Host.Contains("amazon", StringComparison.Ordinal) ? 6_000 : 1_500);
             int status = response?.Status ?? 0;
             string title = await page.TitleAsync();
-            string text = await page.EvaluateAsync<string>("() => (document.body && document.body.innerText) ? document.body.innerText.slice(0, 20000) : ''");
+            string text = await page.EvaluateAsync<string>("() => (document.body && document.body.innerText) ? document.body.innerText.slice(0, 80000) : ''");
             string flat = Whitespace().Replace(text, " ");
 
             if (RobotWall().IsMatch(flat[..Math.Min(flat.Length, 3000)]) || status == 503)
@@ -103,6 +107,11 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
                 return (pick, "fail", $"nothing on the page names the item (looked for {string.Join(", ", words)}; title {Trim(title)}; the page begins: {flat[..Math.Min(flat.Length, 240)]})");
             }
 
+            if (!PriceShown(flat, pick.Price.Pence))
+            {
+                return (pick, "drift", $"the page does not show {Pounds(pick.Price.Pence)} any more; open it and see what the item costs now ({Trim(title)})");
+            }
+
             return (pick, "ok", $"{Trim(title)}; {page.Url}");
         }
         catch (PlaywrightException exception)
@@ -114,6 +123,20 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
             await page.CloseAsync();
         }
     }
+
+    /// <summary>Whether the page shows the price the pick claims, as a shop writes it: £39, £39.00, £1,049 or £1049.</summary>
+    internal static bool PriceShown(string text, long pence)
+    {
+        long pounds = pence / 100;
+        string grouped = pounds.ToString("N0", CultureInfo.GetCultureInfo("en-GB"));
+        string plain = pounds.ToString(CultureInfo.InvariantCulture);
+        string pennies = (pence % 100).ToString("00", CultureInfo.InvariantCulture);
+        string[] whole = pence % 100 == 0 ? [$"£{grouped}", $"£{plain}"] : [];
+        string[] exact = [$"£{grouped}.{pennies}", $"£{plain}.{pennies}", $"£ {plain}.{pennies}"];
+        return exact.Any(text.Contains) || whole.Any(form => Regex.IsMatch(text, Regex.Escape(form) + @"(?!\d|[,.]\d)"));
+    }
+
+    private static string Pounds(long pence) => (pence / 100m).ToString("C2", CultureInfo.GetCultureInfo("en-GB"));
 
     private static string SolutionRoot()
     {
@@ -140,7 +163,7 @@ public sealed partial class CatalogueLinks : IAsyncLifetime
         StringBuilder report = new();
         report.AppendLine(CultureInfo.InvariantCulture, $"# Catalogue links, checked {DateTime.UtcNow:d MMM yyyy HH:mm} UTC");
         report.AppendLine();
-        report.AppendLine(CultureInfo.InvariantCulture, $"{results.Count(r => r.Verdict == "ok")} of {results.Count} land on the item; {results.Count(r => r.Verdict == "blocked")} could not be seen past a robot wall and need a hand.");
+        report.AppendLine(CultureInfo.InvariantCulture, $"{results.Count(r => r.Verdict == "ok")} of {results.Count} land on the item; {results.Count(r => r.Verdict == "blocked")} could not be seen past a robot wall and need a hand; {results.Count(r => r.Verdict == "drift")} no longer show the price the pick gives and need opening.");
         report.AppendLine();
         report.AppendLine("| | Action | Pick | Shop | Detail |");
         report.AppendLine("|---|---|---|---|---|");

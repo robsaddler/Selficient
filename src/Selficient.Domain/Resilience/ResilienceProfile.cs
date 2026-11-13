@@ -125,7 +125,14 @@ public sealed record Dependency
 public sealed record ResilienceProfile
 {
     /// <summary>The highest floor a flat can be on, as the wizard asks it.</summary>
-    public const int MaxFloor = 40;
+    public const int MaxFloor = Circumstances.MaxFloor;
+
+    private static readonly Dictionary<WaterSupply, string> TapFixtures = new()
+    {
+        [WaterSupply.Mains] = "mains-tap",
+        [WaterSupply.OwnPumped] = "own-water-pumped",
+        [WaterSupply.OwnGravity] = "own-water-gravity",
+    };
 
     private static readonly Dictionary<HeatingType, string> HeatingFixtures = new()
     {
@@ -215,11 +222,12 @@ public sealed record ResilienceProfile
         {
             HashSet<string> fixtures =
             [
-                "mains-tap", "shops", "deliveries", "pharmacy", "cash-machines", "fridge-freezer", "closed-freezer",
+                "shops", "deliveries", "pharmacy", "cash-machines", "fridge-freezer", "closed-freezer",
                 "router", "phones", "phone-charging", "mains-lighting", "blankets", "kettle-water", "fridge-food", "phone-torches",
                 "medicine-stock", "cash-at-home", "books-and-games", "television", "washing-machine", "laptop-and-screen",
                 "supplies-at-home", "microwave", "bin-bags",
             ];
+            fixtures.Add(TapFixtures[Profile.Circumstances.Water]);
             fixtures.Add(HeatingFixtures[Dwelling.Heating]);
             if (Dwelling.Heating is HeatingType.Electric or HeatingType.Wood)
             {

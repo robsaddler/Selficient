@@ -37,6 +37,11 @@ public sealed class PlanForm
     [Required(ErrorMessage = "This answer is needed to build the plan.")]
     public bool HasVulnerablePerson { get; set; }
 
+    /// <summary>Someone who could not get out alone.</summary>
+    [Display(Name = "Would anyone need help to get downstairs or out of the home in an emergency?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool NeedsHelpToLeave { get; set; }
+
     /// <summary>Pets.</summary>
     [Display(Name = "Do you have pets?")]
     [Required(ErrorMessage = "This answer is needed to build the plan.")]
@@ -139,6 +144,36 @@ public sealed class PlanForm
     [Display(Name = "If it is a flat, which floor is it on? Ground is 0.")]
     public int? Floor { get; set; }
 
+    /// <summary>Owned or rented. Empty on a plan made before the question, which reads as owned.</summary>
+    [EnumDataType(typeof(Tenure), ErrorMessage = "Choose whether the home is owned or rented from the list.")]
+    [Display(Name = "Is the home yours or rented?")]
+    public Tenure? Tenure { get; set; }
+
+    /// <summary>A cellar or basement.</summary>
+    [Display(Name = "Is there a cellar or basement?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool HasCellar { get; set; }
+
+    /// <summary>A bed on the ground floor or below it.</summary>
+    [Display(Name = "Does anyone sleep on the ground floor or below it?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool SleepsDownstairs { get; set; }
+
+    /// <summary>Where the water comes from. Empty on a plan made before the question, which reads as the mains.</summary>
+    [EnumDataType(typeof(WaterSupply), ErrorMessage = "Choose where the water comes from from the list.")]
+    [Display(Name = "Where does your water come from?")]
+    public WaterSupply? Water { get; set; }
+
+    /// <summary>A septic tank, cesspit or treatment plant.</summary>
+    [Display(Name = "Does the waste go to a septic tank, cesspit or treatment plant, and not a sewer?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool OwnDrains { get; set; }
+
+    /// <summary>A prepayment meter for gas or electricity.</summary>
+    [Display(Name = "Is the gas or electricity on a prepayment meter?")]
+    [Required(ErrorMessage = "This answer is needed to build the plan.")]
+    public bool PrepaymentMeter { get; set; }
+
     /// <summary>The things only this household relies on.</summary>
     public List<DependencyForm> Dependencies { get; init; } = [];
 
@@ -160,6 +195,9 @@ public sealed class PlanForm
     /// <summary>The car there is: none, or its kind, with an older plan's bare tick read as petrol or diesel.</summary>
     public CarKind CarOwned => Car > CarKind.None ? Car.Value : HasCar ? CarKind.Petrol : CarKind.None;
 
+    /// <summary>The floor the home is on: what a flat said, and the ground for anything else.</summary>
+    public int FloorOfFlat => DwellingType == DwellingType.Flat ? Floor ?? 0 : 0;
+
     /// <summary>The request for the Application layer.</summary>
     public PlanHouseholdRequest ToRequest() => new(
         Postcode,
@@ -167,7 +205,15 @@ public sealed class PlanForm
             CarIsElectric: Car >= CarKind.Electric,
             HasWoodStove: HasWoodStove,
             HasWaterButt: HasWaterButt,
-            Infants: Infants ?? 0));
+            Infants: Infants ?? 0,
+            Tenure: Tenure ?? Selficient.Domain.Households.Tenure.Owner,
+            Water: Water ?? WaterSupply.Mains,
+            OwnDrains: OwnDrains,
+            PrepaymentMeter: PrepaymentMeter,
+            NeedsHelpToLeave: NeedsHelpToLeave,
+            HasCellar: HasCellar,
+            SleepsDownstairs: SleepsDownstairs,
+            Floor: FloorOfFlat));
 
     /// <summary>
     /// The household as the resilience engine sees it. The newer questions are optional so a profile
@@ -193,7 +239,7 @@ public sealed class PlanForm
             dependencies.Add(dependency.Value);
         }
 
-        return ResilienceProfile.Create(profile, HasChestFreezer, HasWoodStove, HasWaterButt, Growing ?? Selficient.Domain.Resilience.Growing.None, CarOwned, Infants ?? 0, MedicineDaysInStock ?? 7, DwellingType == DwellingType.Flat ? Floor ?? 0 : 0, dependencies);
+        return ResilienceProfile.Create(profile, HasChestFreezer, HasWoodStove, HasWaterButt, Growing ?? Selficient.Domain.Resilience.Growing.None, CarOwned, Infants ?? 0, MedicineDaysInStock ?? 7, FloorOfFlat, dependencies);
     }
 
     /// <summary>The kinds of car.</summary>
@@ -202,6 +248,21 @@ public sealed class PlanForm
         new("Yes, petrol or diesel", nameof(CarKind.Petrol)),
         new("Yes, electric", nameof(CarKind.Electric)),
         new("Yes, electric, and it can power things (vehicle-to-load or vehicle-to-home)", nameof(CarKind.ElectricWithOutput)),
+    ];
+
+    /// <summary>Whose home it is.</summary>
+    public static IReadOnlyList<SelectListItem> Tenures { get; } =
+    [
+        new("It is ours, with or without a mortgage", nameof(Selficient.Domain.Households.Tenure.Owner)),
+        new("It is rented", nameof(Selficient.Domain.Households.Tenure.Tenant)),
+    ];
+
+    /// <summary>Where the water comes from.</summary>
+    public static IReadOnlyList<SelectListItem> WaterSupplies { get; } =
+    [
+        new("The mains", nameof(WaterSupply.Mains)),
+        new("Our own borehole or well, with a pump", nameof(WaterSupply.OwnPumped)),
+        new("Our own spring or tank, with no pump", nameof(WaterSupply.OwnGravity)),
     ];
 
     /// <summary>Whether and how the household grows food.</summary>

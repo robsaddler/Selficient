@@ -75,9 +75,86 @@ public sealed record Particulars(bool ElectricCar, bool WoodStove, bool WaterBut
     }
 }
 
+/// <summary>Whose home it is, which decides what a household may change about it.</summary>
+public enum Tenure
+{
+    /// <summary>The household owns it, and the roof, the boiler and the trees are its own to change.</summary>
+    Owner,
+
+    /// <summary>The household rents it, and those things are the landlord's.</summary>
+    Tenant,
+}
+
+/// <summary>Where the water comes from.</summary>
+public enum WaterSupply
+{
+    /// <summary>A water company's main.</summary>
+    Mains,
+
+    /// <summary>The home's own borehole or well, lifted by an electric pump.</summary>
+    OwnPumped,
+
+    /// <summary>The home's own spring or tank uphill, which runs down to the tap without a pump.</summary>
+    OwnGravity,
+}
+
+/// <summary>
+/// How the household holds its home and what it is connected to: the answers that decide whether an
+/// action is the household's to take at all. A tenant cannot put panels on the landlord's roof, a
+/// house on a borehole has no water company to ring, and a flood kit for a ground floor is no use
+/// on the third.
+/// </summary>
+/// <param name="Tenure">Owned or rented.</param>
+/// <param name="Water">Where the water comes from.</param>
+/// <param name="OwnDrains">The waste goes to a septic tank, a cesspit or a treatment plant, not a sewer.</param>
+/// <param name="PrepaymentMeter">Gas or electricity is paid for through a prepayment meter.</param>
+/// <param name="NeedsHelpToLeave">Someone would need help to get downstairs or out of the home.</param>
+/// <param name="Cellar">There is a cellar or basement.</param>
+/// <param name="SleepsDownstairs">Someone sleeps on the ground floor or below it.</param>
+/// <param name="Floor">For a flat, the floor it is on; the ground is nought.</param>
+public sealed record Circumstances(Tenure Tenure, WaterSupply Water, bool OwnDrains, bool PrepaymentMeter, bool NeedsHelpToLeave, bool Cellar, bool SleepsDownstairs, int Floor)
+{
+    /// <summary>The highest floor a flat can be on, as the wizard asks it.</summary>
+    public const int MaxFloor = 40;
+
+    /// <summary>Nothing said: an owner on the mains and the sewer, with a credit meter, on the ground.</summary>
+    public static Circumstances None { get; } = new(Tenure.Owner, WaterSupply.Mains, false, false, false, false, false, 0);
+
+    /// <summary>Creates the circumstances, refusing a choice that is not on the list and a floor no block has.</summary>
+    public static Result<Circumstances> Create(Tenure tenure, WaterSupply water, bool ownDrains, bool prepaymentMeter, bool needsHelpToLeave, bool cellar, bool sleepsDownstairs, int floor)
+    {
+        if (!Enum.IsDefined(tenure) || !Enum.IsDefined(water))
+        {
+            return Result.Failure<Circumstances>(DomainErrors.UnknownChoice());
+        }
+
+        return floor is < 0 or > MaxFloor
+            ? Result.Failure<Circumstances>(DomainErrors.FloorOutOfRange())
+            : Result.Success(new Circumstances(tenure, water, ownDrains, prepaymentMeter, needsHelpToLeave, cellar, sleepsDownstairs, floor));
+    }
+}
+
 /// <summary>Everything the rules engine knows about a household and its home.</summary>
 public sealed record HouseholdProfile(Household Household, Dwelling Dwelling)
 {
+    /// <summary>How the household holds its home and what it is connected to.</summary>
+    public Circumstances Circumstances { get; init; } = Circumstances.None;
+
+    /// <summary>The home is rented, so the roof, the boiler and the trees are the landlord's.</summary>
+    public bool IsTenant => Circumstances.Tenure == Tenure.Tenant;
+
+    /// <summary>The water is the home's own and no water company's.</summary>
+    public bool HasOwnWater => Circumstances.Water != WaterSupply.Mains;
+
+    /// <summary>A flat above the ground floor, which flood water does not reach.</summary>
+    public bool IsAboveGround => Dwelling.Type == DwellingType.Flat && Circumstances.Floor > 0;
+
+    /// <summary>Someone sleeps where flood water would reach first: a home on one floor, or a bed downstairs.</summary>
+    public bool SleepsAtGroundLevel => !IsAboveGround && (Dwelling.Storeys == 1 || Circumstances.SleepsDownstairs);
+
+    /// <summary>The utilities' Priority Services Registers would accept the household.</summary>
+    public bool QualifiesForPriorityServices => Household.QualifiesForPriorityServices || Circumstances.NeedsHelpToLeave;
+
     /// <summary>The nation the home is in, once the postcode has been found.</summary>
     public Nation Nation { get; init; }
 

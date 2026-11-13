@@ -66,6 +66,28 @@ public sealed class SqlServerCatalogueStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_corrected_pick_rewrites_the_offer_and_leaves_where_it_stands_alone()
+    {
+        SqlServerCatalogueStore store = await SeededAsync();
+        await store.SetStatusAsync(2, OfferStatus.Hidden, CancellationToken.None);
+        KitPick corrected = KitPick.Create("headtorches", "Ledlenser MH3 head torch, 200 lumens", "Ledlenser UK", 44.95m, new DateOnly(2026, 11, 13), new Uri("https://example.test/ignored"), "Brighter and heavier.").Value;
+
+        await store.ReviseAsync(2, corrected, CancellationToken.None);
+        await store.ReviseAsync(99, corrected, CancellationToken.None);
+
+        Offer revised = (await store.FindAsync(2, CancellationToken.None))!;
+        revised.Name.ShouldBe("Ledlenser MH3 head torch, 200 lumens");
+        revised.Retailer.ShouldBe("Ledlenser UK");
+        revised.Price.ShouldBe(Money.FromPence(4495));
+        revised.Seen.ShouldBe(new DateOnly(2026, 11, 13));
+        revised.Note.ShouldBe("Brighter and heavier.");
+        revised.Status.ShouldBe(OfferStatus.Hidden, "a hand that hid it is not undone by a correction");
+        revised.Link.ShouldBe(new Uri("https://www.amazon.co.uk/s?k=Ledlenser%20MH3"), "the link is what the offer is, and is never rewritten");
+        (await store.FindAsync(1, CancellationToken.None))!.Name.ShouldBe("Petzl Tikkina");
+        await Should.ThrowAsync<ArgumentNullException>(() => store.ReviseAsync(1, null!, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task A_landing_refreshes_the_offer_and_two_failures_running_hide_it()
     {
         SqlServerCatalogueStore store = await SeededAsync();

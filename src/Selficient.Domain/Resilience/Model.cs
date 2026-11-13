@@ -228,8 +228,8 @@ public sealed record Scenario(
 /// <summary>How a provider meets a need: so much a day (zero means all of it, scaled by what the utility gives), perhaps only partly, perhaps only when another need holds or another provider is present.</summary>
 public sealed record Provision(NeedId Need, decimal PerDay, bool Partial = false, NeedId? RequiresHeld = null, IReadOnlyList<string>? RequiresAnyProvider = null, bool WorksWithoutSewers = false);
 
-/// <summary>What an electrical thing draws: energy a day by season and the burst it needs at once. Hardwired things cannot be plugged into a portable source.</summary>
-public sealed record Load(decimal WinterWhPerDay, decimal SummerWhPerDay, decimal BurstW, bool Hardwired = false)
+/// <summary>What an electrical thing draws: energy a day by season and the burst it needs at once. Hardwired things cannot be plugged into a portable source; the boiler's plug and socket frees the boiler and nothing else, so a thing that is not the boiler's says so.</summary>
+public sealed record Load(decimal WinterWhPerDay, decimal SummerWhPerDay, decimal BurstW, bool Hardwired = false, bool BoilerPlugFrees = true)
 {
     /// <summary>Energy a day in the season.</summary>
     public decimal WhPerDay(Season season) => season == Season.Winter ? WinterWhPerDay : SummerWhPerDay;

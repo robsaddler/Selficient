@@ -29,7 +29,7 @@ public sealed record Reminder(string Id, string Title, string Why, Cadence Caden
 }
 
 /// <summary>
-/// The facts about a home that change its upkeep, and nothing else: seven yes-or-no answers, which
+/// The facts about a home that change its upkeep, and nothing else: ten yes-or-no answers, which
 /// is all the calendar's address carries.
 /// </summary>
 /// <param name="Decking">Timber decking.</param>
@@ -39,14 +39,18 @@ public sealed record Reminder(string Id, string Title, string Why, Cadence Caden
 /// <param name="TallTree">A tree tall enough to reach the house.</param>
 /// <param name="WoodStove">A stove that burns logs.</param>
 /// <param name="FloodRisk">The flood map puts the home at low risk or more.</param>
-public sealed record UpkeepFacts(bool Decking = false, bool Garden = false, bool PetrolCar = false, bool ElectricCar = false, bool TallTree = false, bool WoodStove = false, bool FloodRisk = false)
+/// <param name="PrepaymentMeter">Gas or electricity is paid for through a prepayment meter.</param>
+/// <param name="OwnWater">The water is the home's own supply.</param>
+/// <param name="OwnDrains">The waste goes to the home's own tank.</param>
+public sealed record UpkeepFacts(bool Decking = false, bool Garden = false, bool PetrolCar = false, bool ElectricCar = false, bool TallTree = false, bool WoodStove = false, bool FloodRisk = false, bool PrepaymentMeter = false, bool OwnWater = false, bool OwnDrains = false)
 {
     /// <summary>The facts as a plan's profile gives them.</summary>
     public static UpkeepFacts From(HouseholdProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
         Dwelling dwelling = profile.Dwelling;
-        return new UpkeepFacts(dwelling.HasDecking, dwelling.HasGarden, profile.HasPetrolCar, profile.HasElectricCar, dwelling.HasTallTreeNearHouse, profile.HasWoodStove, dwelling.FloodRisk >= Households.FloodRisk.Low);
+        Circumstances circumstances = profile.Circumstances;
+        return new UpkeepFacts(dwelling.HasDecking, dwelling.HasGarden, profile.HasPetrolCar, profile.HasElectricCar, dwelling.HasTallTreeNearHouse, profile.HasWoodStove, dwelling.FloodRisk >= Households.FloodRisk.Low, circumstances.PrepaymentMeter, profile.HasOwnWater, circumstances.OwnDrains);
     }
 }
 
@@ -106,6 +110,21 @@ public static class UpkeepSchedule
         if (facts.FloodRisk)
         {
             reminders.Add(new("flood-plan-check", "Check your flood warnings and walk through the flood plan", "Make sure the phone numbers and addresses on the warning service are current, and that everyone knows where the stopcock is and what is moved out of the water's way first.", Cadence.OnDates, [(10, 1)]));
+        }
+
+        if (facts.PrepaymentMeter)
+        {
+            reminders.Add(new("prepayment-winter-credit", "Build up credit on the prepayment meter before winter", "A week or more ahead through the cold months, so a storm that shuts the shops and the app does not leave the meter empty when the power comes back.", Cadence.OnDates, [(11, 1)]));
+        }
+
+        if (facts.OwnWater)
+        {
+            reminders.Add(new("own-water-test", "Have your water supply tested", "A private supply has nobody testing it but you. Your council's environmental health team will sample it for a fee, and a year is the longest to leave it.", Cadence.OnDates, [(5, 1)]));
+        }
+
+        if (facts.OwnDrains)
+        {
+            reminders.Add(new("tank-emptying", "Check when the tank was last emptied", "A full tank backs up at the worst time. Book the tanker before winter, while it can still reach you.", Cadence.OnDates, [(9, 1)]));
         }
 
         return reminders;
