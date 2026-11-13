@@ -1775,8 +1775,10 @@
   background: var(--c-paper);
   justify-items: start;
 
-  &[data-home-mine] {
+  &[data-home-mine],
+  &[data-example-mine="True"] {
     border-color: var(--c-pine);
+    box-shadow: inset 0 0 0 1px var(--c-pine);
   }
 
   /* A house may have a name, and a name set in the figures' face reads as a code. */
@@ -1868,8 +1870,72 @@
   }
 }
 
-/* On paper: the street and what it has between it, and nothing that is a control. */
+/* How a group goes, for somebody deciding whether to begin: three steps side by side where there is room. */
+.street__steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  counter-reset: step;
+
+  & > li {
+    counter-increment: step;
+    padding: var(--space-5);
+    border: var(--border);
+    border-radius: var(--radius-m);
+    background: var(--c-paper);
+  }
+
+  & > li::before {
+    content: counter(step);
+    font-family: var(--font-data);
+    font-weight: 600;
+    color: var(--c-pine);
+  }
+
+  & h2 {
+    font-size: var(--text-l);
+    margin-block: var(--space-2);
+  }
+
+  & p {
+    color: var(--c-ink-muted);
+    text-wrap: pretty;
+  }
+}
+
+/* The one next step: said plainly, with its button where it has one. */
+.street__next {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-inline-size: var(--measure);
+}
+
+.street__gaps {
+  margin-block-start: var(--space-3);
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+}
+
+/* Without a connection the street is something to read and to print: nothing that would change it is drawn. */
+.street[data-street-offline] :is(.street__manage, .street__next, [data-invite-slot]) {
+  display: none;
+}
+
+/* The slips are only ever paper. */
+.street__slips {
+  display: none;
+}
+
+/* On paper: the street and what it has between it, and nothing that is a control or the site's own furniture. */
 @media print {
+  body:has(.street) :is(.site-header, .site-footer, .foot-notes) {
+    display: none !important;
+  }
+
   .street__screen,
   .street .eyebrow,
   .street__says {
@@ -1878,6 +1944,208 @@
 
   .street__home {
     break-inside: avoid;
+  }
+
+  /* When slips were asked for, they are the whole sheet: four to a page, with room to cut between them. */
+  .street[data-print="slips"] > :not(.street__slips) {
+    display: none !important;
+  }
+
+  .street[data-print="slips"] .street__slips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .street__slip {
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+    padding: 1.25rem;
+    border: 1px dashed #777;
+    break-inside: avoid;
+    font-size: 0.8rem;
+    color: #000;
+  }
+
+  .street__slip-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
+  .street__slip-from {
+    font-weight: 600;
+  }
+
+  .street__slip-code {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    font-weight: 600;
+  }
+
+  .street__slip-foot {
+    font-size: 0.7rem;
+  }
+}
+
+/* The landing page's case for a street: the reasons on one side, a street as one of its homes sees it on the other. */
+.streets {
+  margin-block-start: var(--space-8);
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+
+  & h2 {
+    font-size: var(--text-2xl);
+    text-wrap: balance;
+  }
+}
+
+/* In one column the copy's parts are the section's own, so the example can stand between the scene and the reasons:
+   it is the picture of what the scene describes, and after the buttons it would be an afterthought. */
+.streets__copy {
+  display: contents;
+}
+
+.streets__points,
+.streets__actions,
+.streets__note {
+  order: 2;
+}
+
+.streets__lede {
+  max-inline-size: var(--measure);
+  font-size: var(--text-l);
+  text-wrap: pretty;
+}
+
+.streets__points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+
+  & h3 {
+    font-size: var(--text-l);
+  }
+
+  & p {
+    margin-block-start: var(--space-1);
+    color: var(--c-ink-muted);
+    text-wrap: pretty;
+  }
+}
+
+/* Four reasons are two rows of two, never three and one left over. */
+@media (min-width: 40rem) {
+  .streets__points {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+}
+
+.streets__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.streets__note {
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+  max-inline-size: var(--measure);
+}
+
+.streets__example {
+  order: 1;
+  margin: 0;
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-pine-tint);
+
+  & figcaption {
+    margin-block-start: var(--space-3);
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+    text-wrap: pretty;
+  }
+}
+
+.streets__homes {
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+}
+
+@media (min-width: 72rem) {
+  .streets {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-7);
+  }
+
+  .streets__copy {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .streets__example,
+  .streets__points,
+  .streets__actions,
+  .streets__note {
+    order: 0;
+  }
+}
+
+/* The plan's way to the street: the case on one side, what this home could offer and the button on the other. */
+.street-card {
+  margin-block-start: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  display: grid;
+  gap: var(--space-4) var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  align-items: start;
+
+  & h3 {
+    font-size: var(--text-xl);
+    margin-block: var(--space-1) var(--space-2);
+  }
+}
+
+.street-card__copy p:not(.eyebrow) {
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+  text-wrap: pretty;
+}
+
+.street-card__could {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.street-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  & li {
+    padding: var(--space-1) var(--space-3);
+    border-radius: 999px;
+    background: var(--c-pine-tint);
+    font-weight: 600;
+    font-size: var(--text-s);
   }
 }
 

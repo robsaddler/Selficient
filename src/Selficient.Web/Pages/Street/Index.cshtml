@@ -19,17 +19,13 @@
          data-says-removed="@StreetCopy.Removed" data-says-copied="@StreetCopy.Copied" data-says-your-home="@StreetCopy.YourHome" data-says-nothing="@StreetCopy.Nothing"
          data-says-unreadable="@StreetCopy.Unreadable" data-says-nothing-between="@StreetCopy.NothingBetween" data-says-homes-one="@StreetCopy.HomesOne"
          data-says-homes-many="@StreetCopy.HomesMany" data-says-between-one="@StreetCopy.BetweenOne" data-says-between-many="@StreetCopy.BetweenMany"
-         data-says-house-label="@StreetCopy.HouseLabel" data-says-remove-label="@StreetCopy.RemoveLabel" data-says-guest="@StreetCopy.Guest" data-says-guest-invited="@StreetCopy.GuestInvited">
+         data-says-house-label="@StreetCopy.HouseLabel" data-says-remove-label="@StreetCopy.RemoveLabel" data-says-guest="@StreetCopy.Guest" data-says-guest-invited="@StreetCopy.GuestInvited"
+         data-says-next-offer-one="@StreetCopy.NextOfferOne" data-says-next-offer-many="@StreetCopy.NextOfferMany" data-says-gaps="@StreetCopy.Gaps" data-says-seen="@StreetCopy.Seen"
+         data-says-share-text="@StreetCopy.ShareText" data-says-slip-from="@StreetCopy.SlipFrom">
   <p class="eyebrow">Street groups</p>
   <p class="callout street__says" role="status" data-street-says hidden></p>
 
-  @* The offers, as words: the script reads them from here. *@
-  <ul hidden data-street-offers>
-    @foreach (var offer in StreetCopy.Offers)
-    {
-      <li data-offer="@offer.Id" data-between="@offer.Between" data-held="@StreetCopy.PlanSigns[offer.Id].Held" data-answers="@StreetCopy.PlanSigns[offer.Id].Answers">@offer.Words</li>
-    }
-  </ul>
+  @await Html.PartialAsync("_OfferSigns")
 
   <div class="street__state" data-street-state="what">
     <h1 tabindex="-1">Street groups</h1>
@@ -37,11 +33,22 @@
     <p class="street__lede">@StreetCopy.Kept</p>
   </div>
 
+  @* Where "Your street" lands for somebody who is not signed in, invited or not: the case for a group, how it goes, and the two ways to begin. *@
   <div class="street__state" data-street-state="guest" hidden>
-    <h1 tabindex="-1">Street groups</h1>
+    <h1 tabindex="-1">@StreetCopy.Claim</h1>
     <p class="street__lede">@StreetCopy.What</p>
-    <p class="street__lede" data-street-guest-says>@StreetCopy.Guest</p>
-    <p class="cluster"><a class="button button--primary" href="/account/sign-in">Sign in or make an account</a></p>
+    <ol class="street__steps">
+      @foreach (var step in StreetCopy.Steps)
+      {
+        <li>
+          <h2>@step.Heading</h2>
+          <p>@step.Sentence</p>
+        </li>
+      }
+    </ol>
+    <p class="street__lede">@StreetCopy.Kept</p>
+    <p class="callout" data-street-guest-says>@StreetCopy.Guest</p>
+    <p class="cluster"><a class="button button--primary" href="/account/sign-in">Sign in or make an account</a> <a class="button button--quiet" href="/plan/start">@StreetCopy.StartWithPlan</a></p>
   </div>
 
   <div class="street__state" data-street-state="list" hidden>
@@ -92,10 +99,21 @@
   <div class="street__state" data-street-state="group" hidden>
     <h1 tabindex="-1" data-street-title></h1>
     <p class="street__lede" data-street-count></p>
+    @* Shown without a connection, over the copy this device kept the last time it saw the street. *@
+    <p class="callout" data-street-seen hidden></p>
+    @* One next step at a time, for a household that has not yet got anything out of being here. *@
+    <div class="callout street__next street__screen" data-street-next="plan" hidden>
+      <p>@StreetCopy.NextPlan</p>
+      <p><a class="button button--primary" href="/plan/start">@StreetCopy.NextPlanButton</a></p>
+    </div>
+    <p class="callout street__next street__screen" data-street-next="offer" hidden></p>
+    @* A group of one home is an invitation and nothing else yet, so the invitation is put here until a neighbour joins. *@
+    <div class="street__screen" data-invite-slot="first" hidden></div>
 
     <section class="street__between" aria-labelledby="between-heading">
       <h2 id="between-heading">What the street has between it</h2>
       <ul class="street__between-list" data-street-between></ul>
+      <p class="street__gaps" data-street-gaps hidden></p>
     </section>
 
     <section aria-labelledby="homes-heading">
@@ -150,9 +168,10 @@
     </section>
 
     <div class="street__aside">
-    <section class="street__panel" aria-labelledby="invite-heading">
+    <div data-invite-slot="aside">
+    <section class="street__panel" aria-labelledby="invite-heading" data-street-invite>
       <h2 id="invite-heading">Invite a neighbour, or add your other device</h2>
-      <p class="street__lede">Anyone who opens this can join the group, so send it only to neighbours you mean to invite. Open it on your own other device and the group is there too, with what you share.</p>
+      <p class="street__lede">Send the link to a neighbour, put it in the street's own chat, or print slips with the code on to post through doors. Anyone who opens it can join, so it goes only to neighbours; you can remove a home that should not be there. Open it on your own other device and the group is there too, with what you share.</p>
       <div class="street__invite">
         <div class="street__qr" data-street-qr></div>
         <div class="street__form">
@@ -160,10 +179,15 @@
             <label for="street-link">The invitation</label>
             <input id="street-link" class="input" readonly data-street-link>
           </div>
-          <p><button type="button" class="button" data-street-copy>Copy the invitation</button></p>
+          <p class="cluster">
+            <button type="button" class="button button--primary" data-street-share hidden>Send the invitation</button>
+            <button type="button" class="button" data-street-copy>Copy the invitation</button>
+            <button type="button" class="button" data-street-print-slips>Print slips to post through doors</button>
+          </p>
         </div>
       </div>
     </section>
+    </div>
 
     <section class="street__panel" aria-labelledby="leave-heading">
       <h2 id="leave-heading">Leave the group</h2>
@@ -172,6 +196,23 @@
     </section>
     </div>
     </div>
+  </div>
+
+  @* What is printed when slips are asked for: four to a sheet, each with the code, who it is from and what a group is, for a neighbour who has never heard of this site. Never on the screen. *@
+  <div class="street__slips" data-street-slips aria-hidden="true">
+    @for (var slip = 0; slip < 4; slip++)
+    {
+      <div class="street__slip">
+        <p class="street__slip-name" data-slip-name></p>
+        <p class="street__slip-from" data-slip-from></p>
+        <p>@StreetCopy.SlipWhat</p>
+        <div class="street__slip-code">
+          <div class="street__qr" data-slip-qr></div>
+          <p>@StreetCopy.SlipHow</p>
+        </div>
+        <p class="street__slip-foot">@StreetCopy.SlipFoot</p>
+      </div>
+    }
   </div>
 
   <div class="street__state" data-street-state="gone" hidden>

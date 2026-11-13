@@ -47,6 +47,10 @@ public sealed class Street
         await Expect(rob.Locator("[data-street-count]")).ToHaveTextAsync("One home so far, which is yours. Send the invitation below to a neighbour.");
         await Expect(rob.Locator("[data-home-mine]")).ToContainTextAsync("27 Rob Your home");
         await Expect(rob.Locator("[data-street-circle-none]")).ToBeVisibleAsync();
+        await Expect(rob.Locator("[data-street-next=\"plan\"]")).ToContainTextAsync("Make your plan, and this page will say what you could offer your neighbours. It takes about a minute.");
+        await Expect(rob.Locator("[data-street-next=\"plan\"]").GetByRole(AriaRole.Link, new() { Name = "Start your plan" })).ToHaveAttributeAsync("href", "/plan/start");
+        await Expect(rob.Locator("[data-street-gaps]")).ToBeHiddenAsync();
+        (await TopOfAsync(rob, "#invite-heading")).ShouldBeLessThan(await TopOfAsync(rob, "#between-heading"), "a group of one is an invitation first");
         string invitation = await rob.Locator("[data-street-link]").InputValueAsync();
         invitation.ShouldMatch(@"/street/join#[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$");
         await Expect(rob.Locator("[data-street-qr] svg")).ToBeVisibleAsync();
@@ -57,6 +61,10 @@ public sealed class Street
         IPage doris = await dorisBrowser.NewPageAsync();
         await doris.GotoAsync(invitation);
         await Expect(doris.Locator("[data-street-guest-says]")).ToHaveTextAsync("You have been invited to a street group. Sign in or make an account, and this page will take you on to join it.");
+        await Expect(doris.GetByRole(AriaRole.Heading, new() { Name = "A street copes better than a house" })).ToBeVisibleAsync();
+        await Expect(doris.Locator(".street__steps > li")).ToHaveCountAsync(3);
+        await ShouldBeSoundAsync(doris);
+        await doris.ScreenshotAsync(new() { Path = Screenshots.Target("street-invited-guest-phone-light.png"), FullPage = true });
         await Accounts.SignInAsync(_browser, doris, dorisMail);
         await Expect(doris.GetByRole(AriaRole.Heading, new() { Name = "Join your street's group" })).ToBeVisibleAsync(new() { Timeout = 15_000 });
         await ShouldBeSoundAsync(doris);
@@ -85,6 +93,8 @@ public sealed class Street
         // Rob puts Doris in his closer circle, offers a warm room to everyone and phone charging to his circle.
         await rob.ReloadAsync();
         await Expect(rob.Locator("[data-street-count]")).ToHaveTextAsync("3 homes in this group.");
+        (await TopOfAsync(rob, "#invite-heading")).ShouldBeGreaterThan(await TopOfAsync(rob, "#homes-heading"), "with neighbours in, the street comes first and the invitation sits beside the sharing");
+        (await TopOfAsync(rob, "#invite-heading")).ShouldBe(await TopOfAsync(rob, "#sharing-heading"), 2);
         await rob.GetByRole(AriaRole.Checkbox, new() { Name = "Number 12" }).CheckAsync();
         await rob.GetByLabel("A warm room").SelectOptionAsync("street");
         await rob.GetByLabel("Somewhere to charge a phone").SelectOptionAsync("close");
@@ -100,6 +110,7 @@ public sealed class Street
         await Expect(robsHomeForDoris.Locator("[data-home-name]")).ToHaveTextAsync("Rob");
         await Expect(robsHomeForDoris.Locator("[data-home-offer]")).ToHaveTextAsync(["A warm room", "Somewhere to charge a phone"]);
         await Expect(doris.Locator("[data-street-between] li")).ToHaveTextAsync(["One home with a warm room.", "One home where a phone can be charged."]);
+        await Expect(doris.Locator("[data-street-gaps]")).ToHaveTextAsync("Nobody has offered you these yet: a hob or stove that works without power, room in a fridge that is still running, drinking water to spare, a lantern or torch to lend, a radio that works without power, a first-aid kit, a car with fuel or charge.");
         await ShouldBeSoundAsync(doris);
         await doris.ScreenshotAsync(new() { Path = Screenshots.Target("street-group-phone-light.png"), FullPage = true });
 
@@ -128,6 +139,40 @@ public sealed class Street
         await Expect(doris.GetByRole(AriaRole.Button, new() { Name = "Save what I share" })).ToBeHiddenAsync();
         await Expect(doris.Locator("[data-street-link]")).ToBeHiddenAsync();
         await doris.EmulateMediaAsync(new() { Media = Media.Screen });
+
+        // Slips for the doors: four to a sheet, each with the street's name, who it is from and the code, and nothing else on the paper.
+        await Expect(doris.Locator("[data-street-slips]")).ToBeHiddenAsync();
+        await doris.EvaluateAsync("() => { window.print = () => {}; }");
+        await doris.GetByRole(AriaRole.Button, new() { Name = "Print slips to post through doors" }).ClickAsync();
+        await doris.EmulateMediaAsync(new() { Media = Media.Print });
+        await Expect(doris.Locator(".street__slip:visible")).ToHaveCountAsync(4);
+        await Expect(doris.Locator(".street__slip").First).ToContainTextAsync("Maple Road");
+        await Expect(doris.Locator(".street__slip").First).ToContainTextAsync("Your neighbour at 12 is inviting you to our street's group on Selficient.");
+        await Expect(doris.Locator(".street__slip [data-slip-qr] svg")).ToHaveCountAsync(4);
+        await Expect(doris.Locator("[data-street-homes]")).ToBeHiddenAsync();
+        await doris.ScreenshotAsync(new() { Path = Screenshots.Target("street-slips-print.png"), FullPage = true });
+        await doris.EvaluateAsync("() => window.dispatchEvent(new Event('afterprint'))");
+        await doris.EmulateMediaAsync(new() { Media = Media.Screen });
+        await Expect(doris.Locator("[data-street-slips]")).ToBeHiddenAsync();
+        await Expect(doris.Locator("[data-street-homes]")).ToBeVisibleAsync();
+
+        // The day it is for: no connection. The phone shows the street as it last saw it, to read and to print, and nothing that would change it.
+        await dorisBrowser.SetOfflineAsync(true);
+        await doris.ReloadAsync();
+        await Expect(doris.Locator("[data-street-seen]")).ToBeVisibleAsync();
+        await Expect(doris.Locator("[data-street-seen]")).ToContainTextAsync("You are offline. This is the street as this device last saw it, on ");
+        await Expect(doris.Locator("[data-street-title]")).ToHaveTextAsync("Maple Road");
+        await Expect(doris.Locator("[data-street-homes] > li")).ToHaveCountAsync(3);
+        await Expect(doris.Locator("[data-street-homes] > li").Nth(1).Locator("[data-home-name]")).ToHaveTextAsync("Rob");
+        await Expect(doris.Locator("[data-street-between] li")).ToHaveTextAsync(["One home with a warm room.", "One home where a phone can be charged."]);
+        await Expect(doris.GetByRole(AriaRole.Button, new() { Name = "Save what I share" })).ToBeHiddenAsync();
+        await Expect(doris.Locator("[data-street-link]")).ToBeHiddenAsync();
+        await Expect(doris.GetByRole(AriaRole.Button, new() { Name = "Print this for the kitchen drawer" })).ToBeVisibleAsync();
+        await doris.ScreenshotAsync(new() { Path = Screenshots.Target("street-offline-phone-light.png"), FullPage = true });
+        await dorisBrowser.SetOfflineAsync(false);
+        await doris.ReloadAsync();
+        await Expect(doris.Locator("[data-street-seen]")).ToBeHiddenAsync();
+        await Expect(doris.GetByRole(AriaRole.Button, new() { Name = "Save what I share" })).ToBeVisibleAsync();
 
         // Rob's other device needs only the invitation: it is in at once, with what he shares already there.
         await using IBrowserContext robsPhone = await _browser.PhoneAsync();
@@ -264,7 +309,17 @@ public sealed class Street
         await Journeys.FillRobsHouseAsync(page);
         await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
         await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        ILocator card = page.Locator("[data-street-card]");
+        await Expect(card.GetByRole(AriaRole.Heading, new() { Name = "A street copes better than a house" })).ToBeVisibleAsync();
+        string[] before = [.. await card.Locator("[data-could]").AllTextContentsAsync()];
+        before.ShouldNotContain("A first-aid kit");
         await Sync.TickAsync(page, "safety-kit");
+        await Expect(card.Locator("[data-could=\"first-aid\"]")).ToHaveTextAsync("A first-aid kit");
+        await Expect(card.Locator("[data-street-card-says=\"could\"]")).ToHaveTextAsync("From what you have ticked, you could offer your street:");
+        await Expect(card.Locator("[data-street-card-says=\"nothing\"]")).ToBeHiddenAsync();
+        await Expect(card.GetByRole(AriaRole.Link, new() { Name = "Open your street group" })).ToBeHiddenAsync();
+        await card.ScrollIntoViewIfNeededAsync();
+        await card.ScreenshotAsync(new() { Path = Screenshots.Target("plan-street-card-desktop-light.png") });
         await Accounts.SignInAsync(_browser, page, $"plan-{Guid.NewGuid():N}@example.com");
         await page.GotoAsync("/plan");
         await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
@@ -281,6 +336,11 @@ public sealed class Street
         await Expect(page.Locator("[data-offer-plan=\"first-aid\"]")).ToBeVisibleAsync();
         await Expect(page.Locator("[data-offer-plan=\"first-aid\"]")).ToHaveTextAsync("Your plan says you have this.");
         await Expect(page.Locator("[data-offer-plan=\"news\"]")).ToBeHiddenAsync();
+        int could = await page.Locator("[data-offer-plan]:visible").CountAsync();
+        await Expect(page.Locator("[data-street-next=\"offer\"]")).ToHaveTextAsync(could == 1
+            ? "Your plan says you could offer one thing. Choose who sees it under \"What you share, and with whom\". Nothing is shared until you save."
+            : $"Your plan says you could offer {could} things. Choose who sees each under \"What you share, and with whom\". Nothing is shared until you save.");
+        await Expect(page.Locator("[data-street-next=\"plan\"]")).ToBeHiddenAsync();
         bool hasCar = await page.EvaluateAsync<bool>("() => import('/js/plan-store.js').then(store => store.getProfile()).then(profile => profile.Car !== 'None')");
         (await page.Locator("[data-offer-plan=\"lift\"]").IsVisibleAsync()).ShouldBe(hasCar);
 
@@ -293,6 +353,18 @@ public sealed class Street
         await Expect(page.Locator("[data-street-between] li")).ToHaveTextAsync("Nobody has shared an offer with you yet. When they do, what the street has between it is counted here.");
         await ShouldBeSoundAsync(page);
         await page.Locator("[data-street-sharing]").ScreenshotAsync(new() { Path = Screenshots.Target("street-plan-says-desktop-light.png") });
+
+        // Once something is offered there is no next step to nag about, and the plan knows this device is in a group.
+        await page.GetByLabel("A first-aid kit").SelectOptionAsync("street");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Save what I share" }).ClickAsync();
+        await Expect(page.Locator("[data-street-says]")).ToHaveTextAsync("Your sharing is saved. Your neighbours see it the next time they open the group.");
+        await Expect(page.Locator("[data-street-next=\"offer\"]")).ToBeHiddenAsync();
+        await page.GotoAsync("/plan");
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-street-card]").GetByRole(AriaRole.Link, new() { Name = "Open your street group" })).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-street-card]").GetByRole(AriaRole.Link, new() { Name = "Start a group for your street" })).ToBeHiddenAsync();
+        await page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Your street" }).ClickAsync();
+        await Expect(page.Locator("[data-street-groups] a")).ToHaveTextAsync("Maple Road");
 
         // And the way back, from where the plan is kept.
         await page.Locator("[data-keep-chip]").ClickAsync();
@@ -323,17 +395,17 @@ public sealed class Street
             """
             () => {
               const box = (selector) => document.querySelector(selector).getBoundingClientRect();
-              return [box("#sharing-heading").left, box("#invite-heading").left, box("#sharing-heading").top, box("#invite-heading").top, box("[data-home-mine]").width];
+              return [box("#sharing-heading").left, box("#leave-heading").left, box("#sharing-heading").top, box("#leave-heading").top, box("[data-home-mine]").width];
             }
             """);
         if (width >= 1200)
         {
-            boxes[1].ShouldBeGreaterThan(boxes[0] + 400, "on a wide screen the invitation sits beside what you share");
+            boxes[1].ShouldBeGreaterThan(boxes[0] + 400, "on a wide screen what you share has the rest beside it, not under it");
             boxes[3].ShouldBe(boxes[2], 2, "and level with it");
         }
         else
         {
-            boxes[1].ShouldBe(boxes[0], 2, "on a phone the invitation is under what you share");
+            boxes[1].ShouldBe(boxes[0], 2, "on a phone the rest is under what you share");
         }
 
         boxes[4].ShouldBeLessThanOrEqualTo(385, "one home is a card, not a banner across the page");
@@ -341,6 +413,58 @@ public sealed class Street
         codeIsOnWhite.ShouldBeTrue("a code inverted in the dark does not scan");
         await page.ScreenshotAsync(new() { Path = Screenshots.Target($"street-group-{size}-{theme}.png"), FullPage = true });
     }
+
+    [Theory]
+    [InlineData("wide", 2000, 1100, "light")]
+    [InlineData("wide", 2000, 1100, "dark")]
+    [InlineData("phone", 390, 844, "light")]
+    [InlineData("phone", 390, 844, "dark")]
+    public async Task The_landing_page_sells_the_street_and_leads_a_visitor_to_it(string size, int width, int height, string theme)
+    {
+        await using IBrowserContext context = await _browser.SizedAsync(width, height, mobile: width < 600, theme);
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/");
+        ILocator section = page.Locator("section.streets");
+        await section.ScrollIntoViewIfNeededAsync();
+        await Expect(section.GetByRole(AriaRole.Heading, new() { Name = "A street copes better than a house" })).ToBeVisibleAsync();
+        await Expect(section.Locator(".streets__points > li")).ToHaveCountAsync(4);
+        await Expect(section.Locator(".street__home")).ToHaveCountAsync(4);
+
+        double[] boxes = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+              const box = (selector) => document.querySelector(selector).getBoundingClientRect();
+              return [box(".streets__lede").right, box(".streets__example").left, box("#streets-heading").top, box(".streets__example").top, box(".streets__example").width, box(".streets__lede").bottom, box(".streets__points").top];
+            }
+            """);
+        if (width >= 1200)
+        {
+            boxes[1].ShouldBeGreaterThan(boxes[0], "on a wide screen the example street stands beside the case for it");
+            boxes[3].ShouldBeLessThan(boxes[5], "starting level with the heading, not under the reasons");
+            boxes[4].ShouldBeGreaterThan(450, "and has room for its homes two abreast");
+        }
+        else
+        {
+            boxes[3].ShouldBeGreaterThan(boxes[5], "on a phone the example follows the scene it is a picture of");
+            boxes[3].ShouldBeLessThan(boxes[6], "and comes before the reasons and the buttons, not after them");
+        }
+
+        await ShouldBeSoundAsync(page);
+        await section.ScreenshotAsync(new() { Path = Screenshots.Target($"landing-street-{size}-{theme}.png") });
+        await page.Locator(".site-header").ScreenshotAsync(new() { Path = Screenshots.Target($"header-{size}-{theme}.png") });
+
+        // The header's link and the section's button both land on the case for a group, with both ways to begin.
+        await page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Your street" }).ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "A street copes better than a house", Level = 1 })).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-street-guest-says]")).ToHaveTextAsync("A street group needs an account, because the group has to be somewhere other than one phone. An account is an email address and nothing else.");
+        await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Sign in or make an account" })).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-street-state=\"guest\"]").GetByRole(AriaRole.Link, new() { Name = "Start with your plan" })).ToHaveAttributeAsync("href", "/plan/start");
+        await ShouldBeSoundAsync(page);
+        await page.ScreenshotAsync(new() { Path = Screenshots.Target($"street-guest-{size}-{theme}.png"), FullPage = true });
+    }
+
+    private static Task<double> TopOfAsync(IPage page, string selector) =>
+        page.EvaluateAsync<double>("selector => Math.round(document.querySelector(selector).getBoundingClientRect().top + window.scrollY)", selector);
 
     /// <summary>No accessibility violations and nothing scrolling sideways, on the page as it stands.</summary>
     private static async Task ShouldBeSoundAsync(IPage page)

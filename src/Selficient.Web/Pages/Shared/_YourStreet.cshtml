@@ -1,0 +1,55 @@
+@using Selficient.Web.Pages.Street
+@*
+  The landing page's case for a street group: the claim, a scene that makes it concrete, four
+  reasons, and beside them a street as one of its homes would see it, drawn with the group page's
+  own cards so that what is promised is what is there. Two ways to begin: an organiser starts a
+  group; anybody else starts with a plan, which is what says what a home could offer.
+*@
+<section class="streets" id="street" aria-labelledby="streets-heading">
+  <div class="streets__copy">
+    <p class="eyebrow">@StreetCopy.Name</p>
+    <h2 id="streets-heading">@StreetCopy.Claim</h2>
+    <p class="streets__lede">@StreetCopy.Scene</p>
+    <ul class="streets__points">
+      @foreach (var point in StreetCopy.Points)
+      {
+        <li>
+          <h3>@point.Heading</h3>
+          <p>@point.Sentence</p>
+        </li>
+      }
+    </ul>
+    <p class="streets__actions">
+      <a class="button button--primary" href="/street">@StreetCopy.Start</a>
+      <a class="button button--quiet" href="/plan/start">@StreetCopy.StartWithPlan</a>
+    </p>
+    <p class="streets__note">@StreetCopy.AccountNote</p>
+  </div>
+  <figure class="streets__example">
+    <ul class="street__homes streets__homes">
+      @foreach (var home in StreetCopy.Example)
+      {
+        <li class="street__home" data-example-mine="@home.Mine">
+          <p class="street__house">
+            <span class="data">@home.House</span>
+            @if (home.Name is not null)
+            {
+              <span class="street__name">@home.Name</span>
+            }
+            @if (home.Mine)
+            {
+              <span class="street__you">@StreetCopy.YourHome</span>
+            }
+          </p>
+          <ul class="street__home-offers">
+            @foreach (var offer in home.Offers)
+            {
+              <li>@offer</li>
+            }
+          </ul>
+        </li>
+      }
+    </ul>
+    <figcaption>@StreetCopy.ExampleCaption</figcaption>
+  </figure>
+</section>

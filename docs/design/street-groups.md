@@ -60,6 +60,21 @@ The same idea as "send a copy" (decision 35): the key is made in the browser and
 
 Beside each offer the page can say "Your plan says you have this." The browser works it out from the plan it keeps: `StreetCopy.PlanSigns` lists, for each offer, the plan actions any one of which held says so and the answers about the home that say so, and the page carries that list for `street.js` to hold against the store. Nothing is sent to find out. It is a prompt and no more: every offer stays at nobody until the household chooses.
 
+## Finding it, and why a household would
+
+Four people come to this, and each needs a different thing from it.
+
+| Who | When, and how often | What they need | Where it is |
+|---|---|---|---|
+| A visitor deciding whether the site is worth a postcode | Once | A reason to believe the site is more than a shopping list, and a second reason to tell somebody about it | The landing page's section, a tile under "What it covers", a question among the questions, "Your street" in the header |
+| An organiser: a flood warden, whoever runs the street's chat | Once, and then for a week of getting people in | To start at once, and to reach neighbours whose numbers they do not have | "Start a group for your street" wherever the feature is named; the invitation to copy, to send through the device's sharing, and to print as slips for doors |
+| A neighbour holding a slip who has never heard of the site | Once | To be told what this is, what it costs and what they will be asked, before an email address is asked for | The slip's own words; the page an invitation opens for a guest |
+| A member | Rarely: when something they own changes, when a neighbour joins, and on the day itself | To be told the one thing worth doing next; and on the day, to read the street with no connection | The next step on the group's page; the card on the plan; the printed sheet; the copy the device keeps |
+
+What the site gets from it: every invitation is a neighbour vouching for it, which no advertisement is. A neighbour who joins is led to make a plan, because a plan is what says what they could offer, and the plan is where the site earns. Nothing is sold inside the group itself.
+
+What it does not do: it does not email anybody when a neighbour joins. The address is for signing in and nothing else. That costs return visits and is the first thing to revisit if groups go quiet.
+
 ## Limits
 
 A hundred homes to a group; five groups to an account; a member's record 24 KB at most; the invitation's pass 32 bytes. The longest-standing member is the one who may remove, so a starter who leaves or deletes their account hands the group on without anyone doing anything. A group with nobody in it is swept away.

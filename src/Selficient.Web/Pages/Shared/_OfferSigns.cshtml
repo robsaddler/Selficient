@@ -1,0 +1,13 @@
+@using Selficient.Web.Pages.Street
+@*
+  The offers a home can make, as words, with what in a household's own plan says it could make each:
+  the actions held and the answers given. The script reads the words from here and holds the signs
+  against the plan this browser keeps. It is the same list for everyone, and nothing is asked of the
+  server to use it.
+*@
+<ul hidden data-street-offers>
+  @foreach (var offer in StreetCopy.Offers)
+  {
+    <li data-offer="@offer.Id" data-between="@offer.Between" data-held="@StreetCopy.PlanSigns[offer.Id].Held" data-answers="@StreetCopy.PlanSigns[offer.Id].Answers">@offer.Words</li>
+  }
+</ul>

@@ -12,9 +12,10 @@
 import { toBase64Url, fromBase64Url } from "selficient/handoff.js";
 import { qrSvg } from "selficient/qr.js";
 import * as crypt from "selficient/street-crypto.js";
-import { getProfile, getTicks } from "selficient/plan-store.js";
+import { offersFromPlan, readPlan } from "selficient/street-signs.js";
 
 const KEYS = "selficient.streets";
+const SEEN = "selficient.street-seen";
 const PENDING = "selficient.street-invite";
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -58,7 +59,10 @@ export async function initStreet(doc) {
     return;
   }
   if (mine.status !== 200 || !Array.isArray(mine.data)) {
-    say(page, says(page, "offline"));
+    // No connection is the day a street is for: the copy this device kept is shown, to be read and printed.
+    if (!(view === "group" && mine.status === 0 && drawSeen(page, fragment))) {
+      say(page, says(page, "offline"));
+    }
     return;
   }
   if (invite === null && view !== "group") {
@@ -234,11 +238,14 @@ async function group(page, gid, said) {
   }
   const answer = await api("GET", `/api/street/${gid}`);
   if (answer.status === 0) {
-    say(page, says(page, "offline"));
+    if (!drawSeen(page, gid)) {
+      say(page, says(page, "offline"));
+    }
     return;
   }
   const about = answer.status === 200 ? await aboutOf(key, answer.data.about) : null;
   if (about === null) {
+    dropSeen(gid);
     put(page, "[data-street-gone-says]", says(page, "gone"));
     show(page, "gone");
     return;
@@ -276,14 +283,16 @@ async function group(page, gid, said) {
 
   draw(page, gid, about, shown, mine, mayRemove);
   wire(page, gid, key, about, mine, pubs);
+  keepSeen(gid, about.name, shown);
   show(page, "group");
+  void nextSteps(page, mine);
   if (said !== undefined) {
     say(page, said);
   }
 }
 
 /**
- * Puts the street on the page, as text.
+ * Puts a group on the page: the street, then what this household shares and how to invite.
  * @param {Page} page
  * @param {string} gid
  * @param {{ name: string, pass: string }} about
@@ -293,8 +302,84 @@ async function group(page, gid, said) {
  */
 function draw(page, gid, about, shown, mine, mayRemove) {
   const { doc, root } = page;
-  put(page, "[data-street-title]", about.name);
-  doc.title = about.name;
+  drawStreet(page, about.name, shown, mayRemove);
+
+  // What this household shares, as it last saved it.
+  setValue(root, "#share-house", mine.house);
+  setValue(root, "#share-first", mine.name);
+  for (const select of root.querySelectorAll("[data-street-offer]")) {
+    if (select instanceof HTMLSelectElement) {
+      select.value = mine.offers[select.dataset.streetOffer ?? ""] ?? "";
+    }
+  }
+  const circle = root.querySelector("[data-street-circle]");
+  const noCircle = root.querySelector("[data-street-circle-none]");
+  if (circle instanceof HTMLElement) {
+    circle.replaceChildren();
+    for (const home of shown.filter((other) => !other.mine && other.readable)) {
+      const item = doc.createElement("li");
+      const label = doc.createElement("label");
+      const box = doc.createElement("input");
+      box.type = "checkbox";
+      box.name = "close";
+      box.value = home.memberId;
+      box.checked = mine.close.includes(home.memberId);
+      label.append(box, " ", says(page, "houseLabel").replace("{house}", home.house));
+      item.append(label);
+      circle.append(item);
+    }
+    if (noCircle instanceof HTMLElement) {
+      noCircle.hidden = circle.childElementCount > 0;
+    }
+  }
+
+  // The invitation: as a link, as a code, and on the slips that go through doors.
+  const link = `${location.origin}/street/join#${gid}.${toBase64Url(keyFor(gid) ?? new Uint8Array())}.${about.pass}`;
+  const input = root.querySelector("[data-street-link]");
+  if (input instanceof HTMLInputElement) {
+    input.value = link;
+  }
+  root.querySelector("[data-street-qr]")?.replaceChildren(qrSvg(doc, link));
+  for (const slip of root.querySelectorAll("[data-street-slips] .street__slip")) {
+    const name = slip.querySelector("[data-slip-name]");
+    const from = slip.querySelector("[data-slip-from]");
+    if (name && from) {
+      name.textContent = about.name;
+      from.textContent = says(page, "slipFrom").replace("{house}", mine.house);
+    }
+    slip.querySelector("[data-slip-qr]")?.replaceChildren(qrSvg(doc, link));
+  }
+  const share = root.querySelector("[data-street-share]");
+  if (share instanceof HTMLElement) {
+    share.hidden = typeof navigator.share !== "function";
+  }
+
+  // A group of one home is an invitation and nothing else yet: it goes first until a neighbour joins, and beside the sharing after.
+  const invite = root.querySelector("[data-street-invite]");
+  const slot = root.querySelector(`[data-invite-slot="${shown.length === 1 ? "first" : "aside"}"]`);
+  if (invite !== null && slot !== null && invite.parentElement !== slot) {
+    slot.append(invite);
+  }
+  // The place it is not in takes no room: an empty box in a grid is still a gap.
+  for (const place of root.querySelectorAll("[data-invite-slot]")) {
+    if (place instanceof HTMLElement) {
+      place.hidden = place !== slot;
+    }
+  }
+}
+
+/**
+ * Puts the street on the page, as text: its name, what it has between it, what nobody has offered
+ * yet, and each home. Used for the street as the server has it and for the copy this device kept.
+ * @param {Page} page
+ * @param {string} name
+ * @param {Shown[]} shown
+ * @param {boolean} mayRemove
+ */
+function drawStreet(page, name, shown, mayRemove) {
+  const { doc, root } = page;
+  put(page, "[data-street-title]", name);
+  doc.title = name;
   put(page, "[data-street-count]", shown.length === 1 ? says(page, "homesOne") : says(page, "homesMany").replace("{n}", String(shown.length)));
 
   const words = offerWords(page);
@@ -316,6 +401,15 @@ function draw(page, gid, about, shown, mine, mayRemove) {
       none.textContent = says(page, "nothingBetween");
       between.append(none);
     }
+  }
+
+  // What nobody has offered this household, said once there is somebody who might: it is what one more home could add.
+  const gaps = root.querySelector("[data-street-gaps]");
+  if (gaps instanceof HTMLElement) {
+    const missing = shown.length < 2 ? [] : crypt.OFFERS.filter((offer) => !shown.some((home) => home.offers.includes(offer)));
+    const list = missing.map((offer) => lowered(words.get(offer)?.words ?? "")).filter((offer) => offer !== "");
+    gaps.textContent = says(page, "gaps").replace("{list}", list.join(", "));
+    gaps.hidden = list.length === 0;
   }
 
   const list = root.querySelector("[data-street-homes]");
@@ -374,43 +468,125 @@ function draw(page, gid, about, shown, mine, mayRemove) {
       list.append(item);
     }
   }
+}
 
-  // What this household shares, as it last saved it.
-  setValue(root, "#share-house", mine.house);
-  setValue(root, "#share-first", mine.name);
-  for (const select of root.querySelectorAll("[data-street-offer]")) {
-    if (select instanceof HTMLSelectElement) {
-      select.value = mine.offers[select.dataset.streetOffer ?? ""] ?? "";
-    }
-  }
-  void showPlanSigns(root);
-  const circle = root.querySelector("[data-street-circle]");
-  const noCircle = root.querySelector("[data-street-circle-none]");
-  if (circle instanceof HTMLElement) {
-    circle.replaceChildren();
-    for (const home of shown.filter((other) => !other.mine && other.readable)) {
-      const item = doc.createElement("li");
-      const label = doc.createElement("label");
-      const box = doc.createElement("input");
-      box.type = "checkbox";
-      box.name = "close";
-      box.value = home.memberId;
-      box.checked = mine.close.includes(home.memberId);
-      label.append(box, " ", says(page, "houseLabel").replace("{house}", home.house));
-      item.append(label);
-      circle.append(item);
-    }
-    if (noCircle instanceof HTMLElement) {
-      noCircle.hidden = circle.childElementCount > 0;
-    }
-  }
+/**
+ * A phrase as it reads in the middle of a sentence.
+ * @param {string} words
+ */
+function lowered(words) {
+  return words.charAt(0).toLowerCase() + words.slice(1);
+}
 
-  const link = `${location.origin}/street/join#${gid}.${toBase64Url(keyFor(gid) ?? new Uint8Array())}.${about.pass}`;
-  const input = root.querySelector("[data-street-link]");
-  if (input instanceof HTMLInputElement) {
-    input.value = link;
+/**
+ * What a household that has not yet got anything out of the group should do next, one thing at a
+ * time: make a plan, so the page can say what it could offer; or choose who sees what its plan
+ * says it has. Beside each such offer the page says so. All of it is worked out here, from the
+ * plan this browser keeps.
+ * @param {Page} page
+ * @param {crypt.Keep} mine
+ */
+async function nextSteps(page, mine) {
+  const { root } = page;
+  const plan = await readPlan();
+  const could = offersFromPlan(root, plan);
+  for (const hint of root.querySelectorAll("[data-offer-plan]")) {
+    if (hint instanceof HTMLElement) {
+      hint.hidden = !could.some((offer) => offer.id === hint.dataset.offerPlan);
+    }
   }
-  root.querySelector("[data-street-qr]")?.replaceChildren(qrSvg(doc, link));
+  const offering = Object.keys(mine.offers).length > 0;
+  const next = plan.profile === null ? "plan" : !offering && could.length > 0 ? "offer" : "";
+  for (const block of root.querySelectorAll("[data-street-next]")) {
+    if (block instanceof HTMLElement) {
+      block.hidden = block.dataset.streetNext !== next;
+      if (block.dataset.streetNext === "offer") {
+        block.textContent = could.length === 1 ? says(page, "nextOfferOne") : says(page, "nextOfferMany").replace("{n}", String(could.length));
+      }
+    }
+  }
+}
+
+/**
+ * The street as this device last saw it, kept beside the group's key so that it can be read with
+ * no connection. It is what the page had already opened and shown, and it is on no other device.
+ * @returns {Record<string, any>}
+ */
+function seenAll() {
+  try {
+    const kept = JSON.parse(localStorage.getItem(SEEN) ?? "{}");
+    return typeof kept === "object" && kept !== null && !Array.isArray(kept) ? kept : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * @param {string} gid
+ * @param {string} name
+ * @param {Shown[]} shown
+ */
+function keepSeen(gid, name, shown) {
+  try {
+    const homes = shown.map((home) => ({ house: home.house, name: home.name, offers: home.offers, mine: home.mine, readable: home.readable }));
+    localStorage.setItem(SEEN, JSON.stringify({ ...seenAll(), [gid]: { name, at: new Date().toISOString(), homes } }));
+  } catch {
+    // No storage: without a connection the group says it could not be reached.
+  }
+}
+
+/**
+ * @param {string} gid
+ */
+function dropSeen(gid) {
+  try {
+    const kept = seenAll();
+    delete kept[gid];
+    localStorage.setItem(SEEN, JSON.stringify(kept));
+  } catch {
+    // Nothing was kept.
+  }
+}
+
+/**
+ * Shows the street from the copy this device kept, to be read and printed and nothing else. Only
+ * for a household that is signed in on this device, and everything in the copy is checked as a
+ * neighbour's record is, because it has been sitting in storage.
+ * @param {Page} page
+ * @param {string} gid
+ * @returns {boolean} whether there was a copy to show
+ */
+function drawSeen(page, gid) {
+  const signedIn = page.doc.cookie.split("; ").some((cookie) => cookie.startsWith("selficient.signed-in="));
+  const seen = GUID.test(gid) ? seenAll()[gid] : null;
+  if (!signedIn || typeof seen !== "object" || seen === null || !Array.isArray(seen.homes)) {
+    return false;
+  }
+  const name = crypt.tidy(seen.name, crypt.MAX_GROUP_NAME);
+  const at = new Date(String(seen.at));
+  if (name === "" || Number.isNaN(at.getTime())) {
+    return false;
+  }
+  /** @type {Shown[]} */
+  const shown = seen.homes.slice(0, 100).map((/** @type {any} */ home) => ({
+    memberId: "",
+    house: crypt.tidy(home?.house, crypt.MAX_HOUSE),
+    name: typeof home?.name === "string" ? crypt.tidy(home.name, crypt.MAX_NAME) : null,
+    offers: crypt.OFFERS.filter((offer) => Array.isArray(home?.offers) && home.offers.includes(offer)),
+    readable: home?.readable !== false,
+    mine: home?.mine === true,
+    pub: null,
+  }));
+  page.root.setAttribute("data-street-offline", "");
+  drawStreet(page, name, shown, false);
+  const note = page.root.querySelector("[data-street-seen]");
+  if (note instanceof HTMLElement) {
+    note.textContent = says(page, "seen").replace("{date}", at.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }));
+    note.hidden = false;
+  }
+  page.root.querySelector("[data-street-print]")?.addEventListener("click", () => window.print());
+  show(page, "group");
+  return true;
 }
 
 /**
@@ -451,6 +627,13 @@ function wire(page, gid, key, about, mine, pubs) {
       void leave(page, state);
     } else if (target?.closest("[data-street-copy]")) {
       void copy(page);
+    } else if (target?.closest("[data-street-share]")) {
+      void shareInvite(page, state);
+    } else if (target?.closest("[data-street-print-slips]")) {
+      // The slips are a second thing this page can print: the page says which for as long as the print takes.
+      root.setAttribute("data-print", "slips");
+      window.addEventListener("afterprint", () => root.removeAttribute("data-print"), { once: true });
+      window.print();
     } else if (target?.closest("[data-street-print]")) {
       window.print();
     }
@@ -540,7 +723,25 @@ async function leave(page, now) {
     return;
   }
   dropKey(now.gid);
+  dropSeen(now.gid);
   location.assign("/street");
+}
+
+/**
+ * Hands the invitation to the device's own sharing, which is how it reaches the street's chat.
+ * @param {Page} page
+ * @param {NonNullable<typeof state>} now
+ */
+async function shareInvite(page, now) {
+  const input = page.root.querySelector("[data-street-link]");
+  if (!(input instanceof HTMLInputElement)) {
+    return;
+  }
+  try {
+    await navigator.share({ title: now.about.name, text: says(page, "shareText"), url: input.value });
+  } catch {
+    // Dismissed, or refused by the device: the link is still there to copy.
+  }
 }
 
 /**
@@ -590,38 +791,6 @@ function byHouse(a, b) {
     return Number.isFinite(x) ? -1 : 1;
   }
   return a.house.localeCompare(b.house, "en-GB");
-}
-
-/**
- * Says, beside each offer this browser's plan says the household could make, that it does. The
- * plan is read from this browser's own store and goes nowhere; the page carries what to look for.
- * It is a prompt: nothing is chosen for the household. With no plan, or a store that will not
- * open, nothing is said.
- * @param {HTMLElement} root
- */
-async function showPlanSigns(root) {
-  /** @type {Set<string>} */
-  let held = new Set();
-  /** @type {Record<string, string>} */
-  let profile = {};
-  try {
-    held = new Set(await getTicks());
-    profile = (await getProfile()) ?? {};
-  } catch {
-    // No store: no signs.
-  }
-  for (const item of root.querySelectorAll("[data-street-offers] li")) {
-    const says = item instanceof HTMLElement ? root.querySelector(`[data-offer-plan="${item.dataset.offer ?? ""}"]`) : null;
-    if (!(item instanceof HTMLElement) || !(says instanceof HTMLElement)) {
-      continue;
-    }
-    const holds = (item.dataset.held ?? "").split(" ").some((action) => held.has(action));
-    const answered = (item.dataset.answers ?? "").split(" ").some((answer) => {
-      const [field, value] = answer.split("=");
-      return field !== undefined && field !== "" && profile[field] === value;
-    });
-    says.hidden = !(holds || answered);
-  }
 }
 
 /**

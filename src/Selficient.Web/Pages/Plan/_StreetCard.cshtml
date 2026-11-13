@@ -1,0 +1,24 @@
+@using Selficient.Web.Pages.Street
+@*
+  The plan's way to the street, at the moment a household has just said what it has. The script
+  holds the plan this browser keeps against the signs in the list below and says what this home
+  could offer; nothing is sent to find out, and nothing is offered by it. A device that is already
+  in a group is shown the way back to it.
+*@
+<section class="street-card" aria-labelledby="street-card-heading" data-street-card="nothing">
+  @await Html.PartialAsync("_OfferSigns")
+  <div class="street-card__copy">
+    <p class="eyebrow">@StreetCopy.Name</p>
+    <h3 id="street-card-heading">@StreetCopy.Claim</h3>
+    <p>@StreetCopy.OnPlan</p>
+  </div>
+  <div class="street-card__could">
+    <p data-street-card-says="could" hidden>@StreetCopy.OnPlanCould</p>
+    <ul class="street-card__list" data-street-could hidden></ul>
+    <p data-street-card-says="nothing">@StreetCopy.OnPlanNothingYet</p>
+    <p class="street-card__actions">
+      <a class="button button--primary" href="/street" data-street-way="start">@StreetCopy.Start</a>
+      <a class="button button--primary" href="/street" data-street-way="open" hidden>@StreetCopy.Open</a>
+    </p>
+  </div>
+</section>

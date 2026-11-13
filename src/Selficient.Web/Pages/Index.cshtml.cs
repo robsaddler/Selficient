@@ -35,6 +35,7 @@ public sealed class IndexModel : PageModel
             "It starts there. The Be Ready campaign of 22 October 2026 asks every household for three days of water, food that needs no cooking, light, a radio, a charged power bank, some cash and a few other things. Selficient turns that list into a plan sized to your house, your hill and your heating, and then goes further for those who want to."),
         Stored(accounts),
         Account(accounts),
+        .. Street(accounts),
         new("How much does it cost?",
             "Nothing. Where we point to a shop, some links earn us a small commission at no cost to you, and we say so beside them. Photo readings use a small free monthly allowance, or your own key if you prefer."),
         new("Is this professional advice?",
@@ -45,6 +46,11 @@ public sealed class IndexModel : PageModel
 
     /// <summary>Renders the page.</summary>
     public IActionResult OnGet() => Page();
+
+    // Asked only where a street group can be made: the first worry anybody has about one.
+    private static Faq[] Street(bool accounts) => accounts
+        ? [new("Can my neighbours see my plan?", "No. A street group is separate from your plan. Neighbours in a group see your house number and whatever you choose to offer them, and nothing else: your plan, your answers and what you own stay in your browser. What a group shares is locked before it leaves your browser, so we cannot read it either.")]
+        : [];
 
     private static Faq Stored(bool accounts) => new(
         "Do you store my address or my answers?",

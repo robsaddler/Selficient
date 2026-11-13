@@ -118,7 +118,7 @@
   @* Only where this server offers accounts, because a group needs one. *@
   @if (Accounts.IsAvailable)
   {
-    <p class="plan__street">@Selficient.Web.Pages.Street.StreetCopy.OnPlanBefore <a href="/street">@Selficient.Web.Pages.Street.StreetCopy.OnPlanLink</a>@Selficient.Web.Pages.Street.StreetCopy.OnPlanAfter</p>
+    @await Html.PartialAsync("_StreetCard")
   }
   <p class="plan__photos">Rather than count by hand, <a href="/plan/photos">photograph your kit cupboard, the boiler's plate and the fuse board</a> and let the photos fill the plan in.</p>
   @await Html.PartialAsync("_PlanExplain", Model)

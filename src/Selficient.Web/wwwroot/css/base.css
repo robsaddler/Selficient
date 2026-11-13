@@ -235,6 +235,20 @@ code {
   gap: var(--space-2) var(--space-5);
 }
 
+/* A button, because it does something, drawn as the links beside it are. */
+.site-footer__install {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: light-dark(var(--c-pine), var(--c-on-roof-link));
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
 .site-footer__made {
   padding-block-start: var(--space-4);
   border-block-start: 1px solid light-dark(var(--c-contour), var(--c-on-roof-line));

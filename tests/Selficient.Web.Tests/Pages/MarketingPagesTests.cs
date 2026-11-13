@@ -243,6 +243,8 @@ public sealed partial class MarketingPagesTests : IDisposable
         privacy.ShouldContain("We do know which accounts are in a group together, because that is how we decide who is given the group's records.");
         privacy.ShouldContain("A group holds offers and never needs: there is nowhere to say who in a home is frail, what is kept there or when it is empty.");
         privacy.ShouldContain("Nothing was sent to find out, and nothing is offered until you choose it.");
+        privacy.ShouldContain("A device that has opened a group keeps two things in its own storage: the group's key, and the street as it last saw it");
+        privacy.ShouldContain("and the key and the copy from the device you leave on.");
         privacy.ShouldContain("It takes your home out of every street group you joined at the same moment.");
         privacy.ShouldContain("If you are in a street group we also hold that you are, and a record only your group can read");
         privacy.ShouldContain("<td>an encrypted copy of your plan that we cannot read, because the key stays in the code on your screen</td>");

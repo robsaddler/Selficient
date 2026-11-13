@@ -58,6 +58,10 @@
       <nav class="site-nav" aria-label="Main">
         <a href="/plan">Your plan</a>
         <a href="/plan/solar">Solar</a>
+        @if (Accounts.IsAvailable)
+        {
+        <a href="/street">@Selficient.Web.Pages.Street.StreetCopy.Name</a>
+        }
         <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false">
           <span class="sr-only">Switch between light and dark</span>
           <span aria-hidden="true">◐</span>
@@ -86,10 +90,11 @@
     <div class="site-footer__inner">
       <p>Selficient helps households prepare for everyday emergencies. It is guidance, not professional advice, and it never replaces the instructions of the emergency services.</p>
       <p>Your plan is kept in your own browser. What leaves it, and when, is on the <a href="/privacy">privacy page</a>.</p>
-      @* Shown by install.js only where the browser can install or explain how, and never inside the
-         installed app. It lives below the content so appearing never pushes the page down. *@
-      <p class="site-footer__install"><button type="button" class="button button--quiet" data-install hidden>Install the app</button></p>
       <nav class="site-footer__links" aria-label="About this site">
+        @* Shown by install.js only where the browser can install or explain how, and never inside the
+           installed app. It is the first of the footer's links and looks like them: on a line of its own,
+           as a padded button, it sat indented from everything round it and belonged to nothing. *@
+        <button type="button" class="site-footer__install" data-install hidden>Install the app</button>
         <a href="/deals">Cheapest kit today</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms and affiliate disclosure</a>

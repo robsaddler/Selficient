@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using Selficient.Domain.Households;
 using Selficient.Domain.Plans.Rules;
 using Selficient.Domain.Resilience;
@@ -48,6 +49,72 @@ public sealed class StreetPagesTests : IDisposable
         html.ShouldContain("<option value=\"close\">My closer circle</option>");
         html.ShouldContain("<option value=\"street\">Everyone in the group</option>");
         html.ShouldContain("Nobody is told who you ticked, or who you did not.");
+
+        // Where "Your street" lands for a guest: the claim, how it goes, and both ways to begin.
+        html.ShouldContain("<h1 tabindex=\"-1\">A street copes better than a house</h1>");
+        foreach ((string heading, string sentence) in StreetCopy.Steps)
+        {
+            html.ShouldContain($"<h2>{heading}</h2>");
+            html.ShouldContain($"<p>{sentence}</p>");
+        }
+
+        html.ShouldContain("<a class=\"button button--quiet\" href=\"/plan/start\">Start with your plan</a>");
+
+        // What a member with nothing to show for it yet is told to do next, one thing at a time.
+        html.ShouldContain("<p>Make your plan, and this page will say what you could offer your neighbours. It takes about a minute.</p>");
+        html.ShouldContain("data-says-next-offer-many=\"Your plan says you could offer {n} things. Choose who sees each under \"What you share, and with whom\". Nothing is shared until you save.\"");
+        html.ShouldContain("data-says-gaps=\"Nobody has offered you these yet: {list}.\"");
+        html.ShouldContain("data-says-seen=\"You are offline. This is the street as this device last saw it, on {date}. Nothing can be changed until you are back online.\"");
+
+        // The invitation goes out three ways, and the slips say what a group is to somebody who has never heard of the site.
+        html.ShouldContain("<button type=\"button\" class=\"button button--primary\" data-street-share hidden>Send the invitation</button>");
+        html.ShouldContain("<button type=\"button\" class=\"button\" data-street-print-slips>Print slips to post through doors</button>");
+        html.ShouldContain("data-says-slip-from=\"Your neighbour at {house} is inviting you to our street's group on Selficient.\"");
+        System.Text.RegularExpressions.Regex.Count(html, "<div class=\"street__slip\">").ShouldBe(4, "four slips to a sheet");
+        html.ShouldContain($"<p>{StreetCopy.SlipWhat}</p>");
+        html.ShouldContain("<p>Point your phone's camera at this code to join.</p>");
+    }
+
+    [Fact]
+    public async Task The_landing_page_makes_the_case_for_a_street_and_the_header_leads_to_it()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri("/", UriKind.Relative)));
+
+        html.ShouldContain("<a href=\"/street\">Your street</a>", customMessage: "in the header, beside the plan");
+        html.ShouldContain("<section class=\"streets\" id=\"street\" aria-labelledby=\"streets-heading\">");
+        html.ShouldContain("<h2 id=\"streets-heading\">A street copes better than a house</h2>");
+        html.ShouldContain($"<p class=\"streets__lede\">{StreetCopy.Scene}</p>");
+        foreach ((string heading, string sentence) in StreetCopy.Points)
+        {
+            html.ShouldContain($"<h3>{heading}</h3>");
+            html.ShouldContain($"<p>{sentence}</p>");
+        }
+
+        StreetCopy.Points.Select(point => point.Heading).ShouldBe(["Offers, never needs", "You choose who sees what", "We cannot read it", "On paper for the day itself"]);
+        html.ShouldContain("<a class=\"button button--primary\" href=\"/street\">Start a group for your street</a>");
+        html.ShouldContain("<a class=\"button button--quiet\" href=\"/plan/start\">Start with your plan</a>");
+        html.ShouldContain("<p class=\"streets__note\">Your plan needs no account. A street group does, because the group has to live somewhere other than one phone: an email address, and nothing else.</p>");
+        html.IndexOf("id=\"how-heading\"", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("id=\"streets-heading\"", StringComparison.Ordinal), "the street comes after the house");
+        html.IndexOf("id=\"streets-heading\"", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("id=\"ways-heading\"", StringComparison.Ordinal), "and before where it is all kept");
+
+        // The example is drawn with the group page's own cards, and every offer in it is one a home can make.
+        html.ShouldContain("<li class=\"street__home\" data-example-mine=\"True\">");
+        Regex.Count(html, "<li class=\"street__home\" data-example-mine=\"False\">").ShouldBe(3);
+        html.ShouldContain("<span class=\"street__name\">Doris</span>");
+        html.ShouldContain("<figcaption>An example street, as number 27 sees it. A first name means that home has put number 27 in its closer circle.</figcaption>");
+        string[] offers = [.. StreetCopy.Offers.Select(offer => offer.Words)];
+        StreetCopy.Example.SelectMany(home => home.Offers).ShouldAllBe(offer => offers.Contains(offer));
+        StreetCopy.Example.Count(home => home.Mine).ShouldBe(1);
+
+        html.ShouldContain($"<li><h3>Your street</h3><p>{StreetCopy.Covers}</p></li>");
+        html.ShouldContain("<summary>Can my neighbours see my plan?</summary>");
+        html.ShouldContain("Neighbours in a group see your house number and whatever you choose to offer them, and nothing else");
+
+        // The install button is one of the footer's links, not a paragraph of its own.
+        html.ShouldContain("<button type=\"button\" class=\"site-footer__install\" data-install hidden>Install the app</button>");
+        html.IndexOf("class=\"site-footer__links\"", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("data-install hidden", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -117,7 +184,14 @@ public sealed class StreetPagesTests : IDisposable
         street.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         street.Headers.Location!.ToString().ShouldBe("/account/unavailable");
         (await planWithout.Content.ReadAsStringAsync()).ShouldNotContain("/street");
-        with.ShouldContain("<p class=\"plan__street\">A street copes better than a house. <a href=\"/street\">Start a group for your street</a>, and neighbours can tell each other what each could offer when the power is off. Selficient cannot read what a group shares.</p>");
+        with.ShouldContain("<section class=\"street-card\" aria-labelledby=\"street-card-heading\" data-street-card=\"nothing\">");
+        with.ShouldContain("<h3 id=\"street-card-heading\">A street copes better than a house</h3>");
+        with.ShouldContain("<p>Neighbours in a group tell each other what each could offer when the power is off. You choose what to share and with whom, and Selficient cannot read any of it.</p>");
+        with.ShouldContain("<p data-street-card-says=\"could\" hidden>From what you have ticked, you could offer your street:</p>");
+        with.ShouldContain("<p data-street-card-says=\"nothing\">Tick what you have above, and this will say what you could offer your street.</p>");
+        with.ShouldContain("<a class=\"button button--primary\" href=\"/street\" data-street-way=\"start\">Start a group for your street</a>");
+        with.ShouldContain("<a class=\"button button--primary\" href=\"/street\" data-street-way=\"open\" hidden>Open your street group</a>");
+        with.ShouldContain("data-answers=\"Car=Petrol Car=Electric Car=ElectricWithOutput HasCar=true\">A car with fuel or charge</li>", customMessage: "the card carries what to look for, as the group's page does");
         with.ShouldContain("<a class=\"button button--quiet\" href=\"/street\">Your street groups</a>");
     }
 

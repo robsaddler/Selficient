@@ -25,6 +25,7 @@ import { initShortlist } from "selficient/shortlist.js";
 import { initWizard } from "selficient/wizard.js";
 import { initFigures } from "selficient/figures.js";
 import { initStreet } from "selficient/street.js";
+import { initStreetCard } from "selficient/street-signs.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -38,6 +39,7 @@ void initPlanPage(document);
 void initWizard(document);
 void initFigures(document);
 void initStreet(document);
+void initStreetCard(document);
 initBoard(document);
 initVerdictBar(document);
 initLocate(document);

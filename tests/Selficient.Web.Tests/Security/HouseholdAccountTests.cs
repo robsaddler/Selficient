@@ -439,7 +439,10 @@ public sealed partial class HouseholdAccountTests : IDisposable
         landing.ShouldContain("There is nothing to sign up for. Your plan is saved on your device, and you can send a copy to your phone or another computer by scanning a code.");
         landing.ShouldContain("There is no account to make and nothing tracks you.");
         KeepCopy.Ways(accounts: false).Select(w => w.Name).ShouldBe(["On this device", "Send a copy"]);
-        IndexModel.QuestionsFor(accounts: false).Select(q => q.Question).ShouldBe(IndexModel.Questions.Select(q => q.Question), "the same questions either way; two answers differ");
+        IndexModel.QuestionsFor(accounts: false).Select(q => q.Question).ShouldBe(IndexModel.Questions.Select(q => q.Question).Where(q => q != "Can my neighbours see my plan?"), "the same questions either way but the one about a street group, which needs an account; two answers differ");
+        landing.ShouldNotContain("/street", customMessage: "no street group is offered where no account can be made: not in the header, not on the page, not among the questions");
+        landing.ShouldNotContain("Your street");
+        landing.ShouldNotContain("neighbours see my plan");
         IndexModel.QuestionsFor(accounts: false).ShouldAllBe(q => !q.Answer.Contains("email", StringComparison.OrdinalIgnoreCase));
         landing.ShouldNotContain("data-passkey");
         landing.ShouldContain("<p class=\"keep__warning\" data-keep-safari hidden>Safari clears a site&#x27;s data after a week without a visit. Add Selficient to your home screen to keep your plan.</p>");

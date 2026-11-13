@@ -80,6 +80,12 @@
   </ol>
 </section>
 
+@* The street, after the house: only where this server offers the account a group needs. *@
+@if (Accounts.IsAvailable)
+{
+  @await Html.PartialAsync("_YourStreet")
+}
+
 @* Where a plan is kept, said as the panel behind the header chip says it: the default first, and the others as choices. *@
 <section class="ways" id="keep" aria-labelledby="ways-heading">
   <h2 id="ways-heading">@KeepCopy.WaysHeading(Accounts.IsAvailable)</h2>
@@ -109,6 +115,10 @@
     <li><h3>Your house on the map</h3><p>Ordnance Survey mapping served from our own server, with a pin you put on your roof and keep in your browser.</p></li>
     <li><h3>Solar and a battery</h3><p>What your roof would make, save and cost, with the backup that keeps the lights on in a cut, from the European Commission's sunshine data.</p></li>
     <li><h3>The calendar</h3><p>The rotations and checks that keep water fresh and batteries charged, as a file your phone's calendar understands.</p></li>
+    @if (Accounts.IsAvailable)
+    {
+      <li><h3>@Selficient.Web.Pages.Street.StreetCopy.Name</h3><p>@Selficient.Web.Pages.Street.StreetCopy.Covers</p></li>
+    }
   </ul>
 </section>
 

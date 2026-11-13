@@ -45,17 +45,103 @@ public static class StreetCopy
     /// <summary>Beside an offer the household's plan says it could make.</summary>
     public const string PlanSays = "Your plan says you have this.";
 
-    /// <summary>On the plan page, the way in.</summary>
-    public const string OnPlanBefore = "A street copes better than a house.";
+    /// <summary>The name the feature goes by wherever it is pointed to: the header, the landing page, the plan.</summary>
+    public const string Name = "Your street";
 
-    /// <summary>The words of the link on the plan page.</summary>
-    public const string OnPlanLink = "Start a group for your street";
+    /// <summary>The claim, as a heading: on the landing page and on the plan.</summary>
+    public const string Claim = "A street copes better than a house";
 
-    /// <summary>What follows the link on the plan page.</summary>
-    public const string OnPlanAfter = ", and neighbours can tell each other what each could offer when the power is off. Selficient cannot read what a group shares.";
+    /// <summary>The claim made concrete, under the landing page's heading.</summary>
+    public const string Scene = "In a long power cut the house three doors down has a gas hob, and yours has the only radio that still works. Neither of you knows. A street group is where neighbours say, ahead of time, what each could offer.";
+
+    /// <summary>Why a household would, in four points: what it is for, who sees what, who cannot, and the day it is needed.</summary>
+    public static IReadOnlyList<(string Heading, string Sentence)> Points { get; } =
+    [
+        ("Offers, never needs", "A warm room, a hob that works, somewhere to charge a phone, a lift. Nobody says who in their home is frail, what they keep or when they are away, and there is no setting that could."),
+        ("You choose who sees what", "Each offer goes to nobody until you say otherwise, and then to the whole group or only to the homes you know well, wherever on the street they are."),
+        ("We cannot read it", "What a street shares is locked in your browser before it leaves. We keep that you are in a group and nothing we could read: not its name, not your house number, not what you offer."),
+        ("On paper for the day itself", "The day you need your street is the day the screens are dark. The street prints on one sheet for the kitchen drawer, and your phone keeps the last copy it saw."),
+    ];
+
+    /// <summary>An example street for the landing page, as one of its homes would see it: the house, a first name where that home has it in its closer circle, and what it offers.</summary>
+    public static IReadOnlyList<(string House, string? Name, bool Mine, IReadOnlyList<string> Offers)> Example { get; } =
+    [
+        ("12", "Doris", false, ["A warm room", "A hob or stove that works without power"]),
+        ("27", null, true, ["A first-aid kit", "A car with fuel or charge"]),
+        ("31", null, false, ["A radio that works without power"]),
+        ("78", "Sam", false, ["Drinking water to spare", "A lantern or torch to lend"]),
+    ];
+
+    /// <summary>Under the example.</summary>
+    public const string ExampleCaption = "An example street, as number 27 sees it. A first name means that home has put number 27 in its closer circle.";
+
+    /// <summary>The button that starts a group, wherever it is.</summary>
+    public const string Start = "Start a group for your street";
+
+    /// <summary>Beside the button on the landing page: the other way to begin, and why it is a good one.</summary>
+    public const string StartWithPlan = "Start with your plan";
+
+    /// <summary>What an account has to do with it, said where the landing page says no account is needed.</summary>
+    public const string AccountNote = "Your plan needs no account. A street group does, because the group has to live somewhere other than one phone: an email address, and nothing else.";
+
+    /// <summary>The tile under "What it covers".</summary>
+    public const string Covers = "A group for your neighbours, where each home says what it could offer when the power is off. It is locked in the browser, so we cannot read it.";
+
+    /// <summary>How it goes, in three steps, for somebody deciding whether to begin.</summary>
+    public static IReadOnlyList<(string Heading, string Sentence)> Steps { get; } =
+    [
+        ("Start a group, or open a neighbour's invitation", "A group is found only by its invitation: a link to send, or a slip with a code to post through a door. There is no directory and no search."),
+        ("Say what you could offer", "A warm room, a hob that works, a radio. Each offer goes to nobody until you choose, then to everyone in the group or only to the homes you pick."),
+        ("See what the street has between it", "Home by home, and counted across the street. Print it for the kitchen drawer, for the day the screens are dark."),
+    ];
+
+    /// <summary>On the plan, under the claim, for a household that has not begun.</summary>
+    public const string OnPlan = "Neighbours in a group tell each other what each could offer when the power is off. You choose what to share and with whom, and Selficient cannot read any of it.";
+
+    /// <summary>On the plan, above the offers this household's plan says it could make.</summary>
+    public const string OnPlanCould = "From what you have ticked, you could offer your street:";
+
+    /// <summary>On the plan, where nothing ticked is something a neighbour could use yet.</summary>
+    public const string OnPlanNothingYet = "Tick what you have above, and this will say what you could offer your street.";
+
+    /// <summary>The plan's button for a household whose device is already in a group.</summary>
+    public const string Open = "Open your street group";
 
     /// <summary>The link to a member's groups, in "Where your plan is kept".</summary>
     public const string YourGroups = "Your street groups";
+
+    /// <summary>On a group's page, to a household with no plan in this browser.</summary>
+    public const string NextPlan = "Make your plan, and this page will say what you could offer your neighbours. It takes about a minute.";
+
+    /// <summary>The button beside it.</summary>
+    public const string NextPlanButton = "Start your plan";
+
+    /// <summary>On a group's page, to a household whose plan holds one thing a neighbour could use and that offers nothing yet.</summary>
+    public const string NextOfferOne = "Your plan says you could offer one thing. Choose who sees it under \"What you share, and with whom\". Nothing is shared until you save.";
+
+    /// <summary>The same for several; the script puts the number in.</summary>
+    public const string NextOfferMany = "Your plan says you could offer {n} things. Choose who sees each under \"What you share, and with whom\". Nothing is shared until you save.";
+
+    /// <summary>What nobody has offered this household; the script puts the list in.</summary>
+    public const string Gaps = "Nobody has offered you these yet: {list}.";
+
+    /// <summary>Where the street is shown from the copy this device kept; the script puts the date in.</summary>
+    public const string Seen = "You are offline. This is the street as this device last saw it, on {date}. Nothing can be changed until you are back online.";
+
+    /// <summary>What goes with the invitation when the device's own sharing is used.</summary>
+    public const string ShareText = "Our street has a group on Selficient, where neighbours say what each could offer in a power cut. This link lets you join:";
+
+    /// <summary>On the slip that goes through a door; the script puts the house in.</summary>
+    public const string SlipFrom = "Your neighbour at {house} is inviting you to our street's group on Selficient.";
+
+    /// <summary>What a group is, to somebody who has never heard of this site, in the room a slip has.</summary>
+    public const string SlipWhat = "It is where neighbours say, ahead of time, what each could offer when the power, the water or the phones are off: a warm room, a hob that works, somewhere to charge a phone. You choose what to share and with whom. It costs nothing.";
+
+    /// <summary>How to use the slip.</summary>
+    public const string SlipHow = "Point your phone's camera at this code to join.";
+
+    /// <summary>Whose site it is, at the slip's foot.</summary>
+    public const string SlipFoot = "selficient.app: a plan for your house, and for your street.";
 
     /// <summary>The three choices for an offer, as the settings word them.</summary>
     public static IReadOnlyList<(string Value, string Words)> Circles { get; } =

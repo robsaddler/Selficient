@@ -53,6 +53,16 @@ The journeys are in `tests/Selficient.E2E.Tests/Street.cs`, each household in a 
 | 23 | **A household shares something it did not choose**, because its plan held it | A sign is a sentence. No offer is set by it, and nothing is published until "Save what I share" | The same journey: every choice is still nobody and the street has nothing between it |
 | 24 | **A server with no accounts offers a group** that cannot be joined | `/street` answers with the accounts-unavailable page and the plan draws no way in | `A_server_that_offers_no_accounts_offers_no_street_groups_and_the_plan_does_not_point_to_them` |
 
+## Stage 4: finding it, inviting, and the day itself
+
+| # | What could go wrong | What stops it | Test |
+|---|---|---|---|
+| 25 | **The copy a device keeps is read by the next person to use it** | It is shown only while the household is signed in on that device, and only with no connection; with one, the server is asked and a signed-out visitor is a guest. Leaving or being removed deletes it. It is on a device that already holds the group's key, so it adds nothing a thief of the device did not have | `Neighbours_share_what_each_chose…`: the phone with no connection |
+| 26 | **A copy that was tampered with in storage** puts markup or nonsense on the page | It is read as a neighbour's record is: text cut and set as text, offers only from the closed list | `drawSeen` in `street.js` |
+| 27 | **A slip is found by somebody who is not a neighbour** | They can join, as anybody with the link can. The page says so beside the button, the starter sees every home that joins and can remove one, and removing kills the code on every slip | The removal in the same journey |
+| 28 | **The invitation leaves through the device's sharing to somewhere the household did not mean** | The device's own sheet is shown and the household chooses; the script hands over the link and one sentence, and nothing about the street | `shareInvite` |
+| 29 | **The plan's card tells the server what a home has** | It asks the server nothing: the signs are on the page for everyone and the plan is in the browser | `The_plan_leads_to_the_street…` |
+
 Accepted: every member holds the group key, so any member can read what is shared with the whole group and can write a record for itself that says anything. That is what a member is. What a member cannot do is read a closer circle it is not in, write another home's record, or make another home's page do anything.
 
 Accepted: a home in a closer circle can tell it is in it (it sees the first name). It cannot tell who else is.
