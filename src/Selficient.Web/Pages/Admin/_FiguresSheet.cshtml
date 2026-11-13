@@ -61,8 +61,8 @@
                       <a class="button button--quiet button--small" asp-page="/Admin/Figures" asp-route-tab="history" asp-route-figure="@row.Definition.Id">Its history</a>
                     </div>
                   </form>
-                  @await Html.PartialAsync(row.Ask.View, row)
                 </details>
+                @await Html.PartialAsync(row.Ask.View, row)
               </li>
             }
           </ul>

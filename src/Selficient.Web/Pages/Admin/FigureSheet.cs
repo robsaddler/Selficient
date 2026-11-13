@@ -29,8 +29,8 @@ public sealed record FigureRow(ParameterDefinition Definition, string Label, str
     /// <summary>Whether a household may give its own figure here, and the box that changes it.</summary>
     public AskBox Ask { get; init; } = AskBox.None;
 
-    /// <summary>Whether its box is open when the page is drawn: only when something posted about it was just refused.</summary>
-    public bool Open => Refusal is not null || Ask.Refusal is not null;
+    /// <summary>Whether the box that corrects its value is open when the page is drawn: only when a correction to it was just refused.</summary>
+    public bool Open => Refusal is not null;
 }
 
 /// <summary>Whether a household may give its own figure, as the desk shows and changes it.</summary>
@@ -42,6 +42,18 @@ public sealed record FigureRow(ParameterDefinition Definition, string Label, str
 /// <param name="Refusal">Why the change just posted was refused, or null.</param>
 public sealed record AskBox(string View, string Stands, bool Allow, string Question, string Reason, string? Refusal)
 {
+    /// <summary>Whether a household may give its own figure under the set in force.</summary>
+    public bool InForce { get; init; }
+
+    /// <summary>The line on the figure that says how it stands and opens the box: it is what an expert looks for, so it is on the row and not inside another box.</summary>
+    public string Summary => InForce ? "A household may give its own figure: change that" : "A household may not give its own figure: change that";
+
+    /// <summary>How it stands, for the stylesheet.</summary>
+    public string Marked => InForce ? "true" : "false";
+
+    /// <summary>Whether the box is open when the page is drawn: only when a change posted to it was just refused.</summary>
+    public bool Open => Refusal is not null;
+
     /// <summary>A figure with nothing to switch.</summary>
     public static AskBox None { get; } = new("_FiguresNoAsk", string.Empty, false, string.Empty, string.Empty, null);
 
@@ -131,7 +143,8 @@ public static class FigureSheet
             FigureRow row = Row(parameter, subject, desk, drafts.GetValueOrDefault((parameter.Id, FigureDraftKind.Value)), refused);
             AskBox ask = Asking(parameter, desk, drafts.GetValueOrDefault((parameter.Id, FigureDraftKind.Ask)), refusedAsk, out FigureChip? drafted);
             List<FigureChip> chips = [.. row.Chips];
-            if (desk.InForce.MayGive(parameter.Id))
+            // Where it can be switched, the line that opens the switch says how it stands; the mark is for the one figure that cannot be.
+            if (desk.InForce.MayGive(parameter.Id) && !parameter.HouseholdMayBeAsked)
             {
                 chips.Add(new FigureChip("household", "A household may give its own"));
             }
@@ -210,7 +223,7 @@ public static class FigureSheet
             (allow, question, reason, refusal) = (refused.Allow, refused.Question, refused.Reason, refused.Message);
         }
 
-        return new AskBox("_FiguresAsk", stands, allow, question, reason, refusal);
+        return new AskBox("_FiguresAsk", stands, allow, question, reason, refusal) { InForce = asked is not null };
     }
 
     // What a figure belongs to. A provider is found by the first part of the figure's id, which is the provider's own.

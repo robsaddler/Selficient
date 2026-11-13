@@ -55,11 +55,14 @@ public sealed class AdminFiguresTests : IDisposable
     private static Task<string> DraftAsync(HttpClient client, string id, string value, string reason = "An engineer measured it.", string source = "The maker's service manual", string tab = "work") =>
         PostAsync(client, "Draft", tab, ("id", id), ("value", value), ("reason", reason), ("source", source));
 
+    // One figure's row, from its opening to the next figure's or the end of its card.
     private static string Row(string html, string id)
     {
         int start = html.IndexOf($"data-figure=\"{id}\"", StringComparison.Ordinal);
         start.ShouldBeGreaterThan(-1, $"the figure {id} is on the page");
-        return html[start..html.IndexOf("</details>", start, StringComparison.Ordinal)];
+        int next = html.IndexOf("<li class=\"desk-figure\"", start, StringComparison.Ordinal);
+        int end = html.IndexOf("</article>", start, StringComparison.Ordinal);
+        return html[start..(next > -1 && next < end ? next : end)];
     }
 
     [Fact]
@@ -92,6 +95,8 @@ public sealed class AdminFiguresTests : IDisposable
         work.ShouldContain("aria-current=\"page\" data-tab=\"work\"");
         work.ShouldContain(">The draft</a>");
         work.ShouldContain("Every figure the board and the plan work from, grouped as a household meets them");
+        work.ShouldContain("Under each figure about a thing a household has, a second line says whether a household may give its own figure and opens the box that changes that");
+        Row(work, "demand.drinking-litres").ShouldNotContain("data-ask", customMessage: "and what people need has no such line");
         foreach (string group in new[] { "What people need", "Water to drink", "Getting upstairs", "Sources of electricity", "What the plan asks for" })
         {
             work.ShouldContain($"data-group=\"{group}\"");
@@ -114,7 +119,12 @@ public sealed class AdminFiguresTests : IDisposable
         lift.ShouldContain("data-state=\"shipped\"");
         lift.ShouldContain("<span class=\"desk-figure__name\">How much there is</span>");
         lift.ShouldContain("<span class=\"data\" data-in-force-value>2</span> <span class=\"desk-figure__unit\">days</span>");
-        lift.ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"household\">A household may give its own</li>");
+        lift.ShouldContain("<details class=\"desk-figure__edit\" data-ask data-ask-allowed=\"true\">", customMessage: "the switch is on the figure's own line, shut until opened, and says how it stands");
+        lift.ShouldContain("<summary data-ask-summary>A household may give its own figure: change that</summary>");
+        lift.ShouldNotContain("data-chip=\"household\"", customMessage: "the line says it, so no mark repeats it");
+        Row(work, "assumed.cash-pounds-a-person-a-day").ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"household\">A household may give its own</li>", customMessage: "the cash a person needs cannot be switched, so it carries the mark instead");
+        Row(work, "assumed.cash-pounds-a-person-a-day").ShouldNotContain("data-ask");
+        Row(work, "headtorches.stock").ShouldContain("<summary data-ask-summary>A household may not give its own figure: change that</summary>");
         lift.ShouldContain("<details class=\"desk-figure__edit\">", customMessage: "a figure's box is shut until it is opened");
         lift.ShouldContain("A correction must be between 0 and 100.");
         lift.ShouldContain("name=\"value\" class=\"input input--short\" inputmode=\"decimal\" autocomplete=\"off\" value=\"2\" required>");
@@ -396,14 +406,14 @@ public sealed class AdminFiguresTests : IDisposable
         lamp.ShouldContain("<p class=\"desk-figure__facts\" data-ask-stands>As it stands, a household may not give its own figure here.</p>");
         lamp.ShouldContain("name=\"allow\" value=\"false\" checked=\"checked\">");
         lamp.ShouldNotContain("name=\"allow\" value=\"true\" checked=\"checked\">");
-        lamp.ShouldNotContain("data-chip=\"household\"");
         Row(before, "water-butt.stock").ShouldContain("data-ask-stands>As it stands, a household may give its own figure here, and is asked: \"How many litres does your water butt hold?\"</p>");
         Row(before, "water-butt.stock").ShouldContain("name=\"allow\" value=\"true\" checked=\"checked\">");
         Row(before, "demand.drinking-litres").ShouldNotContain("data-ask-form", customMessage: "what a person drinks is not a household's figure to switch");
 
         // Refused at the figure, with what was chosen and typed still there.
         Row(noQuestion, Lamp).ShouldContain("<p class=\"callout callout--warning\" role=\"alert\" data-ask-refusal>Write the question a household will be asked, ending in a question mark.</p>");
-        Row(noQuestion, Lamp).ShouldContain("<details class=\"desk-figure__edit\" open=\"open\">");
+        Row(noQuestion, Lamp).ShouldContain("<details class=\"desk-figure__edit\" open=\"open\" data-ask data-ask-allowed=\"false\">", customMessage: "the switch's own box is open on the refusal");
+        Row(noQuestion, Lamp).ShouldContain("<details class=\"desk-figure__edit\">", customMessage: "and the value's box stays shut");
         Row(noQuestion, Lamp).ShouldContain("name=\"allow\" value=\"true\" checked=\"checked\">");
         Row(noQuestion, Lamp).ShouldContain("value=\"Households know their torches.\" required>");
         Row(notAQuestion, Lamp).ShouldContain("data-ask-refusal>What a household is asked about \"Headtorches: how much there is\" must be a question of 10 to 200 characters, ending in a question mark.</p>");
@@ -419,13 +429,13 @@ public sealed class AdminFiguresTests : IDisposable
         Row(on, Lamp).ShouldContain("data-state=\"drafted\"");
         Row(on, Lamp).ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"drafted\">Drafted by expert: a household may give its own</li>");
         Row(on, Lamp).ShouldContain($"name=\"question\" class=\"input\" autocomplete=\"off\" maxlength=\"200\" value=\"{Asked}\">");
-        Row(on, Lamp).ShouldNotContain("data-chip=\"household\"");
+        Row(on, Lamp).ShouldContain("data-ask-allowed=\"false\"");
         off.ShouldContain("role=\"alert\"", customMessage: "a price that is not on cannot be switched off");
         priceOn.ShouldContain("aria-current=\"page\" data-tab=\"prices\"");
         priceOn.ShouldContain("role=\"status\">Drafted: a household may give its own figure for \"A headtorch: the most it costs\".");
         butt.ShouldContain("role=\"status\">Drafted: a household may no longer give its own figure for \"The water butt: how much there is\".");
         Row(butt, "water-butt.stock").ShouldContain("data-chip=\"drafted\">Drafted by rob: a household may no longer give its own</li>");
-        Row(butt, "water-butt.stock").ShouldContain("data-chip=\"household\"", customMessage: "it is still on until the draft is published");
+        Row(butt, "water-butt.stock").ShouldContain("data-ask-allowed=\"true\"", customMessage: "it is still on until the draft is published");
         _factory.Services.GetRequiredService<ICurrentFigures>().Current.MayGive(Lamp).ShouldBeFalse();
 
         // The draft lists each switch with what would be asked, and takes one out by its kind.
@@ -447,9 +457,9 @@ public sealed class AdminFiguresTests : IDisposable
         string api = await rob.GetStringAsync(new Uri("/api/figures", UriKind.Relative));
 
         published.ShouldContain("role=\"status\">Set 1 is in force.");
-        Row(after, Lamp).ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"household\">A household may give its own</li>");
+        Row(after, Lamp).ShouldContain("<summary data-ask-summary>A household may give its own figure: change that</summary>");
         Row(after, Lamp).ShouldContain($"data-ask-stands>As it stands, a household may give its own figure here, and is asked: \"{Asked}\"</p>");
-        Row(after, "water-butt.stock").ShouldNotContain("data-chip=\"household\"");
+        Row(after, "water-butt.stock").ShouldContain("data-ask-allowed=\"false\"");
         set1.ShouldContain("<p class=\"data\">A household may now give its own figure.</p>");
         set1.ShouldContain($"<dt>Asked</dt><dd>{Asked}</dd>");
         set1.ShouldContain("<p class=\"data\">A household may no longer give its own figure.</p>");

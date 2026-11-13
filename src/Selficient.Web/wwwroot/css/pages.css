@@ -1929,13 +1929,15 @@
   }
 }
 
-/* The second box under a figure: whether a household may give its own, and what it is asked. */
-.desk-figure__form--ask {
-  margin-block-start: var(--space-3);
-}
+/* The second line under a figure: whether a household may give its own, which opens the box that changes it.
+   A figure a household may give carries the lantern's mark down the line, so the ones that are on can be picked out down a card. */
+.desk-figure__edit[data-ask] {
+  margin-block-start: 0;
 
-.desk-figure__ask-title {
-  font-weight: 600;
+  &[data-ask-allowed="true"] > summary {
+    padding-inline-start: var(--space-2);
+    border-inline-start: 4px solid var(--c-lantern);
+  }
 }
 
 .desk-figure__choice {

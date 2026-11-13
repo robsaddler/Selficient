@@ -96,7 +96,9 @@ public sealed class Desk : IAsyncLifetime
         // First he switches a figure on for households, with the question they will be asked.
         await rob.GotoAsync("/admin/figures?q=headtorches.stock");
         ILocator lamp = rob.Locator("[data-figure=\"headtorches.stock\"]");
-        await lamp.GetByText("Correct this figure").ClickAsync();
+        // The line that says how it stands is on the figure, and is what opens the switch.
+        await Expect(lamp.Locator("[data-ask-form]")).ToBeHiddenAsync();
+        await lamp.GetByText("A household may not give its own figure: change that").ClickAsync();
         await Expect(lamp.Locator("[data-ask-stands]")).ToHaveTextAsync("As it stands, a household may not give its own figure here.");
         await lamp.GetByLabel("It may", new() { Exact = true }).CheckAsync();
         await lamp.GetByLabel("What a household is asked, as a question").FillAsync("How many hours of light do your headtorches give?");
@@ -174,6 +176,7 @@ public sealed class Desk : IAsyncLifetime
             await page.GotoAsync("/admin/figures?tab=work");
             ILocator lift = page.Locator(Lift);
             await lift.GetByText("Correct this figure").ClickAsync();
+            await lift.GetByText("A household may give its own figure: change that").ClickAsync();
             await lift.GetByLabel("Why it should change").ScrollIntoViewIfNeededAsync();
             await ShouldBeSoundAsync(page);
             double[] box = await lift.EvaluateAsync<double[]>(
