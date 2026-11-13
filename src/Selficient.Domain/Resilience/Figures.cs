@@ -17,6 +17,9 @@ public sealed record DemandFigures(decimal DrinkingLitres, decimal HeatwaveExtra
     /// <summary>The id of the figure for what a person drinks, which the browser's own arithmetic uses too.</summary>
     public const string DrinkingLitresId = "demand.drinking-litres";
 
+    /// <summary>What people need as the product ships, read straight from the code so the shipped providers can be worded before any set exists.</summary>
+    internal static DemandFigures Shipped { get; } = new(Litres.DrinkingPerPersonPerDay, Demand.HeatwaveExtraLitresPerPersonPerDay, Demand.PetWaterLitresPerDay, Demand.SanitationLitresPerPersonPerDay, Demand.WinterLitHours, Demand.SummerLitHours, Demand.LaundryAfterDays);
+
     private const string Group = "What people need";
     private const string Board = "On the board, in what each need asks for each day";
 
@@ -88,8 +91,14 @@ public static class ProviderFigures
     public static IReadOnlyList<Provider> Under(ParameterSet figures)
     {
         ArgumentNullException.ThrowIfNull(figures);
-        return figures.Derive(static set => new ProviderTable([.. Providers.All.Select(provider => Apply(provider, set))])).Providers;
+        return Table(figures).Providers;
     }
+
+    private static ProviderTable Table(ParameterSet figures) => figures.Derive(static set =>
+    {
+        DemandFigures demand = DemandFigures.Of(set);
+        return new ProviderTable([.. Providers.All.Select(provider => Apply(provider, set, demand))]);
+    });
 
     /// <summary>A sentence when the values contradict each other, or null: a store cannot keep back more than it can give.</summary>
     internal static string? Contradiction(IReadOnlyDictionary<string, decimal> values)
@@ -123,7 +132,7 @@ public static class ProviderFigures
         }
     }
 
-    private static Provider Apply(Provider provider, ParameterSet set)
+    private static Provider Apply(Provider provider, ParameterSet set, DemandFigures demand)
     {
         // Only a figure that has been corrected is written, so a provider nobody has touched is the shipped one itself.
         Provider made = provider;
@@ -135,7 +144,10 @@ public static class ProviderFigures
             }
         }
 
-        return made;
+        // The words that state its figures are said again from this set's, which may differ only in what people need:
+        // the same bottles are fewer days when a person drinks more. A provider whose words come out the same is the shipped one.
+        Provider worded = ProviderWords.Worded(made, demand);
+        return worded.Equals(provider) ? provider : worded;
     }
 
     private static string GroupOf(Provider provider) => provider.Meets.Count > 0 ? Needs.Of(provider.Meets[0].Need).Name : "Sources of electricity";
@@ -144,12 +156,23 @@ public static class ProviderFigures
         ? "On the board, under " + string.Join(", ", provider.Meets.Select(static provision => Needs.Of(provision.Need).Name.ToLower(CultureInfo.InvariantCulture)).Distinct())
         : "On the board, in what carries each electrical thing when the grid is off";
 
+    /// <summary>The provider as a set of figures makes it, or null when there is no such provider.</summary>
+    public static Provider? Find(ParameterSet figures, string id)
+    {
+        ArgumentNullException.ThrowIfNull(figures);
+        ArgumentNullException.ThrowIfNull(id);
+        return Table(figures).ById.GetValueOrDefault(id);
+    }
+
     private sealed record Figure(string Suffix, string Label, Func<Provider, decimal?> Read, Func<Provider, decimal, Provider> Write, Func<Provider, string> Unit, Func<decimal, decimal> Max)
     {
         public bool WholeNumber => Suffix == "lead-days";
     }
 
-    private sealed record ProviderTable(IReadOnlyList<Provider> Providers);
+    private sealed record ProviderTable(IReadOnlyList<Provider> Providers)
+    {
+        public Dictionary<string, Provider> ById { get; } = Providers.ToDictionary(static provider => provider.Id, StringComparer.Ordinal);
+    }
 }
 
 /// <summary>
@@ -237,10 +260,13 @@ public static class ScenarioFigures
     }
 
     // A scenario nobody has corrected is the shipped one itself, so the board it draws is the board the tests pin.
+    // Its sentence is said again from this set's figures, which may differ only in what people need.
     private static Scenario Apply(Scenario scenario, ParameterSet set)
     {
         List<UtilityPhase> phases = [.. scenario.Phases.Select(phase => Apply(scenario, phase, set))];
-        return phases.SequenceEqual(scenario.Phases) ? scenario : scenario with { Phases = phases };
+        Scenario made = phases.SequenceEqual(scenario.Phases) ? scenario : scenario with { Phases = phases };
+        string sentence = ScenarioWords.Sentence(made, DemandFigures.Of(set));
+        return sentence == made.Sentence ? made : made with { Sentence = sentence };
     }
 
     private static UtilityPhase Apply(Scenario scenario, UtilityPhase phase, ParameterSet set)

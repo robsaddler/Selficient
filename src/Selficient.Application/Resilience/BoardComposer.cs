@@ -88,28 +88,32 @@ public sealed record BoardRequest(
 /// </summary>
 public static class BoardComposer
 {
-    private static readonly IReadOnlyList<(string Id, Placement Where, string Name, string Sentence)> Candidates =
+    // A source's name states its size only by reading it from the provider, and its sentence states no figure at all:
+    // what it carries and for how long is what the board is for.
+    private static readonly IReadOnlyList<(string Id, Placement Where, Func<Provider, string> Name, string Sentence)> Candidates =
     [
-        ("power-banks", Placement.Anywhere, "Power banks", "Phones, headtorches and the radio for days; nothing with a plug."),
-        ("portable-power-station", Placement.Anywhere, "A 1 kWh power station", "The router, lights, phones and a medical device for a day or two; the fridge for a day."),
-        ("large-power-station", Placement.Anywhere, "A 3 kWh power station with panels", "Two days of the essentials, and half a kilowatt-hour of winter sun a day after that."),
-        ("rooftop-solar-and-battery", Placement.NeedsOwnRoof, "A home battery and gateway", "The house as normal except heavy heating; the roof refills it."),
-        ("ev-output", Placement.NeedsElectricCarWithOutput, "The car, powering the house", "A fortnight of the essentials from the battery you already own, with enough kept back to drive."),
-        ("petrol-generator", Placement.OutdoorsOnly, "A petrol generator", "Three kilowatts outdoors for as long as the fuel lasts, and the forecourts refill it only while they pump."),
+        ("power-banks", Placement.Anywhere, static _ => "Power banks", "Phones, headtorches and the radio for days; nothing with a plug."),
+        ("portable-power-station", Placement.Anywhere, static source => $"A {Selficient.Domain.Parameters.Say.KilowattHours(source.Store!.StoreWh)} power station", "The router, lights, phones and a medical device, and the fridge for a while."),
+        ("large-power-station", Placement.Anywhere, static source => $"A {Selficient.Domain.Parameters.Say.KilowattHours(source.Store!.StoreWh)} power station with panels", "The essentials for longer, with folding panels that put some back each day."),
+        ("rooftop-solar-and-battery", Placement.NeedsOwnRoof, static _ => "A home battery and gateway", "The house as normal except heavy heating; the roof refills it."),
+        ("ev-output", Placement.NeedsElectricCarWithOutput, static _ => "The car, powering the house", "The essentials from the battery you already own, with enough kept back to drive."),
+        ("petrol-generator", Placement.OutdoorsOnly, static _ => "A petrol generator", "Runs outdoors for as long as the fuel lasts, and the forecourts refill it only while they pump."),
     ];
 
     /// <summary>Composes the set.</summary>
     public static BoardSet Compose(BoardRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        Scenario scenario = Scenarios.Find(request.ScenarioId ?? string.Empty) ?? Scenarios.Storm;
+        // The scenarios as this household's figures make them: a published correction to a storm is the storm on every card.
+        IReadOnlyList<Scenario> scenarios = ScenarioFigures.Under(request.Profile.Figures);
+        Scenario scenario = scenarios.FirstOrDefault(candidate => candidate.Id == request.ScenarioId) ?? scenarios[0];
         Season season = request.Season ?? scenario.DefaultSeason;
 
         // What the house has: the actions held, with the household's own figures deciding the stocks it counted.
         Possessions has = Possessions.Of(request.Profile, request.Held, request.Amounts, request.Assumptions);
 
         List<ScenarioCard> cards = [];
-        foreach (Scenario candidate in Ranked(request.Plan.Risks))
+        foreach (Scenario candidate in Ranked(request.Plan.Risks, scenarios))
         {
             Board board = OutageBoard.Simulate(request.Profile, has, candidate, candidate.DefaultSeason);
             cards.Add(new ScenarioCard(candidate.Id, candidate.Name, board.DaysReady, candidate.Id == scenario.Id));
@@ -130,11 +134,11 @@ public static class BoardComposer
             sources.Add(new SourceOption(BoardSet.PlannedSource, "Everything we plan to get", "What is in the house, with every action marked as planned in place."));
         }
 
-        foreach ((string id, Placement where, string name, string sentence) in Candidates)
+        foreach ((string id, Placement where, Func<Provider, string> name, string sentence) in Candidates)
         {
             if (request.Profile.CanHave(where) && !has.Have.Contains(id))
             {
-                sources.Add(new SourceOption(id, name, sentence));
+                sources.Add(new SourceOption(id, name(ProviderFigures.Find(request.Profile.Figures, id)!), sentence));
             }
         }
 
@@ -223,12 +227,13 @@ public static class BoardComposer
     }
 
     /// <summary>Scenarios in the order the risk assessors rank them for this house, then the rest in catalogue order.</summary>
-    internal static IReadOnlyList<Scenario> Ranked(RiskAssessment risks)
+    internal static IReadOnlyList<Scenario> Ranked(RiskAssessment risks, IReadOnlyList<Scenario>? scenarios = null)
     {
+        scenarios ??= Scenarios.All;
         List<Scenario> ordered = [];
         foreach (Risk risk in risks.Ranked)
         {
-            foreach (Scenario scenario in Scenarios.All)
+            foreach (Scenario scenario in scenarios)
             {
                 if (scenario.Risk == risk.Kind && !ordered.Contains(scenario))
                 {
@@ -237,7 +242,7 @@ public static class BoardComposer
             }
         }
 
-        foreach (Scenario scenario in Scenarios.All)
+        foreach (Scenario scenario in scenarios)
         {
             if (!ordered.Contains(scenario))
             {

@@ -22,8 +22,9 @@ public static class Providers
 
     private static readonly IReadOnlyList<Utility> Nothing = [];
 
-    /// <summary>Every provider, in evaluation order.</summary>
-    public static IReadOnlyList<Provider> All { get; } =
+    // The table as it is written: what each provider is and its shipped figures. The words that state a figure are
+    // built from it in ProviderWords, so the sentence written here for such a provider is only what it was first drafted as.
+    private static readonly Provider[] Table =
     [
         // Water. The tap first, then what is stored, then what can be made drinkable.
         Fixture("mains-tap", "The tap", "Mains water usually stays on in a power cut, because the pumping stations have their own backup. A flat above the third floor relies on the block's pumps, which do not.", [All_(NeedId.DrinkingWater), All_(NeedId.Sanitation)], [Utility.MainsWater], null, "Water UK"),
@@ -137,6 +138,9 @@ Fixture("heating-fallback", "Sleeping bags and one warm room", "Everyone in one 
         // Enablers. They meet nothing and carry nothing; they let something else be carried.
         new("boiler-plug-and-socket", "The boiler on a plug and socket", "An electrician puts the boiler on a plug so it can run from a power station or the car in a cut. Without it, only a whole-house battery or the mains can run it.", [], Nothing, null, null, null, null, Placement.Anywhere, "Plan action; Gas Safe"),
     ];
+
+    /// <summary>Every provider, in evaluation order, with its shipped figures and the words that state them.</summary>
+    public static IReadOnlyList<Provider> All { get; } = [.. Table.Select(static provider => ProviderWords.Worded(provider, DemandFigures.Shipped))];
 
     /// <summary>Looks a provider up, or null.</summary>
     public static Provider? Find(string id) => All.FirstOrDefault(provider => provider.Id == id);

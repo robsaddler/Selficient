@@ -57,6 +57,9 @@ public sealed class GoogleSolarRoofInsights : IRoofInsightsProvider
     {
         try
         {
+            // Whatever goes wrong upstream is a fault, including the pipeline's own timeout, which is no HttpRequestException;
+            // a caller who has already gone is not answered at all.
+            cancellationToken.ThrowIfCancellationRequested();
             using HttpResponseMessage response = await _http.GetAsync(Path(coordinates), cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
@@ -92,7 +95,7 @@ public sealed class GoogleSolarRoofInsights : IRoofInsightsProvider
             int watts = potential.PanelCapacityWatts is (>= 100 and <= 1000) ? potential.PanelCapacityWatts.Value : 400;
             return Result.Success(new RoofInsights(segments, maxPanels, watts));
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             return Result.Failure<RoofInsights>(DomainErrors.LookupUnavailable());
         }

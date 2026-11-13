@@ -40,7 +40,7 @@ public static class Scenarios
     public static Scenario WaterCut { get; } = new(
         "water",
         "The water stops",
-        "A burst main or a treatment problem stops the supply for three days. The power is on, so everything electrical works, but the taps are dry, the toilets do not flush, and the shops sell out of bottled water in the first hours. When the supply returns on the fourth day it comes with a boil notice, so the tap is only drinking water once it has been through the kettle.",
+        "A burst main or a treatment problem stops the supply for three days. The power is on, so everything electrical works, but the taps are dry, the toilets do not flush, and the shops sell out of bottled water in the first hours. When the supply returns it comes with a boil notice, so the tap is only drinking water once it has been through the kettle.",
         Season.Winter,
         [Horizon.OneDay, Horizon.ThreeDays, Horizon.OneWeek],
         [
@@ -139,7 +139,7 @@ public static class Scenarios
     public static Scenario Shortages { get; } = new(
         "shortages",
         "Months of shortages",
-        "A long supply-chain or fuel crisis. The shops are open but rationed and gappy, fuel is scarce, deliveries are slow, the pharmacy substitutes and limits, and from the second week the power is cut for a few hours a day to save it. Nothing stops entirely; everything is less.",
+        "A long supply-chain or fuel crisis. The shops are open but rationed and gappy, fuel is scarce, deliveries are slow, the pharmacy substitutes and limits, and from day 14 the power is cut for a few hours a day to save it. Nothing stops entirely; everything is less.",
         Season.Winter,
         [Horizon.OneWeek, Horizon.TwoWeeks, Horizon.OneMonth, Horizon.ThreeMonths, Horizon.SixMonths],
         [
@@ -158,7 +158,7 @@ public static class Scenarios
     public static Scenario Heatwave { get; } = new(
         "heatwave",
         "A heatwave",
-        "A week or two above thirty degrees. The grid strains in the evenings and cuts out for an hour or two, the water company restricts supply, everyone needs an extra litre a day, and the people who feel heat most need a cool room.",
+        "A week or two above thirty degrees. The grid strains in the evenings and cuts out for an hour or two, the water company restricts supply, everyone needs a litre more to drink each day, and the people who feel heat most need a cool room.",
         Season.Summer,
         [Horizon.OneDay, Horizon.ThreeDays, Horizon.OneWeek, Horizon.TwoWeeks],
         [

@@ -42,6 +42,9 @@ public sealed class PvgisYieldProvider : ISolarYieldProvider
     {
         try
         {
+            // Whatever goes wrong upstream is a fault, including the pipeline's own timeout, which is no HttpRequestException;
+            // a caller who has already gone is not answered at all.
+            cancellationToken.ThrowIfCancellationRequested();
             using HttpResponseMessage response = await _http.GetAsync(Path(coordinates, aspect, pitch), cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
@@ -69,7 +72,7 @@ public sealed class PvgisYieldProvider : ISolarYieldProvider
 
             return SolarYield.Create(perMonth);
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             return Result.Failure<SolarYield>(DomainErrors.YieldUnavailable());
         }

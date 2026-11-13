@@ -21,6 +21,32 @@ public sealed class BoardComposerTests
     private static Plan PlanFor(HouseholdProfile profile) => Builder.Build(profile, Risks.Run(profile)).Value;
 
     [Fact]
+    public void The_set_is_composed_under_the_households_figures_from_the_scenario_to_the_name_on_a_source()
+    {
+        HouseholdProfile rob = Profiles.RobsHouse();
+        Selficient.Domain.Parameters.ParameterSet figures = Selficient.Domain.Parameters.ParameterSet.Create(3, new Dictionary<string, decimal>
+        {
+            ["portable-power-station.store-wh"] = 2048m,
+            ["scenario.water.mainswater-from-1.last-day"] = 5m,
+        }).Value;
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob) with { Figures = figures };
+
+        BoardSet set = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), PlanFor(rob), "water", null));
+        BoardSet shipped = BoardComposer.Compose(new BoardRequest(ResilienceProfile.FromProfile(rob), new HashSet<string>(), PlanFor(rob), "water", null));
+
+        set.Scenario.Sentence.ShouldStartWith("A burst main or a treatment problem stops the supply for five days.");
+        set.Scenario.Id.ShouldBe("water");
+        set.Sources.Single(source => source.Id == "portable-power-station").Name.ShouldBe("A 2 kWh power station");
+        set.Sources.Single(source => source.Id == "large-power-station").Name.ShouldBe("A 3 kWh power station with panels");
+        set.Sheet.Rows.ShouldAllBe(row => ReferenceEquals(row.Figures, figures));
+        set.Cards.Count.ShouldBe(Scenarios.All.Count);
+        shipped.Scenario.ShouldBeSameAs(Scenarios.WaterCut);
+        shipped.Sources.Single(source => source.Id == "portable-power-station").Name.ShouldBe("A 1 kWh power station");
+        shipped.Sources.Select(source => source.Sentence).ShouldAllBe(sentence => !sentence.Any(char.IsDigit), "what a source carries, and for how long, is what the board is for");
+        BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), PlanFor(rob), "no-such-scenario", null)).Scenario.Id.ShouldBe("storm");
+    }
+
+    [Fact]
     public void The_set_has_a_card_per_scenario_a_board_per_source_and_season_and_the_storm_first_for_a_hill()
     {
         HouseholdProfile rob = Profiles.RobsHouse();

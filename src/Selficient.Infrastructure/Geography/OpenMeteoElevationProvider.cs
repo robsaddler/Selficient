@@ -28,6 +28,9 @@ public sealed class OpenMeteoElevationProvider : IElevationProvider
 
         try
         {
+            // Whatever goes wrong upstream is a fault, including the pipeline's own timeout, which is no HttpRequestException;
+            // a caller who has already gone is not answered at all.
+            cancellationToken.ThrowIfCancellationRequested();
             using HttpResponseMessage response = await _http.GetAsync(path, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
@@ -39,7 +42,7 @@ public sealed class OpenMeteoElevationProvider : IElevationProvider
                 ? Elevation.Create(Math.Round((decimal)values[0], 1))
                 : Result.Failure<Elevation>(DomainErrors.LookupUnavailable());
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             return Result.Failure<Elevation>(DomainErrors.LookupUnavailable());
         }

@@ -21,9 +21,17 @@
 | 6 | **A board worked out from two sets at once.** The providers from one and the scenario from another | The set travels on the profile and the simulation resolves the scenario under it, so there is one set per board, and the board carries the scenario it drew | `The_board_follows_a_corrected_scenario_whichever_copy_of_it_the_caller_held` |
 | 7 | **The plan request gets slower** | Everything derived from a set is built once and kept on it; a day of the simulation does no lookups by name. The load harness was run after the change: plan p95 51 ms and board p95 45 ms against a target of 150 | `./build/run-load.ps1` |
 
+## Step 2, first half: the words on the board (done)
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 8 | **The words and the board disagree after a correction.** An expert says the batteries are four days; the row holds for four and the sentence still says two | Every provider and scenario sentence that states a figure is built from it, and built again for any set that corrects it, including when only what people need has changed (the same bottles are fewer days at six litres a person). The composer and the cell wording read the providers and scenarios under the household's set | `A_corrected_figure_corrects_the_words_that_state_it`, `A_scenarios_sentence_follows_its_stretches_and_one_that_is_not_built_states_no_figure`, `The_set_is_composed_under_the_households_figures_from_the_scenario_to_the_name_on_a_source` |
+| 9 | **A new sentence states a figure in plain words and nobody notices** | A sentence with no builder must contain no digit and none of a list of number words; the shipped sentence of one that has a builder must be what the builder says | `A_provider_whose_words_are_not_built_from_its_figures_states_none`, the loop in the scenario test |
+| 10 | **A slow upstream becomes a server error** (found while testing this step, not caused by it) | Decision 121 | `The_pipelines_own_timeout_is_a_fault_in_every_adapter`, `A_caller_who_has_gone_is_not_answered_by_any_adapter` |
+
 ## Not yet answered (later steps)
 
 - Who may change a figure, the audit of every change, and rollback (step 3).
-- A sentence that states a figure in words and is not built from it will disagree with the board after the first correction (step 2). Until step 2 is done, nothing can be published, because there is nowhere to publish from.
+- The plan's own sentences (the action titles and reasons the rules write) still state figures in words that are not parameters. That is the second half of step 2.
 - The browser's own arithmetic has two constants of its own (step 4).
 - The plan's rules (how many litres to buy, how many cans) and their price ranges are not parameters yet (step 2).

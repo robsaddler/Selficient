@@ -13,6 +13,9 @@ public sealed record HorizonCell(Horizon Horizon, CellState State, int HeldDays)
 /// <summary>A row on the board: a need, its days, and its cells.</summary>
 public sealed record BoardRow(string Key, string Name, Rung Rung, bool Needed, IReadOnlyList<DayState> Days, IReadOnlyList<HorizonCell> Cells)
 {
+    /// <summary>The figures the row was worked out from, so the words about what carried it name the providers as those figures make them.</summary>
+    public Selficient.Domain.Parameters.ParameterSet Figures { get; init; } = Selficient.Domain.Parameters.ParameterSet.Default;
+
     /// <summary>The first day the need was rationed or lost, or null if it never was.</summary>
     public int? FirstRationedDay
     {
@@ -221,13 +224,13 @@ public static class OutageBoard
                     days[i] = computed[i]!;
                 }
 
-                rows.Add(new BoardRow(need.Id.ToString(), need.Name, need.Rung, _needed[need.Id], days, Cells(days)));
+                rows.Add(new BoardRow(need.Id.ToString(), need.Name, need.Rung, _needed[need.Id], days, Cells(days)) { Figures = _profile.Figures });
             }
 
             for (int i = 0; i < _profile.Dependencies.Count; i++)
             {
                 Dependency dependency = _profile.Dependencies[i];
-                rows.Add(new BoardRow(DependencyKey(i), dependency.Name, dependency.Rung, Needed: true, _dependencies[i], Cells(_dependencies[i])));
+                rows.Add(new BoardRow(DependencyKey(i), dependency.Name, dependency.Rung, Needed: true, _dependencies[i], Cells(_dependencies[i])) { Figures = _profile.Figures });
             }
 
             return new Board(_scenario, _season, _days, rows);

@@ -123,18 +123,18 @@ public static class BoardCopy
 
         if (heldDays == row.Days.Count)
         {
-            return $"Held for the whole stretch by {Name(Mainstay(row, heldDays))}.";
+            return $"Held for the whole stretch by {Name(Mainstay(row, heldDays), row.Figures)}.";
         }
 
         DayState turn = row.Days[heldDays];
-        string carried = heldDays > 0 ? $"Held for {Days(heldDays)} by {Name(Mainstay(row, heldDays))}, then " : string.Empty;
+        string carried = heldDays > 0 ? $"Held for {Days(heldDays)} by {Name(Mainstay(row, heldDays), row.Figures)}, then " : string.Empty;
         string then = turn.State switch
         {
-            CellState.Reduced => $"held in a reduced way by {Name(turn.CarriedBy)}",
-            CellState.Rationed => $"not enough: {Name(turn.CarriedBy)} gives some of it",
+            CellState.Reduced => $"held in a reduced way by {Name(turn.CarriedBy, row.Figures)}",
+            CellState.Rationed => $"not enough: {Name(turn.CarriedBy, row.Figures)} gives some of it",
             _ => "lost",
         };
-        string because = turn.FailedBy is null ? string.Empty : $", because {Name(turn.FailedBy)} cannot carry it";
+        string because = turn.FailedBy is null ? string.Empty : $", because {Name(turn.FailedBy, row.Figures)} cannot carry it";
         string sentence = $"{carried}{then}{because}.";
         return char.ToUpperInvariant(sentence[0]) + sentence[1..];
     }
@@ -144,14 +144,15 @@ public static class BoardCopy
         row.Days.Take(heldDays).GroupBy(static day => day.CarriedBy).OrderByDescending(static days => days.Count()).First().Key;
 
     /// <summary>A provider's name in lower case for the middle of a sentence, or the engine's own prose for a dependency.</summary>
-    public static string Name(string? providerId)
+    public static string Name(string? providerId, Selficient.Domain.Parameters.ParameterSet? figures = null)
     {
         if (providerId is null)
         {
             return "nothing in the house";
         }
 
-        Provider? provider = Providers.Find(providerId);
+        // Named as the row's own figures make it: a power station an expert has resized is called by its new size.
+        Provider? provider = ProviderFigures.Find(figures ?? Selficient.Domain.Parameters.ParameterSet.Default, providerId);
         if (provider is null)
         {
             return providerId;

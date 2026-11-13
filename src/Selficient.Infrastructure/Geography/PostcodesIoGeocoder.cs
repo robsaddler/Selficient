@@ -28,6 +28,9 @@ public sealed class PostcodesIoGeocoder : IGeocoder
 
         try
         {
+            // Whatever goes wrong upstream is a fault, including the pipeline's own timeout, which is no HttpRequestException;
+            // a caller who has already gone is not answered at all.
+            cancellationToken.ThrowIfCancellationRequested();
             using HttpResponseMessage response = await _http.GetAsync(path, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -44,7 +47,7 @@ public sealed class PostcodesIoGeocoder : IGeocoder
                 ? Result.Success(new Locality(new Coordinates(lat, lon), ParseNation(result.Country), result.Outcode ?? postcode.Outcode, result.Region ?? string.Empty))
                 : Result.Failure<Locality>(DomainErrors.LookupUnavailable());
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             return Result.Failure<Locality>(DomainErrors.LookupUnavailable());
         }
