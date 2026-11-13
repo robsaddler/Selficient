@@ -26,7 +26,7 @@ public sealed class Browser : IAsyncLifetime
     public Task<IBrowserContext> PhoneAsync() => SizedAsync(390, 844, mobile: true, theme: "light");
 
     /// <summary>A fresh context at the given size, as a phone or a desktop, in one theme.</summary>
-    public async Task<IBrowserContext> SizedAsync(int width, int height, bool mobile, string theme, string? userAgent = null)
+    public async Task<IBrowserContext> SizedAsync(int width, int height, bool mobile, string theme, string? userAgent = null, string? origin = null)
     {
         IBrowserContext context = await _browser!.NewContextAsync(new BrowserNewContextOptions
         {
@@ -39,7 +39,8 @@ public sealed class Browser : IAsyncLifetime
             UserAgent = userAgent,
             Locale = "en-GB",
             TimezoneId = "Europe/London",
-            BaseURL = Origin,
+            // A journey that hosts an application of its own names where it answers.
+            BaseURL = origin ?? Origin,
             AcceptDownloads = true,
             ServiceWorkers = ServiceWorkerPolicy.Allow,
         });

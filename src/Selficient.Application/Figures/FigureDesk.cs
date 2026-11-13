@@ -30,6 +30,16 @@ public sealed record PreviewCost(string Household, MoneyRange Before, MoneyRange
 /// <param name="Compared">How many headline figures were worked out both ways.</param>
 public sealed record FigurePreview(IReadOnlyList<PreviewLine> Lines, IReadOnlyList<PreviewCost> Costs, int Compared);
 
+/// <summary>The desk as one operator finds it.</summary>
+/// <param name="InForce">The figures every plan built now is worked out from.</param>
+/// <param name="Published">The publication in force, or null while the shipped figures stand.</param>
+/// <param name="Dropped">A sentence for each stored correction the code no longer accepts.</param>
+/// <param name="Drafts">Every drafted correction, whoever drafted it.</param>
+/// <param name="Drafted">The figures as the draft would make them, or null when the draft can no longer be run.</param>
+/// <param name="DraftFault">Why the draft can no longer be run, or null.</param>
+/// <param name="MayPublish">Whether this operator may put a draft into force and put an earlier set back.</param>
+public sealed record DeskView(ParameterSet InForce, PublishedFigures? Published, IReadOnlyList<string> Dropped, IReadOnlyList<FigureDraft> Drafts, ParameterSet? Drafted, string? DraftFault, bool MayPublish);
+
 /// <summary>
 /// The desk where the figures are corrected. Anyone who can sign in to the back office may draft a
 /// correction, with a reason and a source; only an operator who may publish can put a draft into
@@ -86,15 +96,50 @@ public sealed class FigureDesk
             return Result.Failure<FigureDraft>(together.Error);
         }
 
+        if (_current.Current[parameterId] == value)
+        {
+            return Result.Failure<FigureDraft>(new Fault("figures.same", "That is the value already in force. To withdraw a drafted correction, take it out of the draft."));
+        }
+
         await _store.SaveDraftAsync(draft, cancellationToken);
+        await _log.RecordHandAsync("draft-figure", null, Clip(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{parameterId} drafted as {value}: {draft.Reason}")), operatorName, cancellationToken);
         return Result.Success(draft);
     }
 
-    /// <summary>Throws a drafted correction away; false when there was none.</summary>
-    public Task<bool> DiscardAsync(string parameterId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Takes a drafted correction out of the draft. The person who drafted it may, and so may a
+    /// publisher, whose review the draft is; nobody else may throw away another person's work.
+    /// </summary>
+    public async Task<Result<FigureDraft>> DiscardAsync(string operatorName, string parameterId, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operatorName);
         ArgumentNullException.ThrowIfNull(parameterId);
-        return _store.DiscardDraftAsync(parameterId, cancellationToken);
+        FigureDraft? draft = (await _store.DraftsAsync(cancellationToken)).FirstOrDefault(other => other.ParameterId == parameterId);
+        if (draft is null)
+        {
+            return Result.Failure<FigureDraft>(new Fault("figures.no-draft", "There is no drafted correction of that figure."));
+        }
+
+        if (!string.Equals(draft.DraftedBy, operatorName, StringComparison.OrdinalIgnoreCase) && !await _store.MayPublishAsync(operatorName, cancellationToken))
+        {
+            return Result.Failure<FigureDraft>(new Fault("figures.forbidden", "Only the person who drafted a correction, or a publisher, can take it out of the draft."));
+        }
+
+        await _store.DiscardDraftAsync(parameterId, cancellationToken);
+        await _log.RecordHandAsync("discard-figure", null, Clip(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{parameterId} taken out of the draft; it was {draft.Value}, drafted by {draft.DraftedBy}.")), operatorName, cancellationToken);
+        return Result.Success(draft);
+    }
+
+    /// <summary>What the desk shows the operator reading it: the set in force, the draft in hand, the figures as the draft would make them, and whether this operator may publish.</summary>
+    public async Task<DeskView> ReadAsync(string operatorName, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operatorName);
+        IReadOnlyList<FigureDraft> drafts = await _store.DraftsAsync(cancellationToken);
+        bool mayPublish = await _store.MayPublishAsync(operatorName, cancellationToken);
+        Result<ParameterSet> drafted = Drafted(drafts);
+        return drafted.IsSuccess
+            ? new DeskView(_current.Current, _current.Published, _current.Dropped, drafts, drafted.Value, null, mayPublish)
+            : new DeskView(_current.Current, _current.Published, _current.Dropped, drafts, null, drafted.Error.Message, mayPublish);
     }
 
     /// <summary>What publishing the draft in hand would change for the reference households.</summary>
@@ -102,6 +147,13 @@ public sealed class FigureDesk
     {
         Result<ParameterSet> drafted = Drafted(await _store.DraftsAsync(cancellationToken));
         return drafted.Map(after => Compare(_current.Current, after));
+    }
+
+    /// <summary>What publishing the draft would change for the reference households, worked out from what the operator was shown; null when that draft cannot be run.</summary>
+    public FigurePreview? Preview(DeskView view)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+        return view.Drafted is null ? null : Compare(view.InForce, view.Drafted);
     }
 
     /// <summary>Puts the draft in hand into force as the next set.</summary>
@@ -230,9 +282,11 @@ public sealed class FigureDesk
 
         await _current.ReloadAsync(cancellationToken);
         string outcome = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Set {set.Version} is in force: {changes.Count} figures changed. {set.Note}");
-        await _log.RecordHandAsync(hand, null, outcome.Length > MaxTextLength ? outcome[..MaxTextLength] : outcome, set.By, cancellationToken);
+        await _log.RecordHandAsync(hand, null, Clip(outcome), set.By, cancellationToken);
         return Result.Success(set);
     }
+
+    private static string Clip(string outcome) => outcome.Length > MaxTextLength ? outcome[..MaxTextLength] : outcome;
 
     private Standing Stand(GeneratePlanCommand command, ParameterSet figures)
     {

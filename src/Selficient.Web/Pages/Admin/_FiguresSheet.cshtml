@@ -1,0 +1,72 @@
+@model Selficient.Web.Pages.Admin.FiguresModel
+@* The figures in view, as a household meets them: a heading for each need, a card for each thing that meets it with the board's own words, and under it every figure the engine reads for it. *@
+<p class="desk__lede" data-sheet-lede>@Model.SheetLede</p>
+@foreach (var group in Model.Groups)
+{
+  <section class="desk__group" data-group="@group.Title">
+    <h2>@group.Title</h2>
+    <div class="desk__cards">
+      @foreach (var card in group.Cards)
+      {
+        <article class="figure-card">
+          @if (card.Title is { } title)
+          {
+            <h3>@title</h3>
+          }
+          @if (card.Sentence is { } sentence)
+          {
+            <p class="figure-card__says" data-says>@sentence</p>
+          }
+          @if (card.Drafted is { } drafted)
+          {
+            <p class="figure-card__drafted" data-drafted-says><span class="figure-card__mark">As drafted</span> @drafted</p>
+          }
+          <ul class="figure-card__rows">
+            @foreach (var row in card.Rows)
+            {
+              <li class="desk-figure" id="@row.Anchor" data-figure="@row.Definition.Id" data-state="@row.State">
+                <div class="desk-figure__line">
+                  <span class="desk-figure__name">@row.Label</span>
+                  <span class="desk-figure__value"><span class="data" data-in-force-value>@row.Value</span> <span class="desk-figure__unit">@row.Definition.Unit</span></span>
+                </div>
+                <ul class="desk-figure__chips">
+                  @foreach (var chip in row.Chips)
+                  {
+                    <li class="desk-figure__chip" data-chip="@chip.Kind">@chip.Text</li>
+                  }
+                </ul>
+                <details class="desk-figure__edit" open="@row.Open">
+                  <summary>Correct this figure</summary>
+                  <form method="post" asp-page="/Admin/Figures" asp-page-handler="Draft" asp-route-tab="@Model.TabId" asp-route-q="@Model.Query" asp-fragment="@row.Anchor" class="desk-figure__form" novalidate>
+                    <input type="hidden" name="id" value="@row.Definition.Id">
+                    @if (row.Refusal is { } refusal)
+                    {
+                      <p class="callout callout--warning" role="alert" data-figure-refusal>@refusal</p>
+                    }
+                    <p class="desk-figure__facts">@row.Allowed Source of the shipped value: @row.Definition.Source. @row.Definition.Shown.</p>
+                    <div class="field">
+                      <label for="value-@row.Definition.Id">The value, in @row.Definition.Unit</label>
+                      <input id="value-@row.Definition.Id" name="value" class="input input--short" inputmode="decimal" autocomplete="off" value="@row.EnteredValue" required>
+                    </div>
+                    <div class="field">
+                      <label for="reason-@row.Definition.Id">Why it should change</label>
+                      <input id="reason-@row.Definition.Id" name="reason" class="input" autocomplete="off" maxlength="@Selficient.Application.Figures.FigureDesk.MaxTextLength" value="@row.EnteredReason" required>
+                    </div>
+                    <div class="field">
+                      <label for="source-@row.Definition.Id">Where the value comes from</label>
+                      <input id="source-@row.Definition.Id" name="source" class="input" autocomplete="off" maxlength="@Selficient.Application.Figures.FigureDesk.MaxTextLength" value="@row.EnteredSource" required>
+                    </div>
+                    <div class="cluster">
+                      <button type="submit" class="button button--primary button--small">Put it in the draft</button>
+                      <a class="button button--quiet button--small" asp-page="/Admin/Figures" asp-route-tab="history" asp-route-figure="@row.Definition.Id">Its history</a>
+                    </div>
+                  </form>
+                </details>
+              </li>
+            }
+          </ul>
+        </article>
+      }
+    </div>
+  </section>
+}

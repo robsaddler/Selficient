@@ -68,6 +68,9 @@ public sealed class SqlFigureStoreTests : IAsyncLifetime
         lift[0].ShouldBe(new FigureChange(2, "stairlift-batteries.stock", 3m, 2.25m, "An engineer measured it.", "Stannah service manual, section 4", "expert", Morning));
         (await _store.ChangesAsync("stairlift-batteries.stock", 1, CancellationToken.None)).Count.ShouldBe(1);
         (await _store.ChangesAsync("no-such-figure", 10, CancellationToken.None)).ShouldBeEmpty();
+        (await _store.ChangesInAsync(1, CancellationToken.None)).Select(change => (change.ParameterId, change.Before, change.After)).ShouldBe([("demand.drinking-litres", 3m, 2.5m), ("stairlift-batteries.stock", 2m, 3m)], "everything one publication changed, by figure");
+        (await _store.ChangesInAsync(2, CancellationToken.None)).ShouldHaveSingleItem().ShouldBe(lift[0]);
+        (await _store.ChangesInAsync(0, CancellationToken.None)).ShouldBeEmpty("the shipped figures were made by no publication");
         await Should.ThrowAsync<ArgumentNullException>(() => _store.ChangesAsync(null!, 1, CancellationToken.None));
     }
 

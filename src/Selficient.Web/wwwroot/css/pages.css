@@ -1672,6 +1672,349 @@
   margin: 0;
 }
 
+/* The assumptions desk. It is laid out as the board is, a heading for each need and a card for each
+   thing that meets it, so somebody who knows stairlifts and not software finds the stairlift where a
+   household would. A figure is a line: its name, its value in the instrument face, and a box that
+   opens under it. Read on a desk, and it still folds to one column on a phone. */
+.desk__state {
+  max-inline-size: none;
+}
+
+.desk__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+  border-block-end: var(--border);
+  margin-block-end: var(--space-5);
+}
+
+.desk__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.desk__tab {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 4px solid transparent;
+  margin-block-end: -2px;
+  color: var(--c-ink-muted);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--c-ink);
+  }
+
+  &[aria-current="page"] {
+    color: var(--c-ink);
+    border-block-end-color: var(--c-pine);
+  }
+}
+
+.desk__search {
+  display: grid;
+  grid-template-columns: minmax(0, 18rem) auto;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  padding-block-end: var(--space-3);
+
+  & label {
+    grid-column: 1 / -1;
+    font-size: var(--text-s);
+    font-weight: 600;
+  }
+}
+
+.desk__lede {
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+  margin-block-end: var(--space-5);
+}
+
+.desk__group {
+  padding-block: var(--space-5);
+  border-block-start: var(--border);
+
+  & > h2 {
+    font-size: var(--text-xl);
+    margin-block-end: var(--space-3);
+    text-wrap: balance;
+  }
+}
+
+/* On a desk the sheet is a ledger: the need down the side, where it stays while its cards go past,
+   and the cards across. The cards share the line between them, and a card lays its figures as many
+   across as it has room for, so a need with one card fills its line as well as a need with five. */
+@media (min-width: 60rem) {
+  .desk__group {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+
+    & > h2 {
+      position: sticky;
+      inset-block-start: calc(var(--header-height) + var(--space-3));
+      margin: 0;
+    }
+  }
+}
+
+.desk__cards {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
+  align-items: start;
+}
+
+.figure-card {
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & h3 {
+    font-size: var(--text-l);
+    margin: 0;
+  }
+
+  & .figure-card__says {
+    margin-block-start: var(--space-1);
+    color: var(--c-ink-muted);
+    text-wrap: pretty;
+  }
+
+  & .figure-card__drafted {
+    margin-block-start: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 4px solid var(--c-lantern);
+    background: var(--c-lantern-tint);
+    border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  }
+
+  & .figure-card__mark {
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-inline-end: var(--space-2);
+  }
+}
+
+.figure-card__rows {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+  /* A figure whose box is open grows; the figures beside it keep their own height. */
+  align-items: start;
+
+  /* A card with no heading of its own starts at its first figure. */
+  &:first-child {
+    margin: 0;
+  }
+}
+
+.desk-figure {
+  padding: var(--space-3);
+  border-radius: var(--radius-s);
+  background: var(--c-ground);
+  /* A correction comes back to its figure by the address; the header must not sit over it. */
+  scroll-margin-block-start: calc(var(--header-height) + var(--space-4));
+
+  &:target {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  & .desk-figure__line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    align-items: baseline;
+  }
+
+  & .desk-figure__name {
+    font-weight: 600;
+    text-wrap: pretty;
+  }
+
+  & .desk-figure__value {
+    text-align: end;
+
+    & .data {
+      font-size: var(--text-l);
+      font-weight: 600;
+    }
+  }
+
+  & .desk-figure__unit {
+    display: block;
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+
+  &[data-state="drafted"] .desk-figure__value .data {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--c-lantern);
+  }
+}
+
+.desk-figure__chips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.desk-figure__chip {
+  margin-block-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--c-contour);
+  border-radius: 999px;
+  font-size: var(--text-s);
+
+  &[data-chip="corrected"] {
+    border-color: var(--c-pine);
+    background: var(--c-pine-tint);
+  }
+
+  &[data-chip="drafted"] {
+    border-color: var(--c-lantern);
+    background: var(--c-lantern-tint);
+  }
+}
+
+.desk-figure__edit {
+  margin-block-start: var(--space-2);
+
+  & summary {
+    display: inline-block;
+    padding-block: var(--space-1);
+    color: var(--c-pine);
+    font-size: var(--text-s);
+    font-weight: 600;
+    cursor: pointer;
+  }
+}
+
+.desk-figure__form {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--c-contour);
+  border-radius: var(--radius-s);
+  background: var(--c-paper);
+
+  & .desk-figure__facts {
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+}
+
+/* The draft, a list of changes, and the published sets: each a quiet panel with the account of itself. */
+.desk__drafts,
+.desk__sets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(28rem, 100%), 1fr));
+  align-items: start;
+}
+
+.desk__draft,
+.desk__set {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+
+  & h2,
+  & h3 {
+    font-size: var(--text-l);
+    margin: 0;
+  }
+}
+
+.desk__set[data-state="in-force"] {
+  border-color: var(--c-pine);
+}
+
+.desk__account {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+
+  & div {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  & dt {
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+
+  & dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.desk__by,
+.desk__note:not(:empty) {
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+}
+
+.desk__note {
+  overflow-wrap: anywhere;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.desk__preview,
+.desk__changes {
+  margin-block-end: var(--space-6);
+
+  & > h2 {
+    font-size: var(--text-xl);
+    margin-block-end: var(--space-2);
+  }
+}
+
+.desk__publish,
+.desk__restore {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-inline-size: 36rem;
+  margin-block-start: var(--space-4);
+
+  & .field {
+    inline-size: 100%;
+  }
+}
+
 /* The legal pages. A column of prose at its reading measure is right for the prose and wrong for
    the page: on a wide screen it sat alone against the left edge. The measure stays, because it is
    what makes a long legal text readable, and the room either side is given to the two things a

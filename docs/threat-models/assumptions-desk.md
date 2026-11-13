@@ -61,6 +61,27 @@ Accepted: the figures in force are held in memory by the one server and read aga
 | 24 | **A forged or broken answer is kept by the browser** | The answer's shape is checked before it is kept or acted on: a whole number of a version, a bounded list, ids of the registry's shape, finite numbers. Anything else is ignored and the browser goes on with what it knew | The last part of the journey |
 | 25 | **The endpoint tells the world about a household** | It is the same for everyone: the set's number and date, and the eight figures a household may give, with the values in force. No cookie is read | `The_browser_is_told_which_set_is_in_force_and_the_figures_a_household_may_give` |
 
+## Step 5: the expert's screen (done)
+
+`/admin/figures`, behind the operator policy like the catalogue: a signed-in account with its second factor done. It has no script. Every change is a form post with an antiforgery token.
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 26 | **Somebody not signed in reads or posts** | The page carries the operator policy; a request with no session, or a forged cookie, is sent to the sign-in before any handler runs | `The_desk_is_closed_to_anyone_who_is_not_signed_in` |
+| 27 | **An expert publishes or restores by posting the form the page did not show them** | The page hides the hand, and that is a courtesy. The desk asks the store whether this operator may on every publish and restore, whatever was on the screen | `One_draft_is_shared_and_only_a_publisher_puts_it_into_force_or_takes_out_what_somebody_else_drafted` |
+| 28 | **An expert throws away somebody else's correction** | A correction is taken out by whoever drafted it or by a publisher; anybody else is refused with a sentence | The same test; `A_correction_is_taken_out_of_the_draft_by_whoever_drafted_it_or_by_a_publisher_and_by_nobody_else` |
+| 29 | **Script in a reason, a source, a note or a search** is drawn on a page a publisher reads (case 19, now answered) | Razor encodes every one of them; none is written with `Html.Raw`. The page has no script of its own for an injected attribute to reach, and the policy allows no inline script | `A_correction_goes_into_the_draft…` (a reason with markup in it), `A_search_finds_figures…` (a search that is a script element) |
+| 30 | **A forged request from another site** drafts or publishes while a publisher is signed in | Every post needs the antiforgery token; the cookie is same-site | The framework's validation, on by default for every page; the tests post with the page's token |
+| 31 | **A value that is not a number, or text of any length, reaches the store** | The value is bound as text and parsed by hand, with no sign and no grouping; reason, source and note are trimmed and capped at 400 by the desk; an id that is not a figure is refused before the desk is asked and is not echoed | `A_correction_that_cannot_stand_is_answered_at_the_figure_with_what_was_typed_still_in_the_box` |
+| 32 | **A proposal vanishes.** A draft is replaced or taken out and nobody can say it was ever made | Every draft kept and every draft taken out is a hand in the operations log, with the operator, the figure and the value | `A_draft_of_the_value_already_in_force_is_refused_and_every_draft_kept_is_a_hand_in_the_log` |
+| 33 | **A publisher publishes without seeing what it does** | The preview is on the draft tab above the publish button whenever anything is drafted, worked out from the same draft the page lists | `A_correction_goes_into_the_draft…`, the journey in `Desk.cs` |
+| 34 | **A draft or a set a release has made impossible breaks the desk** | The desk says which correction was dropped, says the draft cannot be published and why, names the figure by its id, offers no preview and no publish button, and still draws every other figure | `What_a_release_has_made_impossible_is_said_on_the_desk_and_never_run` |
+| 35 | **The desk is used to wear the server out** | It is under the same rate limit as the catalogue; a search is cut at 80 characters and is a scan of 345 definitions in memory; the preview runs only on the draft tab | `A_search_finds_figures…` |
+
+Accepted: an expert can see every other operator's drafts, reasons and names. They are colleagues working on one draft, and that is the point of it.
+
+Accepted: there is still no screen to name a second publisher. It is a row in `figure_publishers`, added by hand, until Rob wants somebody else to publish.
+
 ## Not yet answered (later steps)
 
 - The plan's sentences are not swept by a test the way the board's are: they are full of numbers that are facts and not figures (a date, a phone number, an insurance limit), so a list of number words would fail every one. They were read by hand. A new rule sentence that states an engine figure in plain words would not be caught.

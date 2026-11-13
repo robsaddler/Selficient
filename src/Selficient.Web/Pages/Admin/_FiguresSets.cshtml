@@ -1,0 +1,17 @@
+@model Selficient.Web.Pages.Admin.FiguresModel
+@* Every set that has been published, newest first, and the shipped figures under them. Sets are only ever added: putting one back publishes a new set with its figures. *@
+<p class="desk__lede">Every set that has been published, newest first. A set is never changed or removed: putting an earlier one back publishes a new set with that one's figures, and says so.</p>
+<ul class="desk__sets" data-sets>
+  @foreach (var set in Model.Sets)
+  {
+    <li class="desk__set" data-set="@set.Version" data-state="@set.State">
+      <h2>@set.Title</h2>
+      <p>@set.Detail</p>
+      <p class="desk__note">@set.Note</p>
+      <div class="cluster">
+        <a class="button button--quiet button--small" asp-page="/Admin/Figures" asp-route-tab="history" asp-route-set="@set.Version">What it changed</a>
+      </div>
+      @await Html.PartialAsync(set.HandView, set)
+    </li>
+  }
+</ul>

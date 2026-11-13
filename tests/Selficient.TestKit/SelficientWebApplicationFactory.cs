@@ -54,9 +54,24 @@ public sealed class SelficientWebApplicationFactory : WebApplicationFactory<Prog
     /// Starts the application on a real Kestrel socket and returns where it answers. For the
     /// browser journeys and the load run, which need a port rather than an in-memory handler.
     /// </summary>
-    public string StartOnKestrel()
+    public string StartOnKestrel() => StartOnKestrel(null);
+
+    /// <summary>
+    /// Starts the application on a named port, or on any free one when the port is nought. A journey
+    /// that must not disturb the others (it publishes figures, which every plan is then built from)
+    /// hosts a second application this way beside the one the run shares.
+    /// </summary>
+    public string StartOnKestrel(int? port)
     {
-        UseKestrel();
+        if (port is { } named)
+        {
+            UseKestrel(named);
+        }
+        else
+        {
+            UseKestrel();
+        }
+
         StartServer();
         Microsoft.AspNetCore.Hosting.Server.IServer server = Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
         return server.Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.First().TrimEnd('/');

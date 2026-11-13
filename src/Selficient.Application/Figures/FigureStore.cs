@@ -48,6 +48,9 @@ public interface IFigureStore
     /// <summary>The latest changes to one figure, newest first.</summary>
     Task<IReadOnlyList<FigureChange>> ChangesAsync(string parameterId, int take, CancellationToken cancellationToken);
 
+    /// <summary>Every figure one publication changed, by figure.</summary>
+    Task<IReadOnlyList<FigureChange>> ChangesInAsync(int version, CancellationToken cancellationToken);
+
     /// <summary>Every drafted correction, by figure.</summary>
     Task<IReadOnlyList<FigureDraft>> DraftsAsync(CancellationToken cancellationToken);
 

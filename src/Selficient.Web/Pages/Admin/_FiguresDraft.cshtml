@@ -1,0 +1,80 @@
+@using Selficient.Web.Formatting
+@model Selficient.Web.Pages.Admin.FiguresModel
+@* The one shared draft: every correction waiting, who made it and on what authority, what publishing it would move for the reference households, and the publisher's hand. *@
+<p class="desk__lede">Every correction anybody has drafted waits here together. Publishing puts all of them into force at once as the next set; a correction that should not go is taken out first. Nothing here has changed any plan.</p>
+@if (Model.Desk.DraftFault is { } fault)
+{
+  <p class="callout callout--warning" role="alert" data-draft-fault>The draft cannot be published as it stands. @fault</p>
+}
+@if (Model.DraftLines.Count == 0)
+{
+  <p class="review__none" data-no-drafts>Nothing is drafted. Open a figure under "How things work" or "What things cost" and correct it.</p>
+}
+else
+{
+  <ul class="desk__drafts" data-drafts>
+    @foreach (var line in Model.DraftLines)
+    {
+      <li class="desk__draft" data-draft="@line.Draft.ParameterId">
+        <h2>@line.Name</h2>
+        <p class="data">@line.Standing</p>
+        <dl class="desk__account">
+          <div><dt>Why</dt><dd>@line.Draft.Reason</dd></div>
+          <div><dt>Source</dt><dd>@line.Draft.Source</dd></div>
+        </dl>
+        <p class="desk__by">@line.By</p>
+        @await Html.PartialAsync(line.HandView, line)
+      </li>
+    }
+  </ul>
+}
+@if (Model.Preview is { } preview)
+{
+  <section class="desk__preview" aria-labelledby="preview-heading" data-preview>
+    <h2 id="preview-heading">What publishing this would change</h2>
+    <p class="desk__lede" data-preview-says>@Model.PreviewText</p>
+    @if (preview.Lines.Count > 0)
+    {
+      <div class="review__table">
+        <table class="review__offers" data-preview-days>
+          <thead><tr><th scope="col">Household</th><th scope="col">Scenario</th><th scope="col">Taken to have done</th><th scope="col">Days ready now</th><th scope="col">With the draft</th></tr></thead>
+          <tbody>
+            @foreach (var line in preview.Lines)
+            {
+              <tr><td>@line.Household</td><td>@line.Scenario</td><td>@line.Doing</td><td class="data">@Selficient.Web.Pages.Admin.FigureSheet.Plain(line.Before)</td><td class="data">@Selficient.Web.Pages.Admin.FigureSheet.Plain(line.After)</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    @if (preview.Costs.Count > 0)
+    {
+      <div class="review__table">
+        <table class="review__offers" data-preview-costs>
+          <thead><tr><th scope="col">Household</th><th scope="col">The whole plan costs now</th><th scope="col">With the draft</th></tr></thead>
+          <tbody>
+            @foreach (var cost in preview.Costs)
+            {
+              <tr><td>@cost.Household</td><td class="data">@MoneyFormat.Range(cost.Before)</td><td class="data">@MoneyFormat.Range(cost.After)</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    @if (Model.Desk.MayPublish)
+    {
+      <form method="post" asp-page="/Admin/Figures" asp-page-handler="Publish" asp-route-tab="draft" class="desk__publish" novalidate>
+        <div class="field">
+          <label for="publish-note">What this publication is for</label>
+          <input id="publish-note" name="note" class="input" autocomplete="off" maxlength="@Selficient.Application.Figures.FigureDesk.MaxTextLength" required>
+          <p class="field__hint">It is kept with the set for good, beside your name and the time.</p>
+        </div>
+        <button type="submit" class="button button--primary">Publish these figures</button>
+      </form>
+    }
+    else
+    {
+      <p class="review__none" data-not-publisher>Only an operator who may publish figures can put the draft into force. What you have drafted waits here for them.</p>
+    }
+  </section>
+}

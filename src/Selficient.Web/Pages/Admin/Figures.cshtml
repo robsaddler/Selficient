@@ -1,0 +1,48 @@
+@page "/admin/figures"
+@model Selficient.Web.Pages.Admin.FiguresModel
+@{
+    ViewData["Title"] = "The figures";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="review desk" aria-labelledby="desk-heading">
+  <div class="review__head">
+    <div>
+      <p class="eyebrow">The assumptions desk</p>
+      <h1 id="desk-heading">The figures</h1>
+    </div>
+    <div class="cluster review__who">
+      <span class="review__operator">Signed in as <strong>@Model.OperatorName</strong></span>
+      <a class="button button--quiet button--small" href="/admin/catalogue">The catalogue</a>
+      <a class="button button--quiet button--small" href="/admin/password">Change password</a>
+      <form method="post" action="/admin/sign-out"><button type="submit" class="button button--quiet button--small">Sign out</button></form>
+    </div>
+  </div>
+  @if (Model.Notice is { } notice)
+  {
+    <p class="callout" role="status">@notice</p>
+  }
+  @if (Model.Refusal is { } refusal)
+  {
+    <p class="callout callout--warning" role="alert">@refusal</p>
+  }
+  @foreach (var dropped in Model.Desk.Dropped)
+  {
+    <p class="callout callout--warning" data-dropped>@dropped</p>
+  }
+  <p class="review__state desk__state" data-in-force="@Model.Desk.InForce.Version">@Model.InForceText @Model.DraftText</p>
+  <div class="desk__bar">
+    <nav class="desk__tabs" aria-label="The parts of the desk">
+      @foreach (var tab in Model.Tabs)
+      {
+        <a class="desk__tab" asp-page="/Admin/Figures" asp-route-tab="@tab.Id" aria-current="@tab.Current" data-tab="@tab.Id">@tab.Name</a>
+      }
+    </nav>
+    <form method="get" class="desk__search" role="search">
+      <label for="desk-q">Find a figure</label>
+      <input id="desk-q" name="q" type="search" class="input" value="@Model.Search" maxlength="@Selficient.Web.Pages.Admin.FiguresModel.MaxQueryLength" autocomplete="off">
+      <button type="submit" class="button button--small">Find</button>
+    </form>
+  </div>
+  @await Html.PartialAsync(Model.TabView, Model)
+</section>

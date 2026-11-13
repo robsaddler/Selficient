@@ -1,0 +1,6 @@
+@model Selficient.Web.Pages.Admin.FiguresModel.DraftLine
+@* The hand on a drafted correction, for whoever drafted it and for a publisher. The choice is the line's, not the view's. *@
+<form method="post" asp-page="/Admin/Figures" asp-page-handler="Discard" asp-route-tab="draft">
+  <input type="hidden" name="id" value="@Model.Draft.ParameterId">
+  <button type="submit" class="button button--small">Take it out of the draft</button>
+</form>

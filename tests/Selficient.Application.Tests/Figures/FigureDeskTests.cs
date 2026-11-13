@@ -91,10 +91,80 @@ public sealed class FigureDeskTests
         (await rig.Desk.DraftAsync("expert", "price.headtorches.low", 5m, "Why.", "Where.", CancellationToken.None)).IsSuccess.ShouldBeTrue();
         (await rig.Desk.DraftAsync("expert", "price.headtorches.high", 10m, "Why.", "Where.", CancellationToken.None)).IsSuccess.ShouldBeTrue("with the least drafted down first, the most can follow it");
         rig.Drafts.Count.ShouldBe(2);
+    }
 
-        rig.Store.DiscardDraftAsync("price.headtorches.low", Arg.Any<CancellationToken>()).Returns(true);
-        (await rig.Desk.DiscardAsync("price.headtorches.low", CancellationToken.None)).ShouldBeTrue();
-        await Should.ThrowAsync<ArgumentNullException>(() => rig.Desk.DiscardAsync(null!, CancellationToken.None));
+    [Fact]
+    public async Task A_draft_of_the_value_already_in_force_is_refused_and_every_draft_kept_is_a_hand_in_the_log()
+    {
+        Rig rig = new();
+
+        (await rig.Desk.DraftAsync("expert", "demand.drinking-litres", 3m, "No change.", "Nowhere.", CancellationToken.None)).Error.Message.ShouldBe("That is the value already in force. To withdraw a drafted correction, take it out of the draft.");
+        rig.Drafts.ShouldBeEmpty();
+        await rig.Log.DidNotReceiveWithAnyArgs().RecordHandAsync(default!, default, default!, default, default);
+
+        await rig.Desk.DraftAsync("expert", "demand.drinking-litres", 2.5m, "Measured.", "A study.", CancellationToken.None);
+        await rig.Desk.DraftAsync("expert", "stairlift-batteries.stock", 3m, new string('r', 400), "A manual.", CancellationToken.None);
+
+        await rig.Log.Received(1).RecordHandAsync("draft-figure", null, "demand.drinking-litres drafted as 2.5: Measured.", "expert", Arg.Any<CancellationToken>());
+        await rig.Log.Received(1).RecordHandAsync("draft-figure", null, Arg.Is<string>(outcome => outcome.Length == FigureDesk.MaxTextLength && outcome.StartsWith("stairlift-batteries.stock drafted as 3: rrr", StringComparison.Ordinal)), "expert", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_correction_is_taken_out_of_the_draft_by_whoever_drafted_it_or_by_a_publisher_and_by_nobody_else()
+    {
+        Rig rig = new();
+        rig.Store.DiscardDraftAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call => rig.Drafts.RemoveAll(draft => draft.ParameterId == call.Arg<string>()) > 0);
+        await rig.Desk.DraftAsync("expert", "stairlift-batteries.stock", 3m, "Why.", "Where.", CancellationToken.None);
+        await rig.Desk.DraftAsync("expert", "demand.drinking-litres", 2.5m, "Why.", "Where.", CancellationToken.None);
+        await rig.Desk.DraftAsync("rob", "demand.pet-water-litres", 3m, "Why.", "Where.", CancellationToken.None);
+
+        (await rig.Desk.DiscardAsync("expert", "demand.pet-water-litres", CancellationToken.None)).Error.Message.ShouldBe("Only the person who drafted a correction, or a publisher, can take it out of the draft.");
+        (await rig.Desk.DiscardAsync("expert", "no-such-figure", CancellationToken.None)).Error.Message.ShouldBe("There is no drafted correction of that figure.");
+        rig.Drafts.Count.ShouldBe(3);
+
+        (await rig.Desk.DiscardAsync("EXPERT", "stairlift-batteries.stock", CancellationToken.None)).Value.Value.ShouldBe(3m, "their own, and a username is not compared by case");
+        (await rig.Desk.DiscardAsync("rob", "demand.drinking-litres", CancellationToken.None)).IsSuccess.ShouldBeTrue("the draft is the publisher's review, so a publisher may take out anybody's");
+
+        rig.Drafts.ShouldHaveSingleItem().ParameterId.ShouldBe("demand.pet-water-litres");
+        await rig.Log.Received(1).RecordHandAsync("discard-figure", null, "stairlift-batteries.stock taken out of the draft; it was 3, drafted by expert.", "EXPERT", Arg.Any<CancellationToken>());
+        await rig.Log.Received(1).RecordHandAsync("discard-figure", null, "demand.drinking-litres taken out of the draft; it was 2.5, drafted by expert.", "rob", Arg.Any<CancellationToken>());
+        await Should.ThrowAsync<ArgumentNullException>(() => rig.Desk.DiscardAsync("rob", null!, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentException>(() => rig.Desk.DiscardAsync(" ", "demand.drinking-litres", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task The_desk_is_read_as_one_operator_finds_it_with_the_figures_the_draft_would_make()
+    {
+        Rig rig = new();
+
+        DeskView empty = await rig.Desk.ReadAsync("expert", CancellationToken.None);
+        empty.InForce.ShouldBeSameAs(ParameterSet.Default);
+        empty.Published.ShouldBeNull();
+        empty.Dropped.ShouldBeEmpty();
+        empty.Drafts.ShouldBeEmpty();
+        empty.Drafted!.Corrections.ShouldBeEmpty();
+        empty.DraftFault.ShouldBeNull();
+        empty.MayPublish.ShouldBeFalse();
+        rig.Desk.Preview(empty)!.Lines.ShouldBeEmpty();
+
+        await rig.Desk.DraftAsync("expert", "stairlift-batteries.stock", 1m, "Why.", "Where.", CancellationToken.None);
+        DeskView drafted = await rig.Desk.ReadAsync("rob", CancellationToken.None);
+        drafted.MayPublish.ShouldBeTrue();
+        drafted.Drafts.ShouldHaveSingleItem().DraftedBy.ShouldBe("expert");
+        drafted.Drafted!["stairlift-batteries.stock"].ShouldBe(1m);
+        drafted.Drafted.Version.ShouldBe(1, "the draft would be the next set");
+        drafted.InForce["stairlift-batteries.stock"].ShouldBe(2m, "and nothing is in force until it is published");
+        rig.Desk.Preview(drafted)!.Lines.ShouldNotBeEmpty();
+
+        // A draft a release has since made impossible is said, and nothing is worked out from it.
+        rig.Drafts.Add(new FigureDraft("no-such-figure", 1m, "Why.", "Where.", "expert", Now));
+        DeskView broken = await rig.Desk.ReadAsync("rob", CancellationToken.None);
+        broken.Drafted.ShouldBeNull();
+        broken.DraftFault.ShouldBe("\"no-such-figure\" is not one of the figures the plan works from.");
+        broken.Drafts.Count.ShouldBe(2);
+        rig.Desk.Preview(broken).ShouldBeNull();
+        await Should.ThrowAsync<ArgumentException>(() => rig.Desk.ReadAsync(" ", CancellationToken.None));
+        Should.Throw<ArgumentNullException>(() => rig.Desk.Preview(null!));
     }
 
     [Fact]
@@ -124,7 +194,8 @@ public sealed class FigureDeskTests
     {
         Rig rig = new();
         await rig.Desk.DraftAsync("expert", "stairlift-batteries.stock", 3m, "An engineer measured it.", "Stannah manual", CancellationToken.None);
-        await rig.Desk.DraftAsync("expert", "demand.drinking-litres", 3m, "No change, to see what happens.", "Nowhere", CancellationToken.None);
+        // A draft that has come to match the figure in force, as one does when a set is put back under it.
+        rig.Drafts.Add(new FigureDraft("demand.drinking-litres", 3m, "No change by now.", "Nowhere", "expert", Now));
 
         (await rig.Desk.PublishAsync("expert", "The stairlift figures.", CancellationToken.None)).Error.Message.ShouldBe("Only an operator who may publish figures can put them into force.");
         (await rig.Desk.PublishAsync("rob", "  ", CancellationToken.None)).Error.Message.ShouldBe("Say what this publication is for, in up to 400 characters.");
@@ -155,7 +226,7 @@ public sealed class FigureDeskTests
 
         (await rig.Desk.PublishAsync("rob", "Mine.", CancellationToken.None)).Error.Message.ShouldBe("Somebody else published while you were looking. Read their set and try again.");
         rig.Current.Current.Version.ShouldBe(0);
-        await rig.Log.DidNotReceiveWithAnyArgs().RecordHandAsync(default!, default, default!, default, default);
+        await rig.Log.DidNotReceive().RecordHandAsync("publish-figures", Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
 
         rig.Drafts.Add(new FigureDraft("no-such-figure", 1m, "Why.", "Where.", "expert", Now));
         (await rig.Desk.PublishAsync("rob", "Mine.", CancellationToken.None)).Error.Code.ShouldBe("parameters.unknown");

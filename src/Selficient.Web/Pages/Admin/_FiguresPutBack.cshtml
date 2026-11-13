@@ -1,0 +1,10 @@
+@model Selficient.Web.Pages.Admin.FiguresModel.SetLine
+@* The publisher's hand on an earlier set. *@
+<form method="post" asp-page="/Admin/Figures" asp-page-handler="Restore" asp-route-tab="history" class="desk__restore" novalidate>
+  <input type="hidden" name="version" value="@Model.Version">
+  <div class="field">
+    <label for="restore-note-@Model.Version">Why it is being put back</label>
+    <input id="restore-note-@Model.Version" name="note" class="input" autocomplete="off" maxlength="@Selficient.Application.Figures.FigureDesk.MaxTextLength" required>
+  </div>
+  <button type="submit" class="button button--small">Put this set back</button>
+</form>

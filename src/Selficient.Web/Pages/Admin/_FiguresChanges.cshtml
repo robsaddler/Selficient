@@ -1,0 +1,21 @@
+@model Selficient.Web.Pages.Admin.FiguresModel
+@* The changes to one figure, or the changes one publication made: what moved, why, on what authority, and who drafted it. *@
+<section class="desk__changes" aria-labelledby="changes-heading">
+  <h2 id="changes-heading">@Model.ChangesTitle</h2>
+  <p class="desk__lede" data-changes-lede>@Model.ChangesLede</p>
+  <ul class="desk__drafts" data-changes>
+    @foreach (var change in Model.Changes)
+    {
+      <li class="desk__draft">
+        <h3>@change.Head</h3>
+        <p class="data">@change.Moved</p>
+        <dl class="desk__account">
+          <div><dt>Why</dt><dd>@change.Why</dd></div>
+          <div><dt>Source</dt><dd>@change.Source</dd></div>
+        </dl>
+        <p class="desk__by">@change.By</p>
+      </li>
+    }
+  </ul>
+  <a class="button button--quiet button--small" asp-page="/Admin/Figures" asp-route-tab="history">Every published set</a>
+</section>

@@ -55,8 +55,20 @@ public sealed class SqlFigureStore : IFigureStore
         IEnumerable<ChangeRow> rows = await connection.QueryAsync<ChangeRow>(
             "SELECT TOP (@take) version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at FROM dbo.figure_changes WHERE parameter_id = @parameterId ORDER BY version DESC, id DESC",
             new { take, parameterId });
-        return [.. rows.Select(static r => new FigureChange(r.version, r.parameter_id, r.value_before, r.value_after, r.reason, r.source, r.drafted_by, Utc(r.drafted_at)))];
+        return [.. rows.Select(ToChange)];
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<FigureChange>> ChangesInAsync(int version, CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection = await OpenAsync(cancellationToken);
+        IEnumerable<ChangeRow> rows = await connection.QueryAsync<ChangeRow>(
+            "SELECT version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at FROM dbo.figure_changes WHERE version = @version ORDER BY parameter_id",
+            new { version });
+        return [.. rows.Select(ToChange)];
+    }
+
+    private static FigureChange ToChange(ChangeRow r) => new(r.version, r.parameter_id, r.value_before, r.value_after, r.reason, r.source, r.drafted_by, Utc(r.drafted_at));
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<FigureDraft>> DraftsAsync(CancellationToken cancellationToken)
