@@ -975,6 +975,52 @@ public sealed class Journeys
         await trips.ScreenshotAsync(new() { Path = Screenshots.Target("stairlift-trips-wide-dark.png") });
     }
 
+    [Fact]
+    public async Task A_plan_built_from_figures_that_have_since_been_corrected_is_built_again_and_says_so()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        await page.Locator("[data-action-row=\"water-bottled-three-days\"] [data-choice=\"have\"]").CheckAsync();
+        await Until.TrueAsync(page, "() => import('/js/plan-store.js').then(store => store.getChoices()).then(choices => choices['water-bottled-three-days'] === 'have')", null);
+
+        // With the server and the plan agreeing on the set, nothing is said and nothing is rebuilt.
+        ILocator says = page.Locator("[data-figures-updated]");
+        await Expect(says).ToBeHiddenAsync();
+        await Expect(page.Locator("[data-plan]")).ToHaveAttributeAsync("data-figures-version", "0");
+        (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().version)")).ShouldBe(0);
+        (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().figures.length)")).ShouldBe(8, "the shipped figures are in the script itself");
+
+        // A server that cannot be reached changes nothing: the plan on the screen stands.
+        await page.RouteAsync("**/api/figures", route => route.AbortAsync());
+        await page.GotoAsync("/plan");
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(says).ToBeHiddenAsync();
+        await page.UnrouteAsync("**/api/figures");
+
+        // The figures are corrected: the server names a later set than the one this plan was built with.
+        await page.RouteAsync("**/api/figures", route => route.FulfillAsync(new() { ContentType = "application/json", Body = "{\"version\":7,\"publishedAt\":\"2026-11-14T09:30:00Z\",\"figures\":[]}" }));
+        await page.GotoAsync("/plan");
+        await Expect(says).ToBeVisibleAsync(new() { Timeout = 15_000 });
+        await Expect(says).ToHaveTextAsync("The figures behind your plan have been updated, and this is your plan worked out from them. Nothing you have ticked has changed.");
+        await Expect(page.Locator("[data-action-row=\"water-bottled-three-days\"] [data-choice=\"have\"]")).ToBeCheckedAsync(new() { Timeout = 10_000 });
+        (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().version)")).ShouldBe(7, "the browser keeps the last answer it had");
+
+        // It is rebuilt once, not for ever: the page stays where it is.
+        await page.WaitForTimeoutAsync(1_500);
+        await Expect(says).ToBeVisibleAsync();
+        await ShouldNotScrollSidewaysAsync(page);
+        await says.ScreenshotAsync(new() { Path = Screenshots.Target("figures-updated-phone-light.png") });
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+
+        // An answer that is not an answer is ignored.
+        await page.UnrouteAsync("**/api/figures");
+        await page.RouteAsync("**/api/figures", route => route.FulfillAsync(new() { ContentType = "application/json", Body = "{\"version\":\"nine\",\"figures\":\"lots\"}" }));
+        (await page.EvaluateAsync<bool>("() => import('/js/figures.js').then(figures => figures.ask()).then(answer => answer === null)")).ShouldBeTrue();
+        (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().version)")).ShouldBe(7);
+    }
+
     private static async Task BuildPlanAsync(IPage page)
     {
         await page.GotoAsync("/plan/start");

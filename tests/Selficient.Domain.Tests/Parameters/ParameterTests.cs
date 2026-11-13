@@ -44,7 +44,6 @@ public sealed class ParameterTests
         }
 
         ParameterRegistry.Find("no-such-figure").ShouldBeNull();
-        ParameterRegistry.Find(DemandFigures.DrinkingLitresId).ShouldNotBeNull().BrowserNeeds.ShouldBeTrue("the browser's own arithmetic divides by it");
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public sealed class ParameterTests
         ParameterDefinition storm = ParameterRegistry.Find("scenario.storm.mobilenetwork-from-1.share")!;
         ParameterDefinition waterCut = ParameterRegistry.Find("scenario.water.mainswater-from-1.last-day")!;
 
-        lift.ShouldBe(new ParameterDefinition("stairlift-batteries.stock", "Getting upstairs", "The stairlift's own batteries: how much there is", "a way to the bed and the bathroom", 2m, 0m, 100m, "Acorn Stairlifts: more than ten return journeys on a charge, about two days at four or five a day", "On the board, under getting upstairs")
+        lift.ShouldBe(new ParameterDefinition("stairlift-batteries.stock", "Getting upstairs", "The stairlift's own batteries: how much there is", "days", 2m, 0m, 100m, "Acorn Stairlifts: more than ten return journeys on a charge, about two days at four or five a day", "On the board, under getting upstairs")
         {
             HouseholdQuestion = "How many days of trips to bed and the bathroom does your stairlift make in a power cut?",
         });
@@ -78,7 +77,7 @@ public sealed class ParameterTests
         ParameterRegistry.Find("medicine-stock.stock").ShouldBeNull();
         ParameterRegistry.Find("gravity-water-filter.per-day")!.Unit.ShouldBe("litres a day");
         ParameterRegistry.Find("water-butt.lead-days")!.WholeNumber.ShouldBeTrue();
-        ParameterRegistry.All.Count(p => p.HouseholdMayOverride).ShouldBe(7);
+        ParameterRegistry.All.Count(p => p.HouseholdMayOverride).ShouldBe(8);
     }
 
     [Fact]

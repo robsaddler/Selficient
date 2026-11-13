@@ -28,9 +28,6 @@ public sealed record ParameterDefinition(string Id, string Group, string Name, s
     /// <summary>Whether a household may put its own figure here, for its own plan only.</summary>
     public bool HouseholdMayOverride => HouseholdQuestion is not null;
 
-    /// <summary>Whether the script in the browser works from this figure too, so the published file carries it.</summary>
-    public bool BrowserNeeds { get; init; }
-
     /// <summary>Whether the figure is counted in whole things: days, not parts of a day.</summary>
     public bool WholeNumber { get; init; }
 
@@ -42,7 +39,7 @@ public sealed record ParameterDefinition(string Id, string Group, string Name, s
 public static class ParameterRegistry
 {
     /// <summary>Every parameter, in the order a person would read them: what people need, what meets it, what happens.</summary>
-    public static IReadOnlyList<ParameterDefinition> All { get; } = [.. DemandFigures.Definitions, .. ProviderFigures.Definitions, .. ScenarioFigures.Definitions, .. Selficient.Domain.Plans.Rules.RuleFigures.Definitions];
+    public static IReadOnlyList<ParameterDefinition> All { get; } = [.. DemandFigures.Definitions, Assumptions.Definition, .. ProviderFigures.Definitions, .. ScenarioFigures.Definitions, .. Selficient.Domain.Plans.Rules.RuleFigures.Definitions];
 
     private static readonly FrozenDictionary<string, ParameterDefinition> ById = All.ToFrozenDictionary(static parameter => parameter.Id, StringComparer.Ordinal);
 

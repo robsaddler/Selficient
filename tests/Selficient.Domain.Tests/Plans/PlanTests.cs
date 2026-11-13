@@ -40,16 +40,6 @@ public sealed class PlanTests
     }
 
     [Fact]
-    public void Provisions_add_up_and_refuse_null()
-    {
-        Provisions sum = new Provisions(WaterLitres: 10m, FoodDays: 1m).Plus(new Provisions(LightHours: 5m, FoodDays: 2m));
-
-        sum.ShouldBe(new Provisions(10m, 3m, 5m));
-        Provisions.None.ShouldBe(new Provisions());
-        Should.Throw<ArgumentNullException>(() => Provisions.None.Plus(null!));
-    }
-
-    [Fact]
     public void Tier_costs_are_the_sum_of_their_actions()
     {
         PlanAction a = Stub("a", Tier.ThisWeek, 10m, 20m);
@@ -102,7 +92,7 @@ public sealed class PlanTests
     }
 
     private static PlanAction Stub(string id, Tier tier, decimal from, decimal to) =>
-        new(ActionId.From(id), tier, "Title.", "Why.", MoneyRange.Pounds(from, to), new HashSet<RiskKind>(), Provisions.None);
+        new(ActionId.From(id), tier, "Title.", "Why.", MoneyRange.Pounds(from, to), new HashSet<RiskKind>());
 
     private sealed class Emits(int order, params PlanAction[] actions) : IPlanRule
     {

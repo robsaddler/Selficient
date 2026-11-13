@@ -26,7 +26,7 @@ public sealed record DemandFigures(decimal DrinkingLitres, decimal HeatwaveExtra
     /// <summary>The figures as parameters, with the values the product ships with.</summary>
     public static IReadOnlyList<ParameterDefinition> Definitions { get; } =
     [
-        new(DrinkingLitresId, Group, "Water a person drinks and cooks with in a day", "litres", Litres.DrinkingPerPersonPerDay, 1m, 10m, "Be Ready: 3 litres a person a day", Board) { BrowserNeeds = true },
+        new(DrinkingLitresId, Group, "Water a person drinks and cooks with in a day", "litres", Litres.DrinkingPerPersonPerDay, 1m, 10m, "Be Ready: 3 litres a person a day", Board),
         new("demand.heatwave-extra-litres", Group, "Extra water a person drinks in a day of a heatwave", "litres", Demand.HeatwaveExtraLitresPerPersonPerDay, 0m, 5m, "UKHSA heat-health guidance", Board),
         new("demand.pet-water-litres", Group, "Water a household's pets drink in a day", "litres", Demand.PetWaterLitresPerDay, 0m, 20m, "Plan", Board),
         new("demand.sanitation-litres", Group, "Water a person uses to flush and wash hands in a day when the taps are dry", "litres", Demand.SanitationLitresPerPersonPerDay, 2m, 60m, "Water UK; one short flush and hand washing", Board),
@@ -54,15 +54,26 @@ public static class ProviderFigures
 {
     private const string OwnFigure = "Household's own figure";
 
+    // What a stock or a flow is counted in, for the needs that are quantities; every other stock is so many days.
+    private static readonly Dictionary<NeedId, string> Counted = new()
+    {
+        [NeedId.DrinkingWater] = "litres",
+        [NeedId.Sanitation] = "litres",
+        [NeedId.Food] = "person-days of food",
+        [NeedId.Light] = "lit hours",
+    };
+
+    private static string CountedIn(Provider provider) => Counted.GetValueOrDefault(provider.Meets[0].Need, "days");
+
     private static readonly IReadOnlyList<Figure> Figures =
     [
-        new("stock", "how much there is", static p => p.Stock is { } stock && p.Source != OwnFigure ? stock.Quantity : null, static (p, v) => p with { Stock = p.Stock! with { Quantity = v } }, static p => Needs.Of(p.Meets[0].Need).Unit + (p.Stock!.PerPerson ? " a person" : string.Empty), Wide),
-        new("per-day", "how much it gives in a day", static p => p.Meets.Count > 0 && p.Meets[0].PerDay > 0m ? p.Meets[0].PerDay : null, static (p, v) => p with { Meets = [p.Meets[0] with { PerDay = v }, .. p.Meets.Skip(1)] }, static p => Needs.Of(p.Meets[0].Need).Unit + " a day", Wide),
+        new("stock", "how much there is", static p => p.Stock is { } stock && p.Source != OwnFigure ? stock.Quantity : null, static (p, v) => p with { Stock = p.Stock! with { Quantity = v } }, static p => CountedIn(p) + (p.Stock!.PerPerson ? " a person" : string.Empty), Wide),
+        new("per-day", "how much it gives in a day", static p => p.Meets.Count > 0 && p.Meets[0].PerDay > 0m ? p.Meets[0].PerDay : null, static (p, v) => p with { Meets = [p.Meets[0] with { PerDay = v }, .. p.Meets.Skip(1)] }, static p => CountedIn(p) + " a day", Wide),
         new("winter-wh", "energy it draws on a winter day", static p => p.Load?.WinterWhPerDay, static (p, v) => p with { Load = p.Load! with { WinterWhPerDay = v } }, static _ => "watt-hours", static _ => 100_000m),
         new("summer-wh", "energy it draws on a summer day", static p => p.Load?.SummerWhPerDay, static (p, v) => p with { Load = p.Load! with { SummerWhPerDay = v } }, static _ => "watt-hours", static _ => 100_000m),
         new("burst-w", "power it needs at once", static p => p.Load?.BurstW, static (p, v) => p with { Load = p.Load! with { BurstW = v } }, static _ => "watts", static _ => 20_000m),
-        new("winter-flow", "what it gives on a winter day", static p => p.Flow?.WinterPerDay, static (p, v) => p with { Flow = p.Flow! with { WinterPerDay = v } }, static p => Needs.Of(p.Meets[0].Need).Unit + " a day", Wide),
-        new("summer-flow", "what it gives on a summer day", static p => p.Flow?.SummerPerDay, static (p, v) => p with { Flow = p.Flow! with { SummerPerDay = v } }, static p => Needs.Of(p.Meets[0].Need).Unit + " a day", Wide),
+        new("winter-flow", "what it gives on a winter day", static p => p.Flow?.WinterPerDay, static (p, v) => p with { Flow = p.Flow! with { WinterPerDay = v } }, static p => CountedIn(p) + " a day", Wide),
+        new("summer-flow", "what it gives on a summer day", static p => p.Flow?.SummerPerDay, static (p, v) => p with { Flow = p.Flow! with { SummerPerDay = v } }, static p => CountedIn(p) + " a day", Wide),
         new("lead-days", "days before it gives anything", static p => p.Flow?.LeadTimeDays, static (p, v) => p with { Flow = p.Flow! with { LeadTimeDays = (int)v } }, static _ => "whole days", static _ => 365m),
         new("store-wh", "energy it holds", static p => p.Store?.StoreWh, static (p, v) => p with { Store = p.Store! with { StoreWh = v } }, static _ => "watt-hours", static _ => 200_000m),
         new("usable", "share of what it holds that can be drawn", static p => p.Store?.UsableFraction, static (p, v) => p with { Store = p.Store! with { UsableFraction = v } }, static _ => "as a share, 0 to 1", static _ => 1m),

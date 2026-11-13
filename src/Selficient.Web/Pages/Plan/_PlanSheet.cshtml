@@ -1,6 +1,7 @@
 @using Selficient.Web.Formatting
 @model Selficient.Web.Pages.Plan.IndexModel
 @inject Selficient.Application.Accounts.AccountSignIn Accounts
+@inject Selficient.Application.Figures.ICurrentFigures CurrentFigures
 @{
     var planned = Model.Planned!;
     var household = planned.Plan.Profile.Household;
@@ -23,7 +24,10 @@
 *@
 <div class="plan-flow">
 
-<section class="hero hero--plan night" aria-labelledby="plan-heading" data-plan data-hero>
+@* Shown by figures.js only on the page that follows a rebuild: the figures were corrected, and this is the plan from the corrected ones. *@
+<p class="callout" role="status" data-figures-updated hidden>@Selficient.Web.Pages.Plan.FigureCopy.Updated(CurrentFigures.PublishedAt)</p>
+
+<section class="hero hero--plan night" aria-labelledby="plan-heading" data-plan data-hero data-figures-version="@planned.Plan.Profile.Figures.Version">
   <div class="contour-band" aria-hidden="true" data-elevation="@(planned.Elevation is { } el ? el.Metres.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "0")"></div>
   <div class="glow" aria-hidden="true"></div>
   <div class="hero__verdict">
@@ -74,9 +78,9 @@
       <label for="assume-cash">@Selficient.Web.Pages.Plan.AmountCopy.CashRateLabel</label>
       <div class="assumptions__row">
         <span aria-hidden="true">£</span>
-        <input id="assume-cash" class="input input--short" type="number" inputmode="numeric" min="@Selficient.Domain.Resilience.Assumptions.MinCashPoundsPerPersonPerDay" max="@Selficient.Domain.Resilience.Assumptions.MaxCashPoundsPerPersonPerDay" step="1" autocomplete="off" value="@assumed.CashPoundsPerPersonPerDay" data-assume-cash data-assume-default="@Selficient.Domain.Resilience.Assumptions.Default.CashPoundsPerPersonPerDay" aria-describedby="assume-cash-says">
+        <input id="assume-cash" class="input input--short" type="number" inputmode="numeric" min="@Selficient.Domain.Resilience.Assumptions.MinCashPoundsPerPersonPerDay" max="@Selficient.Domain.Resilience.Assumptions.MaxCashPoundsPerPersonPerDay" step="1" autocomplete="off" value="@assumed.CashPoundsPerPersonPerDay" data-assume-cash data-assume-default="@assumed.PlansCashPoundsPerPersonPerDay" aria-describedby="assume-cash-says">
         <span>pounds a person a day</span>
-        <button type="button" class="tally__button" data-assume-reset>@Selficient.Web.Pages.Plan.AmountCopy.CashRateReset</button>
+        <button type="button" class="tally__button" data-assume-reset>@Selficient.Web.Pages.Plan.AmountCopy.CashRateReset(assumed)</button>
       </div>
       <p class="field__hint" id="assume-cash-says" data-assume-cash-says>@Selficient.Web.Pages.Plan.AmountCopy.CashRateSays(assumed, household.Size.Count)</p>
     </div>

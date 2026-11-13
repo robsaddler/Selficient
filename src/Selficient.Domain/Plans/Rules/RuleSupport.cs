@@ -9,8 +9,8 @@ internal static class RuleSupport
 {
     internal static IReadOnlySet<RiskKind> Mitigates(params RiskKind[] kinds) => new HashSet<RiskKind>(kinds);
 
-    internal static PlanAction Action(string id, Tier tier, string title, string why, MoneyRange cost, IReadOnlySet<RiskKind> mitigates, Provisions? provides = null, ActionLink? link = null) =>
-        new(ActionId.From(id), tier, title, why, cost, mitigates, provides ?? Provisions.None, link);
+    internal static PlanAction Action(string id, Tier tier, string title, string why, MoneyRange cost, IReadOnlySet<RiskKind> mitigates, ActionLink? link = null) =>
+        new(ActionId.From(id), tier, title, why, cost, mitigates, link);
 
     /// <summary>What an action costs for this household: the price of one under its figures, as many times as it needs.</summary>
     internal static MoneyRange Price(Selficient.Domain.Households.HouseholdProfile profile, string action, decimal times = 1m) =>

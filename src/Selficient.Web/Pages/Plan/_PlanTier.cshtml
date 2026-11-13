@@ -43,10 +43,7 @@
           <div class="choice" role="group" aria-labelledby="action-@id">
             <label class="choice__pill" data-choice-pill="have">
               <input type="checkbox" class="choice__input" name="tick" value="@id" data-choice="have"
-                     data-action-id="@id"
-                     data-water="@action.Provides.WaterLitres.ToString(culture)"
-                     data-food="@action.Provides.FoodDays.ToString(culture)"
-                     data-light="@action.Provides.LightHours.ToString(culture)">
+                     data-action-id="@id">
               @* A counted action the household has part of says so here: plan-page.js swaps the words and marks the pill, so a figure below what the plan asks is never shown as nothing. *@
               <span data-have-says="all">@Selficient.Web.Pages.Plan.AmountCopy.HaveAll</span><span data-have-says="part" hidden>@Selficient.Web.Pages.Plan.AmountCopy.HaveSome</span>
             </label>

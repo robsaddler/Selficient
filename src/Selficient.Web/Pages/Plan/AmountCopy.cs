@@ -48,15 +48,19 @@ public static class AmountCopy
     public const string CashRateLabel = "What a person needs in cash for a day, when only cash will do";
 
     /// <summary>The button that puts the plan's own rate back.</summary>
-    public static string CashRateReset => string.Create(CultureInfo.InvariantCulture, $"Use the plan's £{Assumptions.Default.CashPoundsPerPersonPerDay}");
+    public static string CashRateReset(Assumptions assumed)
+    {
+        ArgumentNullException.ThrowIfNull(assumed);
+        return string.Create(CultureInfo.InvariantCulture, $"Use the plan's £{assumed.PlansCashPoundsPerPersonPerDay}");
+    }
 
     /// <summary>What the rate comes to for this household, under the box.</summary>
     public static string CashRateSays(Assumptions assumed, int people)
     {
         ArgumentNullException.ThrowIfNull(assumed);
-        decimal tenDays = 10m * people * assumed.CashPoundsPerPersonPerDay;
+        decimal tenDays = assumed.CashDays * people * assumed.CashPoundsPerPersonPerDay;
         string whose = people == 1 ? "you" : string.Create(CultureInfo.InvariantCulture, $"the {people} of you");
-        return string.Create(CultureInfo.InvariantCulture, $"At £{assumed.CashPoundsPerPersonPerDay} a person a day, ten days of cash for {whose} is {tenDays.ToString("C0", Selficient.Web.Composition.SelficientCulture.EnGb)}.");
+        return string.Create(CultureInfo.InvariantCulture, $"At £{assumed.CashPoundsPerPersonPerDay} a person a day, {Selficient.Domain.Parameters.Say.Days(assumed.CashDays)} of cash for {whose} is {tenDays.ToString("C0", Selficient.Web.Composition.SelficientCulture.EnGb)}.");
     }
 
     /// <summary>How far the household's figure goes towards an action, as the line under the action says it.</summary>

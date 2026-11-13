@@ -173,7 +173,7 @@ public sealed class IndexModel : PageModel
             rate = int.TryParse(posted.CashRate, NumberStyles.None, CultureInfo.InvariantCulture, out int pounds) ? pounds : 0;
         }
 
-        Result<Selficient.Domain.Resilience.Assumptions> assumed = Selficient.Domain.Resilience.Assumptions.Create(rate);
+        Result<Selficient.Domain.Resilience.Assumptions> assumed = Selficient.Domain.Resilience.Assumptions.Create(rate, planned.Plan.Profile.Figures);
         if (assumed.IsFailure)
         {
             return Result.Failure<BoardSet>(assumed.Error);

@@ -32,8 +32,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             $"{N(litres)} litres of sealed bottled water",
             $"{Say.Capital(Say.Lasts(figures["water-bottled-three-days.stock"], needs.DrinkingLitres))} of drinking water for {People(people)}. That is {N(bottles)} of the big {Say.Number(bottle)}-litre bottles, and it keeps for two years.",
             Price(profile, "water-bottled-three-days", litres),
-            Mitigates(RiskKind.WaterInterruption, RiskKind.StormPowerCut),
-            new Provisions(WaterLitres: litres));
+            Mitigates(RiskKind.WaterInterruption, RiskKind.StormPowerCut));
 
         yield return Action(
             "food-no-cook-three-days",
@@ -41,8 +40,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             Say.Capital($"{Say.Days(foodDays)} of food that needs no fridge or cooking"),
             "Tinned meat, fish, beans and fruit, oats, nuts and biscuits, so a cut does not mean a cold house and a hungry one. Buy what you already eat.",
             Price(profile, "food-no-cook-three-days", people),
-            Mitigates(RiskKind.StormPowerCut, RiskKind.RegionalDisruption),
-            new Provisions(FoodDays: foodDays));
+            Mitigates(RiskKind.StormPowerCut, RiskKind.RegionalDisruption));
 
         int failureLights = profile.Dwelling.Storeys + 1;
         yield return Action(
@@ -51,8 +49,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             $"{N(failureLights)} plug-in power-failure torches",
             "They charge in the socket and switch on the instant the power drops, so nobody is on a dark stair. One for every hall and stairwell and one in the kitchen.",
             Price(profile, "power-failure-lights", failureLights),
-            Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: figures[RuleFigures.LightHours("power-failure-lights")] * failureLights));
+            Mitigates(RiskKind.StormPowerCut));
 
         yield return Action(
             "headtorches",
@@ -60,8 +57,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             $"{N(people)} headtorches",
             "Hands-free light is worth more than any lantern. One each, with cells that are easy to find.",
             Price(profile, "headtorches", people),
-            Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: figures[RuleFigures.LightHours("headtorches")] * people));
+            Mitigates(RiskKind.StormPowerCut));
 
         int banks = Math.Max(2, (people + 1) / 2);
         yield return Action(
@@ -122,8 +118,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             "Tea lights in jars, a few pillar candles, lighters and matches",
             "A third line of light that never goes off, and matches light a gas hob in a cut. Hard surfaces only, never on the stairs, never left burning in a bedroom.",
             Price(profile, "candles-and-matches"),
-            Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: figures[RuleFigures.LightHours("candles-and-matches")]));
+            Mitigates(RiskKind.StormPowerCut));
 
         yield return Action(
             "save-emergency-numbers",

@@ -45,20 +45,6 @@ public readonly partial record struct ActionId
     private static partial Regex KebabCase();
 }
 
-/// <summary>What an action adds to the household's ability to stand on its own.</summary>
-public sealed record Provisions(decimal WaterLitres = 0m, decimal FoodDays = 0m, decimal LightHours = 0m)
-{
-    /// <summary>Adds nothing.</summary>
-    public static Provisions None { get; } = new();
-
-    /// <summary>The sum of two sets of provisions.</summary>
-    public Provisions Plus(Provisions other)
-    {
-        ArgumentNullException.ThrowIfNull(other);
-        return new Provisions(WaterLitres + other.WaterLitres, FoodDays + other.FoodDays, LightHours + other.LightHours);
-    }
-}
-
 /// <summary>
 /// The official place an action is done: a government service, never a shop. The address is a
 /// constant in the rules, so nothing a household typed can become a link.
@@ -73,7 +59,6 @@ public sealed record PlanAction(
     string Why,
     MoneyRange Cost,
     IReadOnlySet<RiskKind> Mitigates,
-    Provisions Provides,
     ActionLink? Link = null);
 
 /// <summary>Contributes actions for a household. Rules are open for extension: add a class, not a branch.</summary>

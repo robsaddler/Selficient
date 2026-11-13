@@ -91,6 +91,15 @@ public static class FloodCopy
     }
 }
 
+/// <summary>What the plan says when it has just been built again because the figures behind it were corrected.</summary>
+public static class FigureCopy
+{
+    /// <summary>The sentence, with the day the figures were published where there is one.</summary>
+    public static string Updated(DateTimeOffset? publishedAt) => publishedAt is { } at
+        ? $"The figures behind your plan were updated on {at.UtcDateTime.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))}, and this is your plan worked out from them. Nothing you have ticked has changed."
+        : "The figures behind your plan have been updated, and this is your plan worked out from them. Nothing you have ticked has changed.";
+}
+
 /// <summary>What the wizard says around its form, and the link on the plan that leads back to it.</summary>
 public static class WizardCopy
 {

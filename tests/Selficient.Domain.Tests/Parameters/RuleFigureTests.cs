@@ -33,9 +33,7 @@ public sealed class RuleFigureTests
         (high.Name, high.Default, high.Max).ShouldBe(("Rooftop solar with a battery and backup: the most it costs", 17000m, 170_000m));
         ParameterRegistry.Find("price.long-reach-lighter-for-gas-hob.high")!.Max.ShouldBe(100m, "a cheap thing still has room to be corrected");
         ParameterRegistry.All.Count(p => p.Group == "What things cost").ShouldBe(72);
-        ParameterRegistry.All.Count(p => p.Group == "What the plan asks for").ShouldBe(8);
-        ParameterRegistry.Find(RuleFigures.WaterFilterDays)!.WholeNumber.ShouldBeTrue();
-        RuleFigures.LightHours("headtorches").ShouldBe("plan.light-hours.headtorches");
+        ParameterRegistry.All.Count(p => p.Group == "What the plan asks for").ShouldBe(2);
 
         ParameterSet.Create(1, new Dictionary<string, decimal> { ["price.headtorches.low"] = 40m }).Error.Message.ShouldBe("A headtorch cannot cost more at its least than at its most.");
         ParameterSet.Create(1, new Dictionary<string, decimal> { ["price.headtorches.low"] = 28m }).IsSuccess.ShouldBeTrue("the same at both ends is a fixed price");
@@ -68,23 +66,16 @@ public sealed class RuleFigureTests
             ("water-bottled-three-days.stock", 12m), (RuleFigures.BottleLitres, 1.5m), ("food-no-cook-three-days.stock", 5m), ("no-flush-toilet-kit.stock", 60m),
             ("formula-and-nappies.stock", 21m), ("stairlift-batteries.stock", 3m), (RuleFigures.WaterCanLitres, 20m), ("bath-liner.stock", 300m), ("water-butt.stock", 250m),
             ("food-one-month.stock", 28m), ("pet-food-two-weeks.stock", 7m), ("butane-cartridge-stove.stock", 8m), ("rooftop-solar-and-battery.store-wh", 10_000m),
-            ("gas-boiler.winter-wh", 900m), ("gravity-water-filter.per-day", 30m), (RuleFigures.WaterFilterDays, 10m), ("satellite-internet-on-standby.winter-wh", 700m),
-            (RuleFigures.LightHours("power-failure-lights"), 4m), (RuleFigures.LightHours("headtorches"), 30m), (RuleFigures.LightHours("candles-and-matches"), 12m),
-            (RuleFigures.LightHours("rechargeable-lanterns"), 50m), (RuleFigures.LightHours("portable-power-station"), 80m));
+            ("gas-boiler.winter-wh", 900m), ("gravity-water-filter.per-day", 30m), ("satellite-internet-on-standby.winter-wh", 700m));
         HouseholdProfile rob = Profiles.RobsHouse();
         HouseholdProfile bungalow = Profiles.FloodZoneBungalow();
 
         PlanAction water = Act(new BaselineChecklistRule(), rob, "water-bottled-three-days", set);
         water.Title.ShouldBe("48 litres of sealed bottled water");
         water.Why.ShouldBe("Four days of drinking water for 4 people. That is 32 of the big 1.5-litre bottles, and it keeps for two years.");
-        water.Provides.WaterLitres.ShouldBe(48m);
         PlanAction food = Act(new BaselineChecklistRule(), rob, "food-no-cook-three-days", set);
         food.Title.ShouldBe("Five days of food that needs no fridge or cooking");
-        food.Provides.FoodDays.ShouldBe(5m);
         Act(new BaselineChecklistRule(), rob, "no-flush-toilet-kit", set).Title.ShouldBe("Toilet liners and gelling powder for 4 people for five days");
-        Act(new BaselineChecklistRule(), rob, "power-failure-lights", set).Provides.LightHours.ShouldBe(16m, "four torches at four hours");
-        Act(new BaselineChecklistRule(), rob, "headtorches", set).Provides.LightHours.ShouldBe(120m);
-        Act(new BaselineChecklistRule(), rob, "candles-and-matches", set).Provides.LightHours.ShouldBe(12m);
 
         Act(new InfantsRule(), rob with { Particulars = new Particulars(false, false, false, 1) }, "formula-and-nappies", set).Title.ShouldBe("Three weeks of nappies, wipes and, if you use it, formula");
         Act(new StairliftRule(), rob with { Circumstances = Circumstances.None with { Stairlift = Stairlift.Battery } }, "downstairs-in-a-power-cut", set).Why.ShouldStartWith("The batteries are about three days of trips to bed and the bathroom.");
@@ -92,27 +83,22 @@ public sealed class RuleFigureTests
         PlanAction cans = Act(new WaterStoreRule(), rob, "water-cans", set);
         cans.Title.ShouldBe("4 food-grade 20-litre water cans with taps");
         cans.Why.ShouldStartWith("80 litres is about 6 days of drinking water for 4 people.");
-        cans.Provides.WaterLitres.ShouldBe(80m);
         Act(new WaterStoreRule(), rob, "bath-liner", set).Why.ShouldStartWith("It holds about 300 litres and fills from the tap in twenty minutes,");
         Act(new WaterStoreRule(), rob, "water-butt", set).Title.ShouldBe("A 250-litre water butt on a downpipe");
         Act(new WaterStoreRule(), rob, "water-butt", ParameterSet.Default).Title.ShouldBe("A 210-litre water butt on a downpipe");
 
         PlanAction month = Act(new FoodStoreRule(), bungalow, "food-one-month", set);
         month.Title.ShouldBe("Four weeks of food, built by buying one extra of what you already eat");
-        month.Provides.FoodDays.ShouldBe(23m, "twenty-eight days, less the five the first shelf already holds");
         PlanAction pets = Act(new FoodStoreRule(), bungalow, "pet-food-two-weeks", set);
         pets.Title.ShouldBe("A week of pet food, and any medication, kept ahead of the bag in use");
         pets.Why.ShouldStartWith("Buy the next bag or box before the last one is opened, so there is always a week in the house");
 
         Act(new CookingRule(), rob, "butane-cartridge-stove", set).Title.ShouldBe("A butane cartridge stove and eight cartridges");
-        Act(new LanternRule(), rob, "rechargeable-lanterns", set).Provides.LightHours.ShouldBe(150m, "three lanterns at fifty hours");
         Act(new SolarQuotesRule(), rob, "rooftop-solar-and-battery", set).Title.ShouldBe("Rooftop solar with a 10 kWh battery and whole-home backup");
         Act(new SolarQuotesRule(), rob, "rooftop-solar-and-battery", ParameterSet.Default).Title.ShouldBe("Rooftop solar with a 13.5 kWh battery and whole-home backup");
-        Act(new PowerStationRule(), rob, "portable-power-station", set).Provides.LightHours.ShouldBe(80m);
         Act(new PowerStationRule(), rob, "boiler-plug-and-socket", set).Why.ShouldStartWith("A boiler's pump and controls use about 900 watt-hours on a winter day, which a power station can carry.");
         PlanAction filter = Act(new WaterFilterRule(), rob, "gravity-water-filter", set);
         filter.Why.ShouldStartWith("Turns the water butt, a stream or rain into drinking water at about 30 litres a day, indefinitely.");
-        filter.Provides.WaterLitres.ShouldBe(300m);
         Act(new BusinessCommsRule(), rob, "satellite-internet-on-standby", set).Why.ShouldContain("It uses about 700 watt-hours a day, which a power station can carry for a while.");
     }
 

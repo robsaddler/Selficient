@@ -227,6 +227,7 @@ public sealed class FigureDeskTests
         CurrentFigures current = new(store);
         current.Current.ShouldBeSameAs(ParameterSet.Default);
         current.Published.ShouldBeNull();
+        current.PublishedAt.ShouldBeNull();
         current.IsLoaded.ShouldBeFalse();
 
         store.CurrentAsync(Arg.Any<CancellationToken>()).Returns((PublishedFigures?)null);
@@ -241,6 +242,7 @@ public sealed class FigureDeskTests
         }));
         await current.ReloadAsync(CancellationToken.None);
         current.Current.Version.ShouldBe(4);
+        current.PublishedAt.ShouldBe(Now);
         current.Current["stairlift-batteries.stock"].ShouldBe(3m);
         current.Current["demand.drinking-litres"].ShouldBe(3m);
         current.Dropped.ShouldBe([
@@ -259,6 +261,7 @@ public sealed class FigureDeskTests
         current.Dropped.ShouldHaveSingleItem().ShouldBe("A headtorch cannot cost more at its least than at its most. No correction in this set was applied.");
 
         new ShippedFigures().Current.ShouldBeSameAs(ParameterSet.Default);
+        new ShippedFigures().PublishedAt.ShouldBeNull();
         Should.Throw<ArgumentNullException>(() => new CurrentFigures(null!));
     }
 

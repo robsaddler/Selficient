@@ -16,9 +16,6 @@ public static class RuleFigures
     /// <summary>The size of the bottle the plan counts bottled water in, in litres.</summary>
     public const string BottleLitres = "plan.bottle-litres";
 
-    /// <summary>The days of a water filter's output the headline figure counts.</summary>
-    public const string WaterFilterDays = "plan.water-filter-days";
-
     private const string PriceGroup = "What things cost";
     private const string PlanGroup = "What the plan asks for";
     private const string Seen = "Shop prices seen at the catalogue's last review";
@@ -74,16 +71,7 @@ public static class RuleFigures
         }),
         new(WaterCanLitres, PlanGroup, "The size of a water can the plan asks for", "litres", 25m, 5m, 50m, "The common food-grade can", "In the plan, in the water cans action and the figure a household gives for them"),
         new(BottleLitres, PlanGroup, "The size of the bottle the plan counts bottled water in", "litres", 2m, 0.5m, 10m, "The large supermarket bottle", "In the plan, in the bottled water action"),
-        new(WaterFilterDays, PlanGroup, "Days of a water filter's output the headline figure counts", "whole days", 14m, 1m, 90m, "Plan", "In the plan, in what the water filter adds to the headline figure") { WholeNumber = true },
-        new(LightHours("power-failure-lights"), PlanGroup, "Hours of light one plug-in power-failure torch adds to the headline figure", "hours", 6m, 0m, 200m, "Makers' run times", "In the plan, in the headline figure"),
-        new(LightHours("headtorches"), PlanGroup, "Hours of light one headtorch adds to the headline figure", "hours", 20m, 0m, 200m, "Makers' run times", "In the plan, in the headline figure"),
-        new(LightHours("rechargeable-lanterns"), PlanGroup, "Hours of light one lantern adds to the headline figure", "hours", 60m, 0m, 500m, "Makers' run times at a useful brightness", "In the plan, in the headline figure"),
-        new(LightHours("candles-and-matches"), PlanGroup, "Hours of light the candles add to the headline figure", "hours", 10m, 0m, 200m, "Plan", "In the plan, in the headline figure"),
-        new(LightHours("portable-power-station"), PlanGroup, "Hours of light a power station adds to the headline figure", "hours", 100m, 0m, 1000m, "Plan", "In the plan, in the headline figure"),
     ];
-
-    /// <summary>The id of the figure for the hours of light an action adds to the headline figure.</summary>
-    public static string LightHours(string action) => $"plan.light-hours.{action}";
 
     /// <summary>What an action costs under these figures: the price of one, as many times as the household needs.</summary>
     internal static MoneyRange Price(ParameterSet figures, string action, decimal times = 1m) =>

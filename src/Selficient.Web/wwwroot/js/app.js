@@ -23,6 +23,7 @@ import { initSync } from "selficient/sync.js";
 import { initPasskeys } from "selficient/passkeys.js";
 import { initShortlist } from "selficient/shortlist.js";
 import { initWizard } from "selficient/wizard.js";
+import { initFigures } from "selficient/figures.js";
 
 if (!customElements.get("days-ready")) {
   customElements.define("days-ready", DaysReady);
@@ -34,6 +35,7 @@ initTheme(document);
 initDialogs(document);
 void initPlanPage(document);
 void initWizard(document);
+void initFigures(document);
 initBoard(document);
 initVerdictBar(document);
 initLocate(document);

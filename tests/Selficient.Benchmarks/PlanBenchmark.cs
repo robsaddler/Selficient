@@ -3,7 +3,7 @@ using BenchmarkDotNet.Running;
 using Selficient.Application.Composition;
 using Selficient.Domain.Households;
 using Selficient.Domain.Plans;
-using Selficient.Domain.Readiness;
+using Selficient.Domain.Resilience;
 using Selficient.Domain.Risks;
 using Selficient.TestKit;
 
@@ -27,16 +27,17 @@ public class PlanBenchmark
     [Benchmark(Baseline = true)]
     public Plan GeneratePlan() => _builder.Build(_profile, _risks.Run(_profile)).Value;
 
-    /// <summary>Tick every action and recompute Days Ready after each, as the checklist page will.</summary>
+    /// <summary>Tick every action and work the storm board out again after each, as the plan page does.</summary>
     [Benchmark]
     public decimal TickEverything()
     {
-        Inventory inventory = Inventory.Baseline(_profile.Household);
+        ResilienceProfile resilience = ResilienceProfile.FromProfile(_profile);
+        HashSet<string> held = [];
         decimal last = 0m;
         foreach (PlanAction action in _plan.Actions)
         {
-            inventory = inventory.With(action);
-            last = inventory.DaysReady(_profile.Household).Value;
+            held.Add(action.Id.Value);
+            last = OutageBoard.Simulate(resilience, held, Scenarios.Storm, Season.Winter).DaysReady;
         }
 
         return last;

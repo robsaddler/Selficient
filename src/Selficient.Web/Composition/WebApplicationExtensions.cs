@@ -56,6 +56,7 @@ public static class WebApplicationExtensions
         app.MapTilesEndpoints();
         app.MapServiceWorkerEndpoint();
         app.MapAiPromptsEndpoint();
+        app.MapFiguresEndpoint();
         app.MapGeoEndpoints();
         app.MapOutEndpoint();
         app.MapSeoEndpoints();

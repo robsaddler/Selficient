@@ -17,25 +17,62 @@ public sealed record Assumptions
     /// <summary>The most a person's day can be said to cost, in pounds.</summary>
     public const int MaxCashPoundsPerPersonPerDay = 100;
 
-    private Assumptions(int cashPoundsPerPersonPerDay) => CashPoundsPerPersonPerDay = cashPoundsPerPersonPerDay;
+    /// <summary>The id of the figure for what the plan takes a person's day to cost in cash.</summary>
+    public const string CashFigure = "assumed.cash-pounds-a-person-a-day";
 
-    /// <summary>What a person's essentials cost a day when only cash will do, in pounds.</summary>
+    private const int ShippedCashPounds = 10;
+
+    private Assumptions(int cashPoundsPerPersonPerDay, int plansOwn, decimal cashDays)
+    {
+        CashPoundsPerPersonPerDay = cashPoundsPerPersonPerDay;
+        PlansCashPoundsPerPersonPerDay = plansOwn;
+        CashDays = cashDays;
+    }
+
+    /// <summary>What a person's essentials cost a day when only cash will do, in pounds: the household's figure, or the plan's.</summary>
     public int CashPoundsPerPersonPerDay { get; }
 
-    /// <summary>The plan's own figures: ten pounds a person a day, so ten days for four people is £400.</summary>
-    public static Assumptions Default { get; } = new(10);
+    /// <summary>The plan's own figure for the same thing, which the household can go back to.</summary>
+    public int PlansCashPoundsPerPersonPerDay { get; }
 
-    /// <summary>The household's own figures, or the plan's where it gave none; a figure outside the range is refused with a sentence.</summary>
-    public static Result<Assumptions> Create(int? cashPoundsPerPersonPerDay)
+    /// <summary>The days of cash the plan asks a household to hold.</summary>
+    public decimal CashDays { get; }
+
+    /// <summary>The figure as a parameter: the plan's own, which an expert may correct and any household may replace with its own.</summary>
+    public static Selficient.Domain.Parameters.ParameterDefinition Definition { get; } =
+        new(CashFigure, "What people need", "Cash a person needs for a day when only cash will do", "whole pounds", ShippedCashPounds, MinCashPoundsPerPersonPerDay, MaxCashPoundsPerPersonPerDay, "Plan", "In the plan, under what the plan assumes, and in the cash action")
+        {
+            WholeNumber = true,
+            HouseholdQuestion = "What does a person need in cash for a day, when only cash will do?",
+        };
+
+    /// <summary>The plan's own figures as shipped: ten pounds a person a day, so ten days for four people is £400.</summary>
+    public static Assumptions Default { get; } = new(ShippedCashPounds, ShippedCashPounds, Providers.Find("cash-in-small-notes")!.Stock!.Quantity);
+
+    /// <summary>The plan's own figures under a set: what an expert has made them, where one has.</summary>
+    public static Assumptions Under(Selficient.Domain.Parameters.ParameterSet figures)
     {
+        ArgumentNullException.ThrowIfNull(figures);
+        return ReferenceEquals(figures, Selficient.Domain.Parameters.ParameterSet.Default)
+            ? Default
+            : figures.Derive(static set => new Assumptions((int)set[CashFigure], (int)set[CashFigure], set["cash-in-small-notes.stock"]));
+    }
+
+    /// <summary>The household's own figures over the shipped ones, or the shipped ones where it gave none.</summary>
+    public static Result<Assumptions> Create(int? cashPoundsPerPersonPerDay) => Create(cashPoundsPerPersonPerDay, Selficient.Domain.Parameters.ParameterSet.Default);
+
+    /// <summary>The household's own figures over the plan's under a set, or the plan's where it gave none; a figure outside the range is refused with a sentence.</summary>
+    public static Result<Assumptions> Create(int? cashPoundsPerPersonPerDay, Selficient.Domain.Parameters.ParameterSet figures)
+    {
+        Assumptions plans = Under(figures);
         if (cashPoundsPerPersonPerDay is not { } pounds)
         {
-            return Result.Success(Default);
+            return Result.Success(plans);
         }
 
         return pounds < MinCashPoundsPerPersonPerDay || pounds > MaxCashPoundsPerPersonPerDay
             ? Result.Failure<Assumptions>(new Fault("plan.assumptions", "The cash a person needs for a day must be between 1 and 100 pounds."))
-            : Result.Success(new Assumptions(pounds));
+            : Result.Success(new Assumptions(pounds, plans.PlansCashPoundsPerPersonPerDay, plans.CashDays));
     }
 }
 
@@ -106,7 +143,7 @@ public static class MeasuredStocks
     {
         ArgumentNullException.ThrowIfNull(stock);
         ArgumentNullException.ThrowIfNull(profile);
-        return stock.Actions.First(action => action.ActionId == actionId).Target(profile, assumptions ?? Assumptions.Default);
+        return stock.Actions.First(action => action.ActionId == actionId).Target(profile, assumptions ?? Assumptions.Under(profile.Figures));
     }
 
     /// <summary>Checks figures that arrived from a browser: each must name a measured stock and sit inside its range.</summary>
@@ -173,7 +210,7 @@ public sealed class Possessions
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(have);
-        Possessions possessions = new(profile, assumptions ?? Assumptions.Default, new HashSet<string>(have, StringComparer.Ordinal), new Dictionary<string, decimal>(StringComparer.Ordinal));
+        Possessions possessions = new(profile, assumptions ?? Assumptions.Under(profile.Figures), new HashSet<string>(have, StringComparer.Ordinal), new Dictionary<string, decimal>(StringComparer.Ordinal));
         foreach ((string id, int amount) in amounts ?? new Dictionary<string, int>())
         {
             MeasuredStock stock = MeasuredStocks.Find(id) ?? throw new ArgumentException("A figure names a stock the plan does not measure.", nameof(amounts));

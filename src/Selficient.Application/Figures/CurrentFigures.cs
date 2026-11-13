@@ -7,6 +7,9 @@ public interface ICurrentFigures
 {
     /// <summary>The set in force: the shipped figures until something is published.</summary>
     ParameterSet Current { get; }
+
+    /// <summary>When the set in force was published, or null while the shipped figures stand.</summary>
+    DateTimeOffset? PublishedAt { get; }
 }
 
 /// <summary>The shipped figures and nothing else, for a host with no store and for tests.</summary>
@@ -14,6 +17,9 @@ public sealed class ShippedFigures : ICurrentFigures
 {
     /// <inheritdoc />
     public ParameterSet Current => ParameterSet.Default;
+
+    /// <inheritdoc />
+    public DateTimeOffset? PublishedAt => null;
 }
 
 /// <summary>
@@ -36,6 +42,9 @@ public sealed class CurrentFigures : ICurrentFigures
 
     /// <inheritdoc />
     public ParameterSet Current => _state.Set;
+
+    /// <inheritdoc />
+    public DateTimeOffset? PublishedAt => _state.Published?.At;
 
     /// <summary>The publication in force, or null while the shipped figures stand.</summary>
     public PublishedFigures? Published => _state.Published;

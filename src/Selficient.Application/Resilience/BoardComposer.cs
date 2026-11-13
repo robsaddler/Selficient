@@ -161,7 +161,7 @@ public static class BoardComposer
         List<ActionTurn> turns = [];
         List<CountedAction> progress = [];
         List<ActionTarget> targets = [];
-        Assumptions assumed = request.Assumptions ?? Assumptions.Default;
+        Assumptions assumed = request.Assumptions ?? Assumptions.Under(request.Profile.Figures);
         foreach (PlanAction action in request.Plan.Actions)
         {
             if (MeasuredStocks.ForAction(action.Id.Value) is { } measured)

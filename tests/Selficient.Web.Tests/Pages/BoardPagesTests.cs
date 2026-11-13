@@ -351,7 +351,13 @@ public sealed class BoardPagesTests : IDisposable
         AmountCopy.Suggests(MeasuredStocks.BottledWaterLitres, 36m, Assumptions.Default).ShouldBe("The plan suggests 36.");
         AmountCopy.Suggests(MeasuredStocks.CashPounds, 800m, Assumptions.Create(20).Value).ShouldBe("The plan suggests 800, at £20 a person a day. The rate is yours to change, where the plan lists what it assumes.");
         AmountCopy.CashRateLabel.ShouldBe("What a person needs in cash for a day, when only cash will do");
-        AmountCopy.CashRateReset.ShouldBe("Use the plan's £10");
+        AmountCopy.CashRateReset(Assumptions.Default).ShouldBe("Use the plan's £10");
+        AmountCopy.CashRateReset(Assumptions.Create(25).Value).ShouldBe("Use the plan's £10", "the plan's figure is the one to go back to, whatever the household's is");
+        Should.Throw<ArgumentNullException>(() => AmountCopy.CashRateReset(null!));
+        Selficient.Domain.Parameters.ParameterSet dearer = Selficient.Domain.Parameters.ParameterSet.Create(1, new Dictionary<string, decimal> { [Assumptions.CashFigure] = 15m, ["cash-in-small-notes.stock"] = 7m }).Value;
+        AmountCopy.CashRateReset(Assumptions.Under(dearer)).ShouldBe("Use the plan's £15");
+        AmountCopy.CashRateSays(Assumptions.Under(dearer), 4).ShouldBe("At £15 a person a day, a week of cash for the 4 of you is £420.");
+        AmountCopy.CashRateSays(Assumptions.Create(20, dearer).Value, 2).ShouldBe("At £20 a person a day, a week of cash for the 2 of you is £280.");
         AmountCopy.CashRateSays(Assumptions.Default, 4).ShouldBe("At £10 a person a day, ten days of cash for the 4 of you is £400.");
         AmountCopy.CashRateSays(Assumptions.Create(25).Value, 1).ShouldBe("At £25 a person a day, ten days of cash for you is £250.");
         AmountCopy.CashRateSays(Assumptions.Create(100).Value, 4).ShouldBe("At £100 a person a day, ten days of cash for the 4 of you is £4,000.");

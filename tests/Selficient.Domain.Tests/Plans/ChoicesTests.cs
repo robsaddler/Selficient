@@ -7,7 +7,7 @@ namespace Selficient.Domain.Tests.Plans;
 public sealed class ChoicesTests
 {
     private static PlanAction Action(string id, decimal from, decimal to) =>
-        new(ActionId.From(id), Tier.ThisWeek, id, "Why.", MoneyRange.Pounds(from, to), new HashSet<RiskKind>(), Provisions.None);
+        new(ActionId.From(id), Tier.ThisWeek, id, "Why.", MoneyRange.Pounds(from, to), new HashSet<RiskKind>());
 
     private static HashSet<string> Ids(params string[] ids) => new(ids, StringComparer.Ordinal);
 

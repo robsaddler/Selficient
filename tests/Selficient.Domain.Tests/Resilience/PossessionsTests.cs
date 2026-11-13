@@ -114,6 +114,23 @@ public sealed class PossessionsTests
         MeasuredStocks.Target(MeasuredStocks.Find(MeasuredStocks.CashPounds)!, "cash-in-small-notes", Rob, twenty).ShouldBe(800m);
         MeasuredStocks.Target(MeasuredStocks.Find(MeasuredStocks.CashPounds)!, "cash-in-small-notes", Rob).ShouldBe(400m);
         Assumptions.Create(null).Value.ShouldBeSameAs(Assumptions.Default, "no figure given is the plan's");
+        (Assumptions.Default.PlansCashPoundsPerPersonPerDay, Assumptions.Default.CashDays).ShouldBe((10, 10m));
+
+        // An expert's figure is the plan's own from then on, and a household's still stands over it.
+        Selficient.Domain.Parameters.ParameterSet set = Selficient.Domain.Parameters.ParameterSet.Create(1, new Dictionary<string, decimal> { [Assumptions.CashFigure] = 15m, ["cash-in-small-notes.stock"] = 7m }).Value;
+        Assumptions experts = Assumptions.Under(set);
+        (experts.CashPoundsPerPersonPerDay, experts.PlansCashPoundsPerPersonPerDay, experts.CashDays).ShouldBe((15, 15, 7m));
+        Assumptions.Under(set).ShouldBeSameAs(experts, "worked out once for a set");
+        Assumptions.Create(null, set).Value.ShouldBeSameAs(experts);
+        Assumptions own = Assumptions.Create(20, set).Value;
+        (own.CashPoundsPerPersonPerDay, own.PlansCashPoundsPerPersonPerDay, own.CashDays).ShouldBe((20, 15, 7m));
+        Assumptions.Create(0, set).IsFailure.ShouldBeTrue();
+        Assumptions.Definition.HouseholdMayOverride.ShouldBeTrue();
+        Selficient.Domain.Parameters.ParameterSet.Create(1, new Dictionary<string, decimal> { [Assumptions.CashFigure] = 12.5m }).Error.Message.ShouldBe("Cash a person needs for a day when only cash will do must be between 1 and 100 whole pounds.");
+        ResilienceProfile dearer = ResilienceProfile.FromProfile(Profiles.RobsHouse() with { Figures = set });
+        MeasuredStocks.Target(MeasuredStocks.Find(MeasuredStocks.CashPounds)!, "cash-in-small-notes", dearer).ShouldBe(420m, "seven days for four people at fifteen pounds, with no figure of the household's");
+        Possessions.Of(dearer, new HashSet<string>(), new Dictionary<string, int> { [MeasuredStocks.CashPounds] = 420 }).Have.ShouldContain("cash-in-small-notes");
+        Should.Throw<ArgumentNullException>(() => Assumptions.Under(null!));
         Assumptions.Create(1).IsSuccess.ShouldBeTrue();
         Assumptions.Create(100).IsSuccess.ShouldBeTrue();
         Assumptions.Create(0).Error.Message.ShouldBe("The cash a person needs for a day must be between 1 and 100 pounds.");

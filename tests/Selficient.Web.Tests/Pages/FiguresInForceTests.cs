@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -46,6 +48,41 @@ public sealed partial class FiguresInForceTests : IDisposable
         _factory.Services.GetRequiredService<FigureDesk>().ShouldNotBeNull();
         html.ShouldContain("36 litres of sealed bottled water");
         html.ShouldContain("A 210-litre water butt on a downpipe");
+        html.ShouldContain("data-plan data-hero data-figures-version=\"0\"", customMessage: "the plan says which set it was built with");
+        html.ShouldContain("<p class=\"callout\" role=\"status\" data-figures-updated hidden>The figures behind your plan have been updated, and this is your plan worked out from them. Nothing you have ticked has changed.</p>");
+    }
+
+    [Fact]
+    public async Task The_browser_is_told_which_set_is_in_force_and_the_figures_a_household_may_give()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        using HttpResponseMessage response = await client.GetAsync(new Uri("/api/figures", UriKind.Relative));
+        FiguresAnswer answer = (await response.Content.ReadFromJsonAsync<FiguresAnswer>(Web))!;
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.CacheControl!.NoStore.ShouldBeTrue("the point of asking is to learn that the number has moved");
+        answer.Version.ShouldBe(0);
+        answer.PublishedAt.ShouldBeNull();
+        answer.Figures.Select(figure => figure.Id).ShouldBe([.. ParameterRegistry.All.Where(parameter => parameter.HouseholdMayOverride).Select(parameter => parameter.Id)]);
+        answer.Figures.Single(figure => figure.Id == "stairlift-batteries.stock").ShouldBe(new FigureAnswer("stairlift-batteries.stock", "How many days of trips to bed and the bathroom does your stairlift make in a power cut?", "days", 0m, 100m, false, 2m));
+        answer.Figures.Single(figure => figure.Id == "assumed.cash-pounds-a-person-a-day").Whole.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task The_figures_the_script_ships_with_are_the_figures_the_server_ships_with()
+    {
+        string script = await File.ReadAllTextAsync(Path.Combine(SolutionRoot(), "src", "Selficient.Web", "wwwroot", "js", "figures-shipped.js"));
+        string json = script[script.IndexOf("export const SHIPPED = ", StringComparison.Ordinal)..].Replace("export const SHIPPED = ", string.Empty, StringComparison.Ordinal).TrimEnd().TrimEnd(';');
+
+        FiguresAnswer inScript = JsonSerializer.Deserialize<FiguresAnswer>(json, Web)!;
+        Selficient.Web.Endpoints.FiguresResponse onServer = Selficient.Web.Endpoints.FiguresEndpoint.For(ParameterSet.Default, null);
+
+        inScript.Version.ShouldBe(0);
+        inScript.PublishedAt.ShouldBeNull();
+        inScript.Figures.ShouldBe([.. onServer.Figures.Select(figure => new FigureAnswer(figure.Id, figure.Question, figure.Unit, figure.Min, figure.Max, figure.Whole, figure.Value))], "a browser that has never reached the server must start from the same figures");
+        Should.Throw<ArgumentNullException>(() => Selficient.Web.Endpoints.FiguresEndpoint.For(null!, null));
+        Should.Throw<ArgumentNullException>(() => Selficient.Web.Endpoints.FiguresEndpoint.MapFiguresEndpoint(null!));
     }
 
     [Fact]
@@ -65,13 +102,39 @@ public sealed partial class FiguresInForceTests : IDisposable
         html.ShouldContain("A 250-litre water butt on a downpipe");
         html.ShouldContain("£30 to £175");
         html.ShouldNotContain("36 litres of sealed bottled water");
+        html.ShouldContain("data-figures-version=\"6\"");
+        html.ShouldContain("The figures behind your plan were updated on 14 November 2026, and this is your plan worked out from them. Nothing you have ticked has changed.");
+
+        FiguresAnswer answer = (await client.GetFromJsonAsync<FiguresAnswer>(new Uri("/api/figures", UriKind.Relative), Web))!;
+        answer.Version.ShouldBe(6);
+        answer.PublishedAt.ShouldBe("2026-11-14T09:30:00Z");
+        answer.Figures.Single(figure => figure.Id == "water-butt.stock").Value.ShouldBe(250m, "the value in force, not the shipped one");
     }
 
     public void Dispose() => _factory.Dispose();
 
+    private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
+
+    private static string SolutionRoot()
+    {
+        DirectoryInfo directory = new(AppContext.BaseDirectory);
+        while (!File.Exists(Path.Combine(directory.FullName, "Selficient.slnx")))
+        {
+            directory = directory.Parent!;
+        }
+
+        return directory.FullName;
+    }
+
+    private sealed record FigureAnswer(string Id, string Question, string Unit, decimal Min, decimal Max, bool Whole, decimal Value);
+
+    private sealed record FiguresAnswer(int Version, string? PublishedAt, IReadOnlyList<FigureAnswer> Figures);
+
     private sealed class Fixed(ParameterSet set) : ICurrentFigures
     {
         public ParameterSet Current => set;
+
+        public DateTimeOffset? PublishedAt => new DateTimeOffset(2026, 11, 14, 9, 30, 0, TimeSpan.Zero);
     }
 
     [GeneratedRegex("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(?<token>[^\"]+)\"")]

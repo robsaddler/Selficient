@@ -38,7 +38,6 @@ public sealed class RulesTests
         PlanAction water = actions.Single(a => a.Id.Value == "water-bottled-three-days");
         water.Title.ShouldBe("36 litres of sealed bottled water");
         water.Why.ShouldStartWith("Three days of drinking water for 4 people. That is 18 of the big two-litre bottles");
-        water.Provides.WaterLitres.ShouldBe(36m);
         actions.Single(a => a.Id.Value == "power-failure-lights").Title.ShouldBe("4 plug-in power-failure torches");
         actions.Single(a => a.Id.Value == "headtorches").Title.ShouldBe("4 headtorches");
         actions.Single(a => a.Id.Value == "power-banks").Title.ShouldStartWith("2 power banks");
@@ -288,7 +287,6 @@ public sealed class RulesTests
         Run(new LanternRule(), Profiles.RobsHouse()).Single().Title.ShouldBe("3 rechargeable LED lanterns");
         Run(new LanternRule(), Profiles.Flat()).Single().Title.ShouldBe("2 rechargeable LED lanterns");
         Run(new DocumentsRule(), Profiles.Flat()).Single().Tier.ShouldBe(Tier.ThisMonth);
-        Run(new WaterFilterRule(), Profiles.Flat()).Single().Provides.WaterLitres.ShouldBe(280m, "twenty litres a day, which is what the board counts, for the fourteen days the headline counts");
         Run(new DrillRule(), Profiles.Flat()).Single().Id.Value.ShouldBe("lights-out-drill");
     }
 

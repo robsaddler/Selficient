@@ -51,8 +51,17 @@
 
 Accepted: the figures in force are held in memory by the one server and read again when it publishes. A second server would not hear of a publication until it restarted; there is one server.
 
+## Step 4: the browser and the figures (done)
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 21 | **A plan on a phone goes on showing figures that have been corrected** | The page carries the number of the set it was built with; the browser asks which is in force each time a plan is opened with the network there, and rebuilds when they differ | `A_plan_built_from_figures_that_have_since_been_corrected_is_built_again_and_says_so` |
+| 22 | **A rebuild loop.** The rebuilt page still disagrees with the server and rebuilds for ever | A mark in the session says the page has just been rebuilt; that page shows the sentence and does not ask again. With no session storage there is no rebuild at all | The same journey, which waits and finds the page where it was |
+| 23 | **The script's shipped figures drift from the server's** | A test parses `figures-shipped.js` and compares it with what the endpoint answers for the shipped set, field by field | `The_figures_the_script_ships_with_are_the_figures_the_server_ships_with` |
+| 24 | **A forged or broken answer is kept by the browser** | The answer's shape is checked before it is kept or acted on: a whole number of a version, a bounded list, ids of the registry's shape, finite numbers. Anything else is ignored and the browser goes on with what it knew | The last part of the journey |
+| 25 | **The endpoint tells the world about a household** | It is the same for everyone: the set's number and date, and the eight figures a household may give, with the values in force. No cookie is read | `The_browser_is_told_which_set_is_in_force_and_the_figures_a_household_may_give` |
+
 ## Not yet answered (later steps)
 
 - The plan's sentences are not swept by a test the way the board's are: they are full of numbers that are facts and not figures (a date, a phone number, an insurance limit), so a list of number words would fail every one. They were read by hand. A new rule sentence that states an engine figure in plain words would not be caught.
-- The headline calculator's constants and the browser's copy of them, and the default cash a person needs in a day (step 4, decision 124).
 - The counts the rules work out by formula (one power-failure torch a storey and one more; a power bank between two people, at least two; a lantern between two and one more) are logic, not figures, and are not on the desk.

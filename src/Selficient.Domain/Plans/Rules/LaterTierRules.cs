@@ -27,8 +27,7 @@ public sealed class WaterStoreRule : IPlanRule
             $"{N(cans)} food-grade {N(canLitres)}-litre water cans with taps",
             $"{N(litres)} litres is about {N(Math.Floor(litres / (people * Selficient.Domain.Resilience.DemandFigures.Of(profile.Figures).DrinkingLitres)))} days of drinking water for {People(people)}. Fill from the tap, add a water-purifying tablet, keep them dark, and refill at the clock changes.",
             Price(profile, "water-cans", cans).Add(Price(profile, "water-purifying-tablets")),
-            Mitigates(RiskKind.WaterInterruption),
-            new Provisions(WaterLitres: litres));
+            Mitigates(RiskKind.WaterInterruption));
 
         yield return Action(
             "bath-liner",
@@ -110,9 +109,7 @@ public sealed class FoodStoreRule : IPlanRule
             Say.Capital($"{Say.Days(month)} of food, built by buying one extra of what you already eat"),
             "Take from the front and restock at the back, and nothing ever goes off. Add a manual tin opener.",
             Price(profile, "food-one-month", people),
-            Mitigates(RiskKind.RegionalDisruption, RiskKind.WinterAccess),
-            // The headline counts what this adds to the shelf the first action already put there.
-            new Provisions(FoodDays: month - profile.Figures["food-no-cook-three-days.stock"]));
+            Mitigates(RiskKind.RegionalDisruption, RiskKind.WinterAccess));
 
         // Pets get a row of their own, which the board counts, in place of a clause on the end of the family's.
         if (profile.Household.HasPets)
@@ -213,8 +210,7 @@ public sealed class LanternRule : IPlanRule
             $"{N(lanterns)} rechargeable LED lanterns",
             "One for the living room that doubles as a power bank, and one per occupied bedroom. Two hundred hours on the low setting.",
             Price(profile, "rechargeable-lanterns", lanterns),
-            Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: profile.Figures[RuleFigures.LightHours("rechargeable-lanterns")] * lanterns));
+            Mitigates(RiskKind.StormPowerCut));
     }
 }
 
@@ -289,8 +285,7 @@ public sealed class PowerStationRule : IPlanRule
                 ? "Runs the fridge-freezer, the router and the lights through a cut, and acts as a UPS. It needs nothing fitted and goes with you when you move, which makes it the backup a rented home can have: buy the 2 kWh size if you can."
                 : "Runs the fridge-freezer, the router and the lights through a cut, and acts as a UPS. Buy the 1 kWh size if rooftop solar with backup is coming within a year; otherwise the 2 kWh size.",
             Price(profile, "portable-power-station"),
-            Mitigates(RiskKind.StormPowerCut, RiskKind.CommsLoss),
-            new Provisions(LightHours: profile.Figures[RuleFigures.LightHours("portable-power-station")]));
+            Mitigates(RiskKind.StormPowerCut, RiskKind.CommsLoss));
 
         if (profile.Dwelling.Heating is HeatingType.GasBoiler or HeatingType.Oil or HeatingType.Lpg)
         {
@@ -345,8 +340,7 @@ public sealed class WaterFilterRule : IPlanRule
             "A gravity water filter",
             $"Turns the water butt, a stream or rain into drinking water at about {Say.Litres(profile.Figures["gravity-water-filter.per-day"])} a day, indefinitely. This is what makes a month credible without storing hundreds of litres.",
             Price(profile, "gravity-water-filter"),
-            Mitigates(RiskKind.WaterInterruption, RiskKind.RegionalDisruption),
-            new Provisions(WaterLitres: profile.Figures["gravity-water-filter.per-day"] * profile.Figures[RuleFigures.WaterFilterDays]));
+            Mitigates(RiskKind.WaterInterruption, RiskKind.RegionalDisruption));
     }
 }
 
