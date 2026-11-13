@@ -149,6 +149,9 @@ public enum NeedId
 
     /// <summary>Television, games, music.</summary>
     Entertainment,
+
+    /// <summary>Getting upstairs, for a household that does it by a stairlift.</summary>
+    Stairs,
 }
 
 /// <summary>A need with its rung and its unit.</summary>
@@ -165,6 +168,7 @@ public static class Needs
         new(NeedId.Warmth, Rung.Survive, "Warmth", "a warm room"),
         new(NeedId.Health, Rung.Survive, "Medicines", "days"),
         new(NeedId.Dependants, Rung.Survive, "Infants and pets", "days"),
+        new(NeedId.Stairs, Rung.Survive, "Getting upstairs", "a way to the bed and the bathroom"),
         new(NeedId.Light, Rung.Function, "Light", "lit hours"),
         new(NeedId.Information, Rung.Function, "Information", "a working radio or phone"),
         new(NeedId.Contact, Rung.Function, "Contact", "a way to call for help"),

@@ -119,14 +119,14 @@ public sealed partial class CircumstancesPagesTests : IDisposable
         html.ShouldContain("Build up credit on the prepayment meter before winter");
         html.ShouldContain("Have your water supply tested");
         html.ShouldContain("Check when the tank was last emptied");
-        html.ShouldContain("&meter=true&supply=true&tank=true");
+        html.ShouldContain("&meter=true&supply=true&tank=true&lift=false");
         html.ShouldContain("name=\"Water\" value=\"OwnPumped\"");
         html.ShouldContain("name=\"OwnDrains\" value=\"true\"");
         html.ShouldContain("name=\"PrepaymentMeter\" value=\"true\"");
 
         string mains = await PlanAsync(House());
         mains.ShouldContain("data-action-id=\"no-flush-toilet-kit\"");
-        mains.ShouldContain("&meter=false&supply=false&tank=false");
+        mains.ShouldContain("&meter=false&supply=false&tank=false&lift=false");
         mains.ShouldNotContain("data-action-id=\"prepayment-credit-ahead\"");
     }
 
@@ -181,6 +181,66 @@ public sealed partial class CircumstancesPagesTests : IDisposable
         string upstairs = await PlanAsync(House("High"));
         upstairs.ShouldContain("data-action-id=\"flood-protection-kit\"");
         upstairs.ShouldNotContain("data-action-id=\"flood-water-alarm\"", customMessage: "beds upstairs and no cellar");
+    }
+
+    [Fact]
+    public async Task The_wizard_asks_about_a_stairlift_and_says_what_not_knowing_means()
+    {
+        using HttpClient client = _factory.CreateClient();
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri("/plan/start", UriKind.Relative)));
+
+        html.ShouldContain("<label for=\"Form_Stairlift\">Is there a stairlift?</label>");
+        html.ShouldContain("<option value=\"None\">No</option>");
+        html.ShouldContain("<option value=\"Battery\">Yes, and it has its own battery</option>");
+        html.ShouldContain("<option value=\"MainsOnly\">Yes, and it stops with the power</option>");
+        html.ShouldContain("<option value=\"NotKnown\">Yes, and I do not know which</option>");
+        html.ShouldContain("Most modern stairlifts run on their own batteries and keep going for a number of trips in a power cut. Until you know which yours is, the plan takes it that it stops.");
+    }
+
+    [Fact]
+    public async Task A_stairlift_gets_a_row_on_the_board_a_plan_for_a_cut_and_a_service_before_winter()
+    {
+        Dictionary<string, string> battery = House();
+        battery["Form.Children"] = "0";
+        battery["Form.Stairlift"] = "Battery";
+        string own = await PlanAsync(battery);
+
+        own.ShouldContain("data-action-id=\"stairlift-trips-in-a-power-cut\"");
+        own.ShouldContain("Find out how many trips the stairlift makes in a power cut, and keep it parked on its charge point");
+        own.ShouldContain("data-action-id=\"downstairs-in-a-power-cut\"");
+        own.ShouldContain("A bed downstairs and a commode, for a cut that outlasts the stairlift's batteries");
+        own.ShouldContain("data-action-id=\"help-to-leave-plan\"");
+        own.ShouldContain("The stairlift is the way down for someone here");
+        own.ShouldContain("data-action-id=\"priority-services-register\"");
+        own.ShouldContain("Getting upstairs");
+        own.ShouldContain("Have the stairlift serviced and its batteries checked");
+        own.ShouldContain("&lift=true");
+        own.ShouldContain("name=\"Stairlift\" value=\"Battery\"");
+        own.ShouldContain("Drive DeVilbiss folding lightweight commode");
+        own.ShouldNotContain("data-action-id=\"stairlift-find-out\"");
+
+        Dictionary<string, string> unknown = House();
+        unknown["Form.Stairlift"] = "NotKnown";
+        string notKnown = await PlanAsync(unknown);
+        notKnown.ShouldContain("data-action-id=\"stairlift-find-out\"");
+        notKnown.ShouldContain("Until you know, this plan takes it that yours stops.");
+        notKnown.ShouldContain("A bed made up downstairs and a commode, decided now and not on the night");
+        notKnown.ShouldNotContain("data-action-id=\"stairlift-trips-in-a-power-cut\"");
+
+        string none = await PlanAsync(House());
+        none.ShouldNotContain("data-action-id=\"downstairs-in-a-power-cut\"");
+        none.ShouldNotContain("Getting upstairs", customMessage: "a house with no stairlift has no such row");
+        none.ShouldContain("name=\"Stairlift\" value=\"None\"");
+
+        Dictionary<string, string> bad = House();
+        bad["Form.Stairlift"] = "9";
+        (await PlanAsync(bad)).ShouldContain("That answer is not one of the options offered. Choose one from the list.");
+
+        using HttpClient client = _factory.CreateClient();
+        (await client.GetStringAsync(new Uri("/plan/calendar.ics?lift=true", UriKind.Relative))).ShouldContain("SUMMARY:Have the stairlift serviced and its batteries checked");
+        new PlanForm { Stairlift = Stairlift.MainsOnly }.ToRequest().Command.Stairlift.ShouldBe(Stairlift.MainsOnly);
+        PlanForm.Stairlifts.Select(s => s.Value).ShouldBe(["None", "Battery", "MainsOnly", "NotKnown"]);
     }
 
     [Fact]

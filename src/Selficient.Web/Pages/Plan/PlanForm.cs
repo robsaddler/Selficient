@@ -159,6 +159,11 @@ public sealed class PlanForm
     [Required(ErrorMessage = "This answer is needed to build the plan.")]
     public bool SleepsDownstairs { get; set; }
 
+    /// <summary>A stairlift, and what a power cut does to it. Empty on a plan made before the question, which reads as none.</summary>
+    [EnumDataType(typeof(Stairlift), ErrorMessage = "Choose the answer about a stairlift from the list.")]
+    [Display(Name = "Is there a stairlift?")]
+    public Stairlift? Stairlift { get; set; }
+
     /// <summary>Where the water comes from. Empty on a plan made before the question, which reads as the mains.</summary>
     [EnumDataType(typeof(WaterSupply), ErrorMessage = "Choose where the water comes from from the list.")]
     [Display(Name = "Where does your water come from?")]
@@ -213,7 +218,8 @@ public sealed class PlanForm
             NeedsHelpToLeave: NeedsHelpToLeave,
             HasCellar: HasCellar,
             SleepsDownstairs: SleepsDownstairs,
-            Floor: FloorOfFlat));
+            Floor: FloorOfFlat,
+            Stairlift: Stairlift ?? Selficient.Domain.Households.Stairlift.None));
 
     /// <summary>
     /// The household as the resilience engine sees it. The newer questions are optional so a profile
@@ -255,6 +261,15 @@ public sealed class PlanForm
     [
         new("It is ours, with or without a mortgage", nameof(Selficient.Domain.Households.Tenure.Owner)),
         new("It is rented", nameof(Selficient.Domain.Households.Tenure.Tenant)),
+    ];
+
+    /// <summary>Whether there is a stairlift, and which kind.</summary>
+    public static IReadOnlyList<SelectListItem> Stairlifts { get; } =
+    [
+        new("No", nameof(Selficient.Domain.Households.Stairlift.None)),
+        new("Yes, and it has its own battery", nameof(Selficient.Domain.Households.Stairlift.Battery)),
+        new("Yes, and it stops with the power", nameof(Selficient.Domain.Households.Stairlift.MainsOnly)),
+        new("Yes, and I do not know which", nameof(Selficient.Domain.Households.Stairlift.NotKnown)),
     ];
 
     /// <summary>Where the water comes from.</summary>

@@ -304,11 +304,18 @@ public sealed class PowerStationRule : IPlanRule
         else if (!profile.HasWoodStove)
         {
             // Electric heating or a heat pump, and no stove to fall back on: a house with a stove has its fallback already.
+            // One room and sleeping bags get healthy adults through a night; they do not keep a baby or someone frail
+            // warm enough, and the plan does not pretend they do.
+            (string title, string why) = profile.NeedsFullWarmth
+                ? ("Agree where you would go in a winter power cut, with sleeping bags for the wait",
+                   "Electric heating and heat pumps draw far more than a portable battery can supply, and one room under sleeping bags is not warm enough for a baby or for someone frail. Agree now who you would go to: a relative or a friend with a stove or a gas fire, or the rest centre your council opens. The sleeping bags are for the hours before you leave.")
+                : ("A heating fallback for a winter cut: one warm room, sleeping bags, and a plan",
+                   "Electric heating and heat pumps draw far more than a portable battery can supply. Everyone in one room with the door shut, layered clothing and sleeping bags gets a family through a night safely.");
             yield return Action(
                 "heating-fallback",
                 Tier.ThreeMonths,
-                "A heating fallback for a winter cut: one warm room, sleeping bags, and a plan",
-                "Electric heating and heat pumps draw far more than a portable battery can supply. Everyone in one room with the door shut, layered clothing and sleeping bags gets a family through a night safely.",
+                title,
+                why,
                 MoneyRange.Pounds(0m, 150m),
                 Mitigates(RiskKind.StormPowerCut));
         }

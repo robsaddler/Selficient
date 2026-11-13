@@ -200,6 +200,14 @@ public sealed record ResilienceProfile
     /// <summary>A vulnerable person or an infant cannot be kept well under blankets alone.</summary>
     public bool NeedsFullWarmth => Household.HasVulnerablePerson || Infants > 0;
 
+    private static readonly Dictionary<Stairlift, string[]> StairliftFixtures = new()
+    {
+        [Stairlift.None] = [],
+        [Stairlift.Battery] = ["stairlift-charger", "stairlift-batteries"],
+        [Stairlift.MainsOnly] = ["stairlift-on-the-mains"],
+        [Stairlift.NotKnown] = ["stairlift-on-the-mains"],
+    };
+
     /// <summary>Whether a provider can be had at all in this house.</summary>
     public bool CanHave(Placement where) => where switch
     {
@@ -228,6 +236,7 @@ public sealed record ResilienceProfile
                 "supplies-at-home", "microwave", "bin-bags",
             ];
             fixtures.Add(TapFixtures[Profile.Circumstances.Water]);
+            fixtures.UnionWith(StairliftFixtures[Profile.Circumstances.Stairlift]);
             fixtures.Add(HeatingFixtures[Dwelling.Heating]);
             if (Dwelling.Heating is HeatingType.Electric or HeatingType.Wood)
             {

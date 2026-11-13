@@ -309,18 +309,80 @@ public sealed class HelpToLeaveRule : IPlanRule
     public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        if (profile.Circumstances.NeedsHelpToLeave)
+        if (profile.Circumstances.NeedsHelpToLeave || profile.HasStairlift)
         {
-            // A lift is the way out of a flat until the power goes, which is exactly when it is wanted.
+            // A lift is the way out of a flat until the power goes, which is exactly when it is wanted, and a stairlift is the way down for whoever rides it.
             string lift = profile.IsAboveGround ? " A lift stops with the power, so the plan has to work on the stairs." : string.Empty;
+            string stairlift = profile.HasStairlift ? " The stairlift is the way down for someone here, so the plan has to work on a night when it does not." : string.Empty;
             yield return Action(
                 "help-to-leave-plan",
                 Tier.ThisWeek,
                 "Agree who helps whom to get out, and walk it through once",
-                $"Someone here would need help to get downstairs or out of the home. Decide who helps, by which way, and where the chair, the frame and the medicines are kept at night.{lift} Your fire and rescue service will visit free of charge to plan it with you: ask for a home fire safety visit.",
+                $"Someone here would need help to get downstairs or out of the home. Decide who helps, by which way, and where the chair, the frame and the medicines are kept at night.{lift}{stairlift} Your fire and rescue service will visit free of charge to plan it with you: ask for a home fire safety visit.",
                 MoneyRange.Free,
                 Mitigates(RiskKind.IndoorFireOrCarbonMonoxide, RiskKind.StormPowerCut, RiskKind.Flooding));
         }
+    }
+}
+
+/// <summary>
+/// A stairlift is the way to the bed and the bathroom. Most carry on for a number of trips on their
+/// own batteries; one that stops with the power leaves its rider on whichever floor they were on.
+/// </summary>
+public sealed class StairliftRule : IPlanRule
+{
+    /// <inheritdoc />
+    public int Order => 113;
+
+    /// <inheritdoc />
+    public IEnumerable<PlanAction> Contribute(HouseholdProfile profile, RiskAssessment risks)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (!profile.HasStairlift)
+        {
+            yield break;
+        }
+
+        if (profile.StairliftRunsInACut)
+        {
+            yield return Action(
+                "stairlift-trips-in-a-power-cut",
+                Tier.ThisWeek,
+                "Find out how many trips the stairlift makes in a power cut, and keep it parked on its charge point",
+                "Your stairlift runs on its own batteries and only charges from the mains, so it carries on in a cut, but not for ever: one maker says more than ten return journeys on healthy batteries, and fewer on a long or curved stair. The manual or the installer has the figure for yours. It charges only when parked at the top or the bottom, and old batteries hold less. In a long cut, keep the trips for bed and the bathroom.",
+                MoneyRange.Free,
+                Mitigates(RiskKind.StormPowerCut));
+
+            // The batteries are days, not weeks: a cut that outlasts them ends the same way as a lift with none.
+            yield return Action(
+                "downstairs-in-a-power-cut",
+                Tier.ThisMonth,
+                "A bed downstairs and a commode, for a cut that outlasts the stairlift's batteries",
+                "The batteries are about two days of trips to bed and the bathroom. After that, whoever relies on the lift lives on one floor until the power is back. Decide which room downstairs, where the bedding is kept and who carries it, and keep a commode for those days. Bring them down while the lift still has a trip left in it.",
+                MoneyRange.Pounds(30m, 120m),
+                Mitigates(RiskKind.StormPowerCut, RiskKind.RegionalDisruption));
+            yield break;
+        }
+
+        // Not knowing is planned for as the worse case, and the first thing to do is find out.
+        if (profile.Circumstances.Stairlift == Stairlift.NotKnown)
+        {
+            yield return Action(
+                "stairlift-find-out",
+                Tier.ThisWeek,
+                "Find out whether the stairlift works in a power cut",
+                "Most modern stairlifts run on their own batteries and keep going for a number of trips; older ones run from the mains and stop. The manual says which, and so will whoever services it. Until you know, this plan takes it that yours stops. Change your answer when you know and the plan follows.",
+                MoneyRange.Free,
+                Mitigates(RiskKind.StormPowerCut));
+        }
+
+        yield return Action(
+            "downstairs-in-a-power-cut",
+            Tier.ThisWeek,
+            "A bed made up downstairs and a commode, decided now and not on the night",
+            "When the stairlift stops, whoever relies on it lives on the floor they are on. Decide which room downstairs, where the bedding is kept and who carries it, and keep a commode for as long as the power is off. If they are upstairs when it goes, they stay there until someone can help them down, so keep a phone, a torch and water on both floors.",
+            MoneyRange.Pounds(30m, 120m),
+            Mitigates(RiskKind.StormPowerCut));
     }
 }
 

@@ -71,7 +71,7 @@ public sealed class GeneratePlanHandlerTests
         GeneratePlanHandler handler = provider.GetRequiredService<GeneratePlanHandler>();
         handler.Handle(Robs).IsSuccess.ShouldBeTrue();
         ApplicationServiceCollectionExtensions.Assessors().Count.ShouldBe(9);
-        ApplicationServiceCollectionExtensions.Rules().Count.ShouldBe(21);
+        ApplicationServiceCollectionExtensions.Rules().Count.ShouldBe(22);
         ApplicationServiceCollectionExtensions.Rules().Select(r => r.Order).ShouldBeUnique();
         Should.Throw<ArgumentNullException>(() => ApplicationServiceCollectionExtensions.AddSelficientApplication(null!));
     }
@@ -129,5 +129,10 @@ public sealed class GeneratePlanHandlerTests
         Handler().Handle(Robs).Value.Profile.Circumstances.ShouldBe(Selficient.Domain.Households.Circumstances.None);
         Handler().Handle(Robs with { Floor = 41 }).Error.Code.ShouldBe(Selficient.Domain.Primitives.DomainErrors.FloorOutOfRange().Code, "a floor no block has is refused before any rule runs");
         Handler().Handle(Robs with { Tenure = (Selficient.Domain.Households.Tenure)9 }).IsFailure.ShouldBeTrue();
+
+        Selficient.Domain.Plans.Plan lift = Handler().Handle(Robs with { Stairlift = Selficient.Domain.Households.Stairlift.NotKnown }).Value;
+        lift.Profile.Circumstances.Stairlift.ShouldBe(Selficient.Domain.Households.Stairlift.NotKnown);
+        lift.Actions.Select(a => a.Id.Value).ShouldContain("downstairs-in-a-power-cut");
+        Handler().Handle(Robs with { Stairlift = (Selficient.Domain.Households.Stairlift)9 }).IsFailure.ShouldBeTrue();
     }
 }

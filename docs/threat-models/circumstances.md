@@ -24,6 +24,20 @@
 | 8 | **Selling infant formula.** The law restricts promoting formula for babies under six months, and a link with our tag on it is a promotion | The picks for the infants' action are nappies and wipes. There is no pick for formula and the action's sentence does not name a brand | `Nothing_in_the_catalogue_promotes_infant_formula` |
 | 9 | **A wrong professional.** A household is sent to somebody who is not a sweep | The sweep pick is a trade body's own directory, opened and seen, as the arborist's is | The weekly link check |
 
+## A stairlift, and what sleeping bags are worth (added the same day)
+
+Rob's grandmother reaches her bed and her bathroom by a stairlift. The wizard now asks "Is there a stairlift?" with four answers: no; yes, with its own battery; yes, and it stops with the power; yes, and I do not know which. The board has a row, "Getting upstairs", on the Survive rung, only for a house that has one.
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 10 | **False comfort.** A household is told its stairlift will work, and it does not | "I do not know" is planned and scored as a lift that stops, and the first action is to find out. A battery lift is told its trips are numbered, with one maker's figure named as one maker's, and to ask for its own | `A_household_that_does_not_know_which_kind_it_has_is_planned_for_as_if_it_stops_and_asked_to_find_out`, `A_stairlift_on_the_mains_is_lost_on_the_first_day_unless_the_whole_house_is_carried` |
+| 11 | **The board runs a wired-in lift from a portable battery** | The mains lift's load is wired in and the boiler's plug does not free it; only a whole-house battery carries it. A battery lift's charger is a small plug-in load, which a power station can run | `A_stairlift_on_the_mains_is_lost_on_the_first_day…`, `A_battery_stairlift_makes_two_days_of_trips_in_a_blackout_and_a_power_station_keeps_it_going` |
+| 12 | **Someone is stranded upstairs.** The plan assumes the rider is downstairs when the power goes | The action says that if they are upstairs they stay there until someone can help them down, and to keep a phone, a torch and water on both floors; for a battery lift, to bring them down while it has a trip left. The household also gets the "who helps whom" action and qualifies for the Priority Services Registers | `A_stairlift_that_stops_with_the_power_gets_a_bed_and_a_commode_downstairs_this_week`, `The_way_out_is_agreed_wherever_there_is_a_stairlift_and_the_plan_names_it` |
+| 13 | **Sleeping bags scored as heating.** Ticking the heating fallback gave a week of full warmth on the board, which was a gas heater's figure for an action that sells sleeping bags | It is partial warmth, as blankets are, and nothing at all for a household with a baby or someone frail, whose action now says to agree where they would go | `Sleeping_bags_are_warmth_for_healthy_adults_and_are_never_scored_as_a_heater` |
+| 14 | **Privacy.** That there is a stairlift says someone in the house is frail | Kept where every other answer is kept, in the browser and in the encrypted copy. The calendar's address gains `lift`, a yes or no with no identity | The echo and calendar assertions in `A_stairlift_gets_a_row_on_the_board_a_plan_for_a_cut_and_a_service_before_winter` |
+
+Accepted with it: the two days a battery lift is scored for is one maker's statement (Acorn: more than ten return journeys, about two days at four or five a day), read on its site on 13 Nov 2026, and the energy its charger draws is our estimate, not a published figure. The action tells the household to get its own lift's number.
+
 ## Accepted
 
 - **A treatment plant with a pump is treated as a tank.** The form asks one question about drains, so a pumped system is not sold the toilet liners although it stops with the power. The action it gets says so and tells the household to ask whoever empties it how long it can go. A second question would settle it; one was judged enough.

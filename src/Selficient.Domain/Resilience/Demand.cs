@@ -50,7 +50,9 @@ public static class Demand
             NeedId.Mobility => profile.Car == CarKind.None ? 0m : 1m,
             NeedId.WorkingFromHome => profile.Household.RunsBusinessFromHome ? 1m : 0m,
             NeedId.Laundry => day > 7 ? 1m : 0m,
-            _ => 1m,
+            NeedId.Entertainment => 1m,
+            // The last need is the default arm, so the switch has no branch that no need can take.
+            _ => profile.Profile.HasStairlift ? 1m : 0m,
         };
     }
 }

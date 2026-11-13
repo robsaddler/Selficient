@@ -98,6 +98,22 @@ public enum WaterSupply
     OwnGravity,
 }
 
+/// <summary>Whether there is a stairlift, and what a power cut does to it.</summary>
+public enum Stairlift
+{
+    /// <summary>No stairlift.</summary>
+    None,
+
+    /// <summary>It runs on its own batteries and only charges from the mains, so it makes a number of trips in a cut.</summary>
+    Battery,
+
+    /// <summary>It runs from the mains and stops with the power.</summary>
+    MainsOnly,
+
+    /// <summary>There is one and nobody knows which kind; until they do, the plan takes it to stop.</summary>
+    NotKnown,
+}
+
 /// <summary>
 /// How the household holds its home and what it is connected to: the answers that decide whether an
 /// action is the household's to take at all. A tenant cannot put panels on the landlord's roof, a
@@ -117,20 +133,23 @@ public sealed record Circumstances(Tenure Tenure, WaterSupply Water, bool OwnDra
     /// <summary>The highest floor a flat can be on, as the wizard asks it.</summary>
     public const int MaxFloor = 40;
 
+    /// <summary>Whether there is a stairlift, and what a power cut does to it.</summary>
+    public Stairlift Stairlift { get; init; }
+
     /// <summary>Nothing said: an owner on the mains and the sewer, with a credit meter, on the ground.</summary>
     public static Circumstances None { get; } = new(Tenure.Owner, WaterSupply.Mains, false, false, false, false, false, 0);
 
     /// <summary>Creates the circumstances, refusing a choice that is not on the list and a floor no block has.</summary>
-    public static Result<Circumstances> Create(Tenure tenure, WaterSupply water, bool ownDrains, bool prepaymentMeter, bool needsHelpToLeave, bool cellar, bool sleepsDownstairs, int floor)
+    public static Result<Circumstances> Create(Tenure tenure, WaterSupply water, bool ownDrains, bool prepaymentMeter, bool needsHelpToLeave, bool cellar, bool sleepsDownstairs, int floor, Stairlift stairlift = Stairlift.None)
     {
-        if (!Enum.IsDefined(tenure) || !Enum.IsDefined(water))
+        if (!Enum.IsDefined(tenure) || !Enum.IsDefined(water) || !Enum.IsDefined(stairlift))
         {
             return Result.Failure<Circumstances>(DomainErrors.UnknownChoice());
         }
 
         return floor is < 0 or > MaxFloor
             ? Result.Failure<Circumstances>(DomainErrors.FloorOutOfRange())
-            : Result.Success(new Circumstances(tenure, water, ownDrains, prepaymentMeter, needsHelpToLeave, cellar, sleepsDownstairs, floor));
+            : Result.Success(new Circumstances(tenure, water, ownDrains, prepaymentMeter, needsHelpToLeave, cellar, sleepsDownstairs, floor) { Stairlift = stairlift });
     }
 }
 
@@ -152,8 +171,17 @@ public sealed record HouseholdProfile(Household Household, Dwelling Dwelling)
     /// <summary>Someone sleeps where flood water would reach first: a home on one floor, or a bed downstairs.</summary>
     public bool SleepsAtGroundLevel => !IsAboveGround && (Dwelling.Storeys == 1 || Circumstances.SleepsDownstairs);
 
+    /// <summary>Someone here gets upstairs by a stairlift.</summary>
+    public bool HasStairlift => Circumstances.Stairlift != Stairlift.None;
+
+    /// <summary>The stairlift makes trips on its own batteries when the power is off.</summary>
+    public bool StairliftRunsInACut => Circumstances.Stairlift == Stairlift.Battery;
+
+    /// <summary>Blankets and sleeping bags are not warm enough for someone here: a baby, or anyone frail.</summary>
+    public bool NeedsFullWarmth => Household.HasVulnerablePerson || Particulars.Infants > 0;
+
     /// <summary>The utilities' Priority Services Registers would accept the household.</summary>
-    public bool QualifiesForPriorityServices => Household.QualifiesForPriorityServices || Circumstances.NeedsHelpToLeave;
+    public bool QualifiesForPriorityServices => Household.QualifiesForPriorityServices || Circumstances.NeedsHelpToLeave || HasStairlift;
 
     /// <summary>The nation the home is in, once the postcode has been found.</summary>
     public Nation Nation { get; init; }

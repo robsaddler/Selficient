@@ -17,6 +17,7 @@ public static class Providers
     private const string Vendors = "EcoFlow, Bluetti, Jackery and Anker specifications, 2026";
     private const string Ofcom = "Ofcom resilience guidance on mast and exchange batteries";
     private const string Cmo = "UK Chief Medical Officers, water and sanitation advice for a national power outage, December 2025";
+    private const string Acorn = "Acorn Stairlifts: more than ten return journeys on a charge, about two days at four or five a day";
     private const string Rhs = "Royal Horticultural Society yields; a 250 square metre plot feeds a family a third of its vegetables";
 
     private static readonly IReadOnlyList<Utility> Nothing = [];
@@ -68,7 +69,7 @@ public static class Providers
         Fixture("heat-pump", "The heat pump", "Sixteen to twenty-five kilowatt-hours a day in a cold snap: only the car or a generator carries it, and not for long.", [All_(NeedId.Warmth), All_(NeedId.HeatingSystem), All_(NeedId.HotWater)], Nothing, new Load(20000m, 3000m, 3000m, Hardwired: true), Nesta),
         Fixture("electric-heating", "Electric heating", "Panel or storage heaters: sixteen kilowatt-hours a winter day for one warm room, which no household source carries beyond a day; in summer only the controls and a towel rail.", [All_(NeedId.Warmth), All_(NeedId.HeatingSystem)], Nothing, new Load(16000m, 200m, 2000m, Hardwired: true), Cse),
         Fixture("immersion-heater", "The immersion heater", "Three kilowatt-hours to heat a tank, at three kilowatts: a whole-house battery or the car, nothing smaller.", [All_(NeedId.HotWater)], Nothing, new Load(3000m, 3000m, 3000m, Hardwired: true), Cse),
-        Stocked("heating-fallback", "A portable gas heater and its cylinder", "One room kept warm for about a week on a cylinder, with the carbon monoxide alarm fitted and a window cracked.", [All_(NeedId.Warmth)], new Stock(7m), Placement.Anywhere, "Plan action; Calor"),
+Fixture("heating-fallback", "Sleeping bags and one warm room", "Everyone in one room with the door shut, in sleeping bags: enough to get healthy adults through a night, and not enough for a baby or someone frail.", [Part(NeedId.Warmth)], Nothing, null, "Plan action; UKHSA cold weather guidance"),
         Fixture("log-deliveries", "The log merchant", "While the roads are open and the merchant delivers, the log store is kept up.", [All_(NeedId.Warmth), All_(NeedId.HeatingSystem)], [Utility.Deliveries, Utility.Roads], null, "Plan"),
         new("wood-stove", "The wood stove and the log store", "Warmth without the mains for as long as the logs last, about three weeks from a full store, and a kettle on the top.", [All_(NeedId.Warmth), All_(NeedId.HeatingSystem), Part(NeedId.Cooking)], Nothing, null, new Stock(21m, Shared: true), null, null, Placement.Anywhere, "Stove Industry Alliance"),
         Fixture("blankets", "Blankets, duvets and one room", "Everyone warm enough in one closed room under duvets. Not enough for a baby or someone frail, which is why the board scores it lost for them.", [Part(NeedId.Warmth)], Nothing, null, "UKHSA cold weather guidance"),
@@ -79,6 +80,12 @@ public static class Providers
         Stocked("supplies-at-home", "Formula, nappies and pet food in the house", "What a house has on an ordinary day: about three days.", [All_(NeedId.Dependants)], new Stock(3m), Placement.Anywhere, "Be Ready baseline"),
         Stocked("formula-and-nappies", "Two weeks of formula and nappies", "Formula needs boiled water, so this depends on cooking.", [All_(NeedId.Dependants)], new Stock(14m), Placement.Anywhere, "NHS infant feeding"),
         Stocked("pet-food-two-weeks", "Two weeks of pet food and medication", "A bag and a box kept ahead of the one in use.", [All_(NeedId.Dependants)], new Stock(14m), Placement.Anywhere, "Plan"),
+
+        // Getting upstairs. The lift on the mains or a source, then on its own batteries, then a bed and a commode downstairs.
+        Fixture("stairlift-charger", "The stairlift on its charger", "The lift tops its batteries up from an ordinary socket whenever it is parked, from the mains or from any source that can run a small charger.", [All_(NeedId.Stairs)], Nothing, new Load(100m, 100m, 50m), Acorn),
+        Stocked("stairlift-batteries", "The stairlift's own batteries", "About two days of trips to bed and the bathroom on healthy batteries, fewer on a long stair or an old set.", [All_(NeedId.Stairs)], new Stock(2m), Placement.Anywhere, Acorn),
+        Fixture("stairlift-on-the-mains", "The stairlift on the mains", "A lift with no batteries of its own is wired in and stops with the power; only a whole-house battery carries it.", [All_(NeedId.Stairs)], Nothing, new Load(300m, 300m, 500m, Hardwired: true, BoilerPlugFrees: false), "Plan"),
+        Fixture("downstairs-in-a-power-cut", "A bed and a commode downstairs", "Living on one floor until the power is back: not the bed or the bathroom anyone would choose, which is why it counts as getting by.", [Part(NeedId.Stairs)], Nothing, null, "Plan action"),
 
         // Light. The mains or a source, then what is stored in cells.
         Fixture("mains-lighting", "The lights", "LED lighting in the rooms in use is a few hundred watt-hours a night.", [All_(NeedId.Light)], Nothing, new Load(200m, 100m, 60m), Cse),

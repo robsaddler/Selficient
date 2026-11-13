@@ -51,6 +51,7 @@ public static class ApplicationServiceCollectionExtensions
         new PriorityServicesRule(),
         new InfantsRule(),
         new HelpToLeaveRule(),
+        new StairliftRule(),
         new PrepaymentRule(),
         new OwnSuppliesRule(),
         new TallTreeRule(),

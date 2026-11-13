@@ -935,6 +935,46 @@ public sealed class Journeys
         await Expect(page.Locator("[data-action-row=\"tree-tell-landlord\"]")).ToHaveCountAsync(0);
     }
 
+    [Fact]
+    public async Task A_house_with_a_stairlift_sees_getting_upstairs_on_the_board_and_a_plan_for_when_it_stops()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await FillRobsHouseAsync(page);
+        await Expect(page.GetByLabel("Is there a stairlift?")).ToHaveValueAsync("None");
+        await page.GetByLabel("Is there a stairlift?").SelectOptionAsync("NotKnown");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        // Not knowing is planned for as the worse case, and the first thing is to find out.
+        await Expect(page.Locator("[data-action-row=\"stairlift-find-out\"] .action__title")).ToHaveTextAsync("Find out whether the stairlift works in a power cut");
+        ILocator downstairs = page.Locator("[data-action-row=\"downstairs-in-a-power-cut\"]");
+        await Expect(downstairs.Locator(".action__title")).ToHaveTextAsync("A bed made up downstairs and a commode, decided now and not on the night");
+        await Expect(page.Locator("[data-action-row=\"help-to-leave-plan\"]")).ToContainTextAsync("The stairlift is the way down for someone here");
+        await Expect(page.GetByText("Getting upstairs").First).ToBeVisibleAsync();
+        await ShouldNotScrollSidewaysAsync(page);
+        await downstairs.ScreenshotAsync(new() { Path = Screenshots.Target("stairlift-downstairs-phone-light.png") });
+        await downstairs.ScreenshotAsync(new() { Path = Screenshots.Target("stairlift-downstairs-phone-light.png") });
+        AxeResult plan = await RunAxeWhenSettledAsync(page);
+        plan.Violations.ShouldBeEmpty();
+
+        // They find out it has its own battery: the plan is about how many trips, and the bed downstairs is for a long cut.
+        await page.GetByRole(AriaRole.Link, new() { Name = "Change your answers" }).ClickAsync();
+        await Expect(page.GetByLabel("Is there a stairlift?")).ToHaveValueAsync("NotKnown");
+        await page.GetByLabel("Is there a stairlift?").SelectOptionAsync("Battery");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-action-row=\"stairlift-find-out\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("[data-action-row=\"stairlift-trips-in-a-power-cut\"] .action__title")).ToHaveTextAsync("Find out how many trips the stairlift makes in a power cut, and keep it parked on its charge point");
+        await Expect(page.Locator("[data-action-row=\"downstairs-in-a-power-cut\"] .action__title")).ToHaveTextAsync("A bed downstairs and a commode, for a cut that outlasts the stairlift's batteries");
+        await page.SetViewportSizeAsync(2000, 1100);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        ILocator trips = page.Locator("[data-action-row=\"stairlift-trips-in-a-power-cut\"]");
+        await trips.ScreenshotAsync(new() { Path = Screenshots.Target("stairlift-trips-wide-dark.png") });
+        await trips.ScreenshotAsync(new() { Path = Screenshots.Target("stairlift-trips-wide-dark.png") });
+    }
+
     private static async Task BuildPlanAsync(IPage page)
     {
         await page.GotoAsync("/plan/start");

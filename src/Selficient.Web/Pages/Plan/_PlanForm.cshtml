@@ -60,6 +60,12 @@
       <input asp-for="NeedsHelpToLeave">
       <label asp-for="NeedsHelpToLeave"></label>
     </div>
+    <div class="field">
+      <label asp-for="Stairlift"></label>
+      <select asp-for="Stairlift" asp-items="Selficient.Web.Pages.Plan.PlanForm.Stairlifts" class="input"></select>
+      <span asp-validation-for="Stairlift" class="field__error"></span>
+      <p class="field__hint">Most modern stairlifts run on their own batteries and keep going for a number of trips in a power cut. Until you know which yours is, the plan takes it that it stops.</p>
+    </div>
     <div class="field field--check">
       <input asp-for="HasPets">
       <label asp-for="HasPets"></label>

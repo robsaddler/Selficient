@@ -25,6 +25,10 @@
     <circle cx="9" cy="7" r="3"/>
     <path d="M4 20v-3a5 5 0 0 1 10 0v3M16 9l1.5 2 1.5-2M15 11h5l-1 6h-3z"/>
   </symbol>
+  <symbol id="need-stairs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 20h5v-4h4v-4h4V8h5"/>
+    <path d="M4 12l9-9M13 3h-4M13 3v4"/>
+  </symbol>
   <symbol id="need-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M8 4h8v3l-2 2v8l2 3H8l2-3V9L8 7z"/>
     <path d="M10 9h4"/>

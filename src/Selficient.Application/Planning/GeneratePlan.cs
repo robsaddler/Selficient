@@ -36,7 +36,8 @@ public sealed record GeneratePlanCommand(
     bool NeedsHelpToLeave = false,
     bool HasCellar = false,
     bool SleepsDownstairs = false,
-    int Floor = 0);
+    int Floor = 0,
+    Stairlift Stairlift = Stairlift.None);
 
 /// <summary>Turns a command into a profile, assesses the risks and builds the plan.</summary>
 public sealed class GeneratePlanHandler
@@ -75,7 +76,7 @@ public sealed class GeneratePlanHandler
             Household.Create(command.People, command.Children, command.HasVulnerablePerson, command.HasPets, command.RunsBusinessFromHome).Bind(household =>
                 Dwelling.Create(command.DwellingType, command.Storeys, command.Heating, command.Hob, command.HasCar, command.HasGarden, command.HasDecking, command.HasTallTreeNearHouse, e, command.FloodRisk).Bind(dwelling =>
                     Particulars.Create(household, command.CarIsElectric, command.HasWoodStove, command.HasWaterButt, command.Infants).Bind(particulars =>
-                        Circumstances.Create(command.Tenure, command.Water, command.OwnDrains, command.PrepaymentMeter, command.NeedsHelpToLeave, command.HasCellar, command.SleepsDownstairs, command.Floor)
+                        Circumstances.Create(command.Tenure, command.Water, command.OwnDrains, command.PrepaymentMeter, command.NeedsHelpToLeave, command.HasCellar, command.SleepsDownstairs, command.Floor, command.Stairlift)
                             .Map(circumstances => new HouseholdProfile(household, dwelling) { Nation = command.Nation, FloodFrom = command.FloodFrom, Particulars = particulars, Circumstances = circumstances })))));
     }
 }
