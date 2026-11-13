@@ -21,6 +21,9 @@ public static class Demand
     /// <summary>Lit hours needed in a summer day.</summary>
     public static decimal SummerLitHours => 4m;
 
+    /// <summary>Days a household goes before it needs to wash clothes.</summary>
+    public static decimal LaundryAfterDays => 7m;
+
     /// <summary>Flushing and hand washing, litres a person a day, when the taps are dry.</summary>
     public static decimal SanitationLitresPerPersonPerDay => 12m;
 
@@ -30,18 +33,19 @@ public static class Demand
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(scenario);
         int people = profile.Household.Size.Count;
+        DemandFigures figures = DemandFigures.Of(profile.Figures);
         return need switch
         {
-            NeedId.DrinkingWater => people * (Litres.DrinkingPerPersonPerDay + (scenario.Heatwave ? HeatwaveExtraLitresPerPersonPerDay : 0m)) + (profile.Household.HasPets ? PetWaterLitresPerDay : 0m),
+            NeedId.DrinkingWater => people * (figures.DrinkingLitres + (scenario.Heatwave ? figures.HeatwaveExtraLitres : 0m)) + (profile.Household.HasPets ? figures.PetWaterLitres : 0m),
             NeedId.Food => people,
             NeedId.Warmth => season == Season.Winter && !scenario.Heatwave ? 1m : 0m,
             NeedId.Health => 1m,
             NeedId.Dependants => profile.Infants > 0 || profile.Household.HasPets ? 1m : 0m,
-            NeedId.Light => season == Season.Winter ? WinterLitHours : SummerLitHours,
+            NeedId.Light => season == Season.Winter ? figures.WinterLitHours : figures.SummerLitHours,
             NeedId.Information => 1m,
             NeedId.Contact => 1m,
             NeedId.Cooking => 1m,
-            NeedId.Sanitation => people * SanitationLitresPerPersonPerDay,
+            NeedId.Sanitation => people * figures.SanitationLitres,
             NeedId.Cash => 1m,
             NeedId.ColdStorage => profile.HasChestFreezer ? 2m : 1m,
             NeedId.HeatingSystem => season == Season.Winter && !scenario.Heatwave ? 1m : 0m,
@@ -49,7 +53,7 @@ public static class Demand
             NeedId.Internet => 1m,
             NeedId.Mobility => profile.Car == CarKind.None ? 0m : 1m,
             NeedId.WorkingFromHome => profile.Household.RunsBusinessFromHome ? 1m : 0m,
-            NeedId.Laundry => day > 7 ? 1m : 0m,
+            NeedId.Laundry => day > figures.LaundryAfterDays ? 1m : 0m,
             NeedId.Entertainment => 1m,
             // The last need is the default arm, so the switch has no branch that no need can take.
             _ => profile.Profile.HasStairlift ? 1m : 0m,

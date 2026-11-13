@@ -125,11 +125,12 @@ public static class OutageBoard
         public Run(ResilienceProfile profile, IReadOnlySet<string> held, IReadOnlyDictionary<string, decimal> figures, Scenario scenario, Season season, int days)
         {
             _profile = profile;
-            _scenario = scenario;
+            // The scenario is read under the same figures as everything else, whichever copy of it the caller held.
+            _scenario = ScenarioFigures.Under(profile.Figures, scenario);
             _season = season;
             _days = days;
             IReadOnlySet<string> fixtures = profile.Fixtures;
-            _inPlay = Providers.All.Where(p => (fixtures.Contains(p.Id) || held.Contains(p.Id)) && profile.CanHave(p.Where)).ToList();
+            _inPlay = ProviderFigures.Under(profile.Figures).Where(p => (fixtures.Contains(p.Id) || held.Contains(p.Id)) && profile.CanHave(p.Where)).ToList();
             _inPlayIds = _inPlay.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
             foreach (Need need in Needs.All)
             {
