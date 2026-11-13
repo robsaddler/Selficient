@@ -10,6 +10,9 @@ html {
 body {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* An automatic column is as wide as the widest thing that will not wrap, and a long address in the header's chip
+     made that wider than a phone. The column is the page's width and nothing inside it may say otherwise. */
+  grid-template-columns: minmax(0, 1fr);
   /* The inline-size container a full-bleed band measures itself against (100cqi is the viewport less its scrollbar). */
   container-type: inline-size;
   font-size: var(--text-m);
@@ -66,6 +69,11 @@ code {
   outline: var(--focus-ring);
   outline-offset: 2px;
   border-radius: var(--radius-s);
+}
+
+/* A heading the script moves focus to, so a screen reader starts there, is not a control and draws no ring. */
+:is(h1, h2)[tabindex="-1"]:focus-visible {
+  outline: none;
 }
 
 ::selection {
@@ -131,6 +139,8 @@ code {
   align-items: center;
   gap: var(--space-2);
   min-block-size: 2.5rem;
+  /* Without this the chip's own minimum is its words at full length, and a long address widens a phone's page. */
+  min-inline-size: 0;
   padding: var(--space-1) var(--space-3);
   border: 1px solid light-dark(var(--c-contour), var(--c-on-roof-line));
   border-radius: 999px;

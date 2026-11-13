@@ -53,6 +53,8 @@ The same idea as "send a copy" (decision 35): the key is made in the browser and
 - **What the server holds.** Which accounts are in which group, when each joined and last wrote, and for each a blob it cannot read. It does not know the street's name, anyone's house number, anyone's first name or any offer.
 - **Removing a home.** The server stops answering that account and the starter's browser sets a new pass, so the old link opens nothing. The group key is not changed: a removed home that kept it has nothing to decrypt, because the server gives it nothing. Changing the key would lock out every member who was away, and the only party it would defend against is the server acting with a removed member.
 - **Another device.** The key is on the devices that opened the link, and nowhere else. The group page shows the invitation again so the household can open it on its other device. It is deliberately not kept with the account's plan, which the server can read (decision 61).
+- **What a home's own devices need.** Its key pair, its house number and first name, what it offers to whom and who is in its closer circle are sealed with the group's key and kept beside its membership (`keep`). The server answers it only to the account it belongs to and cannot read it. A second device that opens the invitation finds it and is the same home at once.
+- **The page.** `/street`, `/street/join` and `/street/group` are one page the server draws the same for everyone (`Pages/Street`, `StreetCopy`). `street.js` chooses the state and `street-crypto.js` does everything that needs a key. Nothing a neighbour wrote is ever put on the page as markup, and everything read from a record is checked first.
 
 ## Limits
 
@@ -67,5 +69,5 @@ The rule in `CLAUDE.md` says the server keeps, for a household with an account, 
 | Stage | What | State |
 |---|---|---|
 | 1 | The server: groups, members, the pass, removal, leaving, limits, the sweep; the endpoints | Done |
-| 2 | The browser: keys, the record, the closer circle; the pages for starting, joining, sharing and the street; the printed sheet | Next |
-| 3 | The way in from the plan page; what the plan says a household has, beside each offer; the privacy page | After 2 |
+| 2 | The browser: keys, the record, the closer circle; the page for starting, joining, sharing and the street; the printed sheet | Done |
+| 3 | The way in from the plan page; what the plan says a household has, beside each offer; the privacy page | Next |

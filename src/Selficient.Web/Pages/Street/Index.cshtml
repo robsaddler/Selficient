@@ -1,0 +1,178 @@
+@page "/street/{view:regex(^(join|group)$)?}"
+@using Selficient.Web.Pages.Street
+@model Selficient.Web.Pages.Street.IndexModel
+@{
+    ViewData["NoIndex"] = true;
+    ViewData["Title"] = "Street groups";
+    ViewData["Description"] = "Neighbours telling each other what each could offer when the power, the water or the phones are off.";
+}
+
+@*
+  One page for every state of a street group. What a street shares is encrypted in the browser, so
+  the server draws the words and street.js puts the street into them; the sentences the script says
+  are carried on the section, so the script writes none of its own. Without script the page says
+  what a street group is and nothing else.
+*@
+<section class="street" data-street="what" aria-live="polite"
+         data-says-none="@StreetCopy.None" data-says-no-key="@StreetCopy.NoKey" data-says-gone="@StreetCopy.Gone" data-says-bad-invitation="@StreetCopy.BadInvitation"
+         data-says-offline="@StreetCopy.Offline" data-says-missing="@StreetCopy.Missing" data-says-unnamed="@StreetCopy.Unnamed" data-says-saved="@StreetCopy.Saved"
+         data-says-removed="@StreetCopy.Removed" data-says-copied="@StreetCopy.Copied" data-says-your-home="@StreetCopy.YourHome" data-says-nothing="@StreetCopy.Nothing"
+         data-says-unreadable="@StreetCopy.Unreadable" data-says-nothing-between="@StreetCopy.NothingBetween" data-says-homes-one="@StreetCopy.HomesOne"
+         data-says-homes-many="@StreetCopy.HomesMany" data-says-between-one="@StreetCopy.BetweenOne" data-says-between-many="@StreetCopy.BetweenMany"
+         data-says-house-label="@StreetCopy.HouseLabel" data-says-remove-label="@StreetCopy.RemoveLabel" data-says-guest="@StreetCopy.Guest" data-says-guest-invited="@StreetCopy.GuestInvited">
+  <p class="eyebrow">Street groups</p>
+  <p class="callout street__says" role="status" data-street-says hidden></p>
+
+  @* The offers, as words: the script reads them from here. *@
+  <ul hidden data-street-offers>
+    @foreach (var offer in StreetCopy.Offers)
+    {
+      <li data-offer="@offer.Id" data-between="@offer.Between">@offer.Words</li>
+    }
+  </ul>
+
+  <div class="street__state" data-street-state="what">
+    <h1 tabindex="-1">Street groups</h1>
+    <p class="street__lede">@StreetCopy.What</p>
+    <p class="street__lede">@StreetCopy.Kept</p>
+  </div>
+
+  <div class="street__state" data-street-state="guest" hidden>
+    <h1 tabindex="-1">Street groups</h1>
+    <p class="street__lede">@StreetCopy.What</p>
+    <p class="street__lede" data-street-guest-says>@StreetCopy.Guest</p>
+    <p class="cluster"><a class="button button--primary" href="/account/sign-in">Sign in or make an account</a></p>
+  </div>
+
+  <div class="street__state" data-street-state="list" hidden>
+    <h1 tabindex="-1">Your street groups</h1>
+    <p class="street__lede">@StreetCopy.What</p>
+    <p class="street__lede">@StreetCopy.Kept</p>
+    <ul class="street__groups" data-street-groups></ul>
+    <form class="street__form street__panel" data-street-start novalidate>
+      <h2>Start a group for your street</h2>
+      <div class="field">
+        <label for="street-name">What your neighbours call it</label>
+        <input id="street-name" class="input" name="name" maxlength="40" autocomplete="off" required>
+        <p class="field__hint">The name of the street will do. Only people in the group can read it.</p>
+      </div>
+      <div class="field">
+        <label for="start-house">Your house number or name</label>
+        <input id="start-house" class="input input--short" name="house" maxlength="12" autocomplete="off" required>
+        <p class="field__hint">Everyone in the group sees this.</p>
+      </div>
+      <div class="field">
+        <label for="start-first">Your first name</label>
+        <input id="start-first" class="input" name="first" maxlength="30" autocomplete="given-name" required>
+        <p class="field__hint">Only the homes you put in your closer circle see this.</p>
+      </div>
+      <p><button type="submit" class="button button--primary">Start the group</button></p>
+    </form>
+  </div>
+
+  <div class="street__state" data-street-state="join" hidden>
+    <h1 tabindex="-1">Join your street's group</h1>
+    <p class="street__lede">A neighbour has invited you. @StreetCopy.What</p>
+    <p class="street__lede">@StreetCopy.Kept</p>
+    <form class="street__form street__panel" data-street-join novalidate>
+      <div class="field">
+        <label for="join-house">Your house number or name</label>
+        <input id="join-house" class="input input--short" name="house" maxlength="12" autocomplete="off" required>
+        <p class="field__hint">Everyone in the group sees this.</p>
+      </div>
+      <div class="field">
+        <label for="join-first">Your first name</label>
+        <input id="join-first" class="input" name="first" maxlength="30" autocomplete="given-name" required>
+        <p class="field__hint">Only the homes you put in your closer circle see this. You share nothing else until you choose to.</p>
+      </div>
+      <p><button type="submit" class="button button--primary">Join the group</button></p>
+    </form>
+  </div>
+
+  <div class="street__state" data-street-state="group" hidden>
+    <h1 tabindex="-1" data-street-title></h1>
+    <p class="street__lede" data-street-count></p>
+
+    <section class="street__between" aria-labelledby="between-heading">
+      <h2 id="between-heading">What the street has between it</h2>
+      <ul class="street__between-list" data-street-between></ul>
+    </section>
+
+    <section aria-labelledby="homes-heading">
+      <h2 id="homes-heading">Home by home</h2>
+      <p class="street__lede street__screen">Each home shows you what it chose to show you. A first name means that home has put you in its closer circle.</p>
+      <ul class="street__homes" data-street-homes></ul>
+      <p class="street__screen"><button type="button" class="button" data-street-print>Print this for the kitchen drawer</button></p>
+    </section>
+
+    <div class="street__manage street__screen">
+    <section class="street__panel" aria-labelledby="sharing-heading">
+      <h2 id="sharing-heading">What you share, and with whom</h2>
+      <form class="street__form" data-street-sharing novalidate>
+        <div class="field">
+          <label for="share-house">Your house number or name</label>
+          <input id="share-house" class="input input--short" name="house" maxlength="12" autocomplete="off" required>
+          <p class="field__hint">Everyone in the group sees this.</p>
+        </div>
+        <div class="field">
+          <label for="share-first">Your first name</label>
+          <input id="share-first" class="input" name="first" maxlength="30" autocomplete="given-name" required>
+          <p class="field__hint">Only your closer circle sees this.</p>
+        </div>
+        <fieldset class="street__circle">
+          <legend>Your closer circle</legend>
+          <p class="field__hint">Tick the homes you know well, wherever in the group they are. They see your first name and what you offer your closer circle. Nobody is told who you ticked, or who you did not.</p>
+          <ul class="street__circle-list" data-street-circle></ul>
+          <p class="review__none" data-street-circle-none hidden>Nobody else has joined yet.</p>
+        </fieldset>
+        <fieldset class="street__offers">
+          <legend>What you could offer, and to whom</legend>
+          <p class="field__hint">Everything starts at nobody. Offer only what is true and what you would be glad to be asked for.</p>
+          @foreach (var offer in StreetCopy.Offers)
+          {
+            <div class="street__offer">
+              <label for="offer-@offer.Id">@offer.Words</label>
+              <select id="offer-@offer.Id" class="input" name="offer-@offer.Id" data-street-offer="@offer.Id">
+                @foreach (var circle in StreetCopy.Circles)
+                {
+                  <option value="@circle.Value">@circle.Words</option>
+                }
+              </select>
+            </div>
+          }
+        </fieldset>
+        <p><button type="submit" class="button button--primary">Save what I share</button></p>
+      </form>
+    </section>
+
+    <div class="street__aside">
+    <section class="street__panel" aria-labelledby="invite-heading">
+      <h2 id="invite-heading">Invite a neighbour, or add your other device</h2>
+      <p class="street__lede">Anyone who opens this can join the group, so send it only to neighbours you mean to invite. Open it on your own other device and the group is there too, with what you share.</p>
+      <div class="street__invite">
+        <div class="street__qr" data-street-qr></div>
+        <div class="street__form">
+          <div class="field">
+            <label for="street-link">The invitation</label>
+            <input id="street-link" class="input" readonly data-street-link>
+          </div>
+          <p><button type="button" class="button" data-street-copy>Copy the invitation</button></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="street__panel" aria-labelledby="leave-heading">
+      <h2 id="leave-heading">Leave the group</h2>
+      <p class="street__lede">Leaving removes your home and everything you shared from the group at once. Your neighbours' homes are not affected.</p>
+      <p><button type="button" class="button button--danger" data-street-leave>Leave this group</button></p>
+    </section>
+    </div>
+    </div>
+  </div>
+
+  <div class="street__state" data-street-state="gone" hidden>
+    <h1 tabindex="-1">That group is not here</h1>
+    <p class="street__lede" data-street-gone-says>@StreetCopy.Gone</p>
+    <p class="cluster"><a class="button button--primary" href="/street">Your street groups</a></p>
+  </div>
+</section>

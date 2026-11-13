@@ -1677,6 +1677,205 @@
   margin: 0;
 }
 
+/* Street groups. One page in several states; the script shows one. The street itself is a list of
+   homes, as many across as there is room for, and prints as that list and nothing else. */
+.street {
+  padding-block: var(--space-6);
+  display: grid;
+  gap: var(--space-5);
+
+  & h1 {
+    font-size: var(--text-2xl);
+  }
+
+  & h2 {
+    font-size: var(--text-xl);
+    margin-block-end: var(--space-2);
+  }
+}
+
+.street__state {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.street__lede {
+  color: var(--c-ink-muted);
+  max-inline-size: var(--measure);
+  text-wrap: pretty;
+}
+
+.street__groups,
+.street__between-list,
+.street__circle-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.street__groups a {
+  font-weight: 600;
+}
+
+.street__panel {
+  padding: var(--space-5);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+}
+
+.street__form {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: 44rem;
+}
+
+/* A track has a ceiling as well as a floor: one home on a wide screen is a card, not a banner. */
+.street__between-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 24rem));
+  font-weight: 600;
+}
+
+.street__manage {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.street__aside {
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (min-width: 72rem) {
+  .street__manage {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.street__homes {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 24rem));
+  align-items: start;
+}
+
+.street__home {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-m);
+  background: var(--c-paper);
+  justify-items: start;
+
+  &[data-home-mine] {
+    border-color: var(--c-pine);
+  }
+
+  /* A house may have a name, and a name set in the figures' face reads as a code. */
+  & .street__house .data {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+  }
+
+  & .street__name {
+    font-weight: 600;
+  }
+
+  & .street__you {
+    color: var(--c-ink-muted);
+    font-size: var(--text-s);
+  }
+
+  & .street__home-offers {
+    margin: 0;
+    padding-inline-start: var(--space-4);
+  }
+}
+
+.street__circle,
+.street__offers {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+
+  & legend {
+    padding: 0;
+    font-weight: 600;
+    font-size: var(--text-l);
+  }
+}
+
+.street__circle-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(10rem, 100%), 1fr));
+
+  & label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: 2.25rem;
+  }
+}
+
+.street__offer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 14rem);
+  gap: var(--space-3);
+  align-items: center;
+
+  & label {
+    font-weight: 500;
+  }
+}
+
+.street__invite {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  margin-block-start: var(--space-4);
+}
+
+/* A code is always dark on white, whatever the theme: one inverted in the dark does not scan. */
+.street__qr {
+  padding: var(--space-2);
+  background: #fff;
+  border-radius: var(--radius-s);
+}
+
+@media (max-width: 40rem) {
+  .street__offer,
+  .street__invite {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .street__qr {
+    max-inline-size: 12rem;
+  }
+}
+
+/* On paper: the street and what it has between it, and nothing that is a control. */
+@media print {
+  .street__screen,
+  .street .eyebrow,
+  .street__says {
+    display: none !important;
+  }
+
+  .street__home {
+    break-inside: avoid;
+  }
+}
+
 /* The assumptions desk. It is laid out as the board is, a heading for each need and a card for each
    thing that meets it, so somebody who knows stairlifts and not software finds the stairlift where a
    household would. A figure is a line: its name, its value in the instrument face, and a box that

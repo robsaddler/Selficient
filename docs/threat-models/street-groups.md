@@ -29,8 +29,22 @@ Accepted: the server knows which accounts are in a group together, and so which 
 
 Accepted: a removed member who kept the group key could read the group if the server gave it the blobs. The server does not. Defending against the server acting with a removed member would mean changing the key on every removal, which locks out every member who was away; it is not worth that.
 
-## Still to answer (stage 2)
+## Stage 2: the browser
 
-- The closer circle: that a member outside it cannot read the first name, cannot tell who is in whose circle, and cannot tell how many.
-- A hostile member: a record crafted to break another member's page (markup in a name, an enormous list, a public key that is not one).
-- A lost device: what a household is told, and that the key is not put anywhere the server can read to "help".
+The journeys are in `tests/Selficient.E2E.Tests/Street.cs`, each household in a browser of its own.
+
+| # | What could go wrong | What stops it | Test |
+|---|---|---|---|
+| 13 | **A member outside a home's closer circle reads its first name** or the offers made to the circle | They are sealed with a key made fresh at every save and wrapped only for the chosen homes, with a key each pair of homes derives (ECDH P-256, then HKDF salted with the group). A home outside has nothing that opens a wrap | `Neighbours_share_what_each_chose_with_whom_each_chose_and_the_server_can_read_none_of_it`: Sam's page has no "Rob" on it and one offer; Doris's has the name and both |
+| 14 | **A member, or the server, learns who is in whose circle, or how many** | The wraps carry no names, are shuffled, and are padded with random decoys to at least eight and then to the next eight | The record's shape in `street-crypto.js`; the journey reads what the server holds, unwrapped as far as it goes without a key, and finds no name, number or offer |
+| 15 | **The server reads the street's name, a house number, a first name or an offer** | Everything is sealed in the browser with AES-GCM under the group key, which is only ever in the link's fragment and the device's own storage | The same journey: the answer of `/api/street/{id}` is searched, envelope inside envelope |
+| 16 | **A hostile member's record breaks another member's page**: markup in a house number, offers that are not offers, a hundred and fifty wraps, a public key that is not one, a record that is noise | Every value read from a record is checked: text is one line, cut to its length and set as text, never markup; offers are kept only if they are on the closed list, once each; wraps are capped; a bad key or a record that does not open makes the home "could not be read" and nothing else. The page has no inline script allowance for markup to use in any case | `A_neighbour_whose_browser_lies_cannot_break_another_home_s_page` |
+| 17 | **A member makes itself invisible** by writing nonsense, so that it stays in the group unseen | A home that cannot be read is still drawn and can still be removed | The same test removes it |
+| 18 | **The invitation leaks through a return address, a referrer or a cache** | The page is `no-store` and `Referrer-Policy: no-referrer`; a guest's invitation waits in the tab's session storage, not in the sign-in's address; the code is drawn in the browser by `qr.js` | `StreetPagesTests`; the journey signs Doris in on her way to the invitation |
+| 19 | **A removed home keeps a working invitation**, or the members left behind keep a dead one | The starter's browser sets a new pass with the removal and seals it into the group's `about`, which every member reads | The journey: Sam's old link opens nothing; Doris's page shows the new one without being sent it |
+| 20 | **A second device becomes a second home**, or cannot see what the first set | What a home's devices need is kept sealed beside its membership and answered only to its account | The journey: Rob's phone opens the invitation and has his name, his circle and his offers |
+| 21 | **A lost device**: the household is locked out, or the key is put where the server can read it to "help" | A device without the key says so in a sentence and says what to do: open the invitation again. The key is in the device's storage and nowhere else (decision 160) | The journey: Rob's phone before it has opened the invitation; a group address this device never heard of |
+
+Accepted: every member holds the group key, so any member can read what is shared with the whole group and can write a record for itself that says anything. That is what a member is. What a member cannot do is read a closer circle it is not in, write another home's record, or make another home's page do anything.
+
+Accepted: a home in a closer circle can tell it is in it (it sees the first name). It cannot tell who else is.
