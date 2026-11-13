@@ -1837,6 +1837,11 @@
   }
 }
 
+.street__offer-words {
+  display: grid;
+  gap: var(--space-1);
+}
+
 .street__invite {
   display: grid;
   grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);

@@ -230,14 +230,21 @@ public sealed partial class MarketingPagesTests : IDisposable
         privacy.ShouldContain("A page with a form on it sets one security cookie, which stops another website sending that form in your name");
         privacy.ShouldContain("If you sign in, a second cookie keeps you signed in on that device for ninety days");
         privacy.ShouldContain("<td>your email address and a sign-in code, only if you ask to sign in</td>");
-        LegalRails.Privacy.Sections.Select(s => s.Id).ShouldBe(["stays", "leaves", "account", "cookies", "server", "rights"]);
-        LegalCopy.PrivacyAtAGlance.Select(c => c.Heading).ShouldBe(["No account needed", "An account is yours to make and to delete", "No tracking, no analytics", "Your plan stays on your device", "Your postcode goes once", "Photographs never touch our disk"]);
+        LegalRails.Privacy.Sections.Select(s => s.Id).ShouldBe(["stays", "leaves", "account", "street", "cookies", "server", "rights"]);
+        LegalCopy.PrivacyAtAGlance.Select(c => c.Heading).ShouldBe(["No account needed", "An account is yours to make and to delete", "A street group is locked before it leaves", "No tracking, no analytics", "Your plan stays on your device", "Your postcode goes once", "Photographs never touch our disk"]);
         foreach ((string service, _, _) in LegalCopy.Upstreams)
         {
             privacy.ShouldContain(service);
         }
 
-        privacy.ShouldContain("Reviewed 12 November 2026.");
+        privacy.ShouldContain("Reviewed 13 November 2026.");
+        privacy.ShouldContain("<h2 id=\"street\">If you join a street group</h2>");
+        privacy.ShouldContain("We never have that key. So for a home in a group we keep two things: that your account is in the group, and a record we cannot read.");
+        privacy.ShouldContain("We do know which accounts are in a group together, because that is how we decide who is given the group's records.");
+        privacy.ShouldContain("A group holds offers and never needs: there is nowhere to say who in a home is frail, what is kept there or when it is empty.");
+        privacy.ShouldContain("Nothing was sent to find out, and nothing is offered until you choose it.");
+        privacy.ShouldContain("It takes your home out of every street group you joined at the same moment.");
+        privacy.ShouldContain("If you are in a street group we also hold that you are, and a record only your group can read");
         privacy.ShouldContain("<td>an encrypted copy of your plan that we cannot read, because the key stays in the code on your screen</td>");
         privacy.ShouldContain("<td>to hand it to your other device, once; it is deleted as it is collected, or after ten minutes if it never is</td>");
         privacy.ShouldContain("never written to disk");

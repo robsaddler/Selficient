@@ -22,6 +22,41 @@ public static class StreetCopy
         ("lift", "A car with fuel or charge", "with a car that has fuel or charge"),
     ];
 
+    /// <summary>
+    /// What in a household's own plan says it could make an offer: the actions it holds, and the
+    /// answers it gave about its home. The plan is in the household's browser and the group is
+    /// sealed there, so it is the browser that looks, with these as its instructions; the server
+    /// never learns which of them was true. A sign is a prompt and nothing more: the offer stays
+    /// at nobody until the household chooses otherwise.
+    /// </summary>
+    public static IReadOnlyDictionary<string, PlanSign> PlanSigns { get; } = new Dictionary<string, PlanSign>(StringComparer.Ordinal)
+    {
+        ["warm-room"] = new("portable-gas-heater", "HasWoodStove=true HasGasHeater=true Heating=Wood"),
+        ["hot-food"] = new("butane-cartridge-stove", "Hob=Gas HasWoodStove=true Heating=Wood"),
+        ["phone-charging"] = new("portable-power-station power-banks rooftop-solar-and-battery", "Car=ElectricWithOutput"),
+        ["cold-storage"] = new("rooftop-solar-and-battery portable-power-station", string.Empty),
+        ["drinking-water"] = new("water-cans gravity-water-filter", string.Empty),
+        ["light"] = new("rechargeable-lanterns headtorches", string.Empty),
+        ["news"] = new("radio-dab-fm-with-crank", string.Empty),
+        ["first-aid"] = new("safety-kit", string.Empty),
+        ["lift"] = new(string.Empty, "Car=Petrol Car=Electric Car=ElectricWithOutput HasCar=true"),
+    };
+
+    /// <summary>Beside an offer the household's plan says it could make.</summary>
+    public const string PlanSays = "Your plan says you have this.";
+
+    /// <summary>On the plan page, the way in.</summary>
+    public const string OnPlanBefore = "A street copes better than a house.";
+
+    /// <summary>The words of the link on the plan page.</summary>
+    public const string OnPlanLink = "Start a group for your street";
+
+    /// <summary>What follows the link on the plan page.</summary>
+    public const string OnPlanAfter = ", and neighbours can tell each other what each could offer when the power is off. Selficient cannot read what a group shares.";
+
+    /// <summary>The link to a member's groups, in "Where your plan is kept".</summary>
+    public const string YourGroups = "Your street groups";
+
     /// <summary>The three choices for an offer, as the settings word them.</summary>
     public static IReadOnlyList<(string Value, string Words)> Circles { get; } =
     [
@@ -102,3 +137,8 @@ public static class StreetCopy
     /// <summary>What the remove button says to a screen reader; the script puts the house number in.</summary>
     public const string RemoveLabel = "Remove number {house} from the group";
 }
+
+/// <summary>What in a plan says a household could make an offer.</summary>
+/// <param name="Held">The plan actions, any one of which held says so, separated by spaces.</param>
+/// <param name="Answers">The answers about the home, as field=value, any one of which says so, separated by spaces.</param>
+public sealed record PlanSign(string Held, string Answers);

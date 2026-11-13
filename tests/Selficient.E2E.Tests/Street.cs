@@ -255,6 +255,51 @@ public sealed class Street
         await Expect(ada.Locator("[data-street-count]")).ToHaveTextAsync("One home so far, which is yours. Send the invitation below to a neighbour.");
     }
 
+    [Fact]
+    public async Task The_plan_leads_to_the_street_and_the_street_says_what_the_plan_holds_without_choosing_for_anyone()
+    {
+        await using IBrowserContext context = await _browser.SizedAsync(1440, 900, mobile: false, theme: "light");
+        IPage page = await context.NewPageAsync();
+        await page.GotoAsync("/plan/start");
+        await Journeys.FillRobsHouseAsync(page);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Build my plan" }).ClickAsync();
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Sync.TickAsync(page, "safety-kit");
+        await Accounts.SignInAsync(_browser, page, $"plan-{Guid.NewGuid():N}@example.com");
+        await page.GotoAsync("/plan");
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+
+        await page.GetByRole(AriaRole.Link, new() { Name = "Start a group for your street" }).ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Your street groups" })).ToBeVisibleAsync();
+        await page.GetByLabel("What your neighbours call it").FillAsync("Maple Road");
+        await page.Locator("[data-street-start]").GetByLabel("Your house number or name").FillAsync("27");
+        await page.Locator("[data-street-start]").GetByLabel("Your first name").FillAsync("Rob");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Start the group" }).ClickAsync();
+        await Expect(page.Locator("[data-street-title]")).ToHaveTextAsync("Maple Road");
+
+        // The kit that was ticked is said beside its offer; a radio that was not is not; the car is as the plan was answered.
+        await Expect(page.Locator("[data-offer-plan=\"first-aid\"]")).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-offer-plan=\"first-aid\"]")).ToHaveTextAsync("Your plan says you have this.");
+        await Expect(page.Locator("[data-offer-plan=\"news\"]")).ToBeHiddenAsync();
+        bool hasCar = await page.EvaluateAsync<bool>("() => import('/js/plan-store.js').then(store => store.getProfile()).then(profile => profile.Car !== 'None')");
+        (await page.Locator("[data-offer-plan=\"lift\"]").IsVisibleAsync()).ShouldBe(hasCar);
+
+        // It is a prompt and no more: every offer still goes to nobody, and nothing has been shared.
+        foreach (ILocator choice in await page.Locator("[data-street-offer]").AllAsync())
+        {
+            await Expect(choice).ToHaveValueAsync(string.Empty);
+        }
+
+        await Expect(page.Locator("[data-street-between] li")).ToHaveTextAsync("Nobody has shared an offer with you yet. When they do, what the street has between it is counted here.");
+        await ShouldBeSoundAsync(page);
+        await page.Locator("[data-street-sharing]").ScreenshotAsync(new() { Path = Screenshots.Target("street-plan-says-desktop-light.png") });
+
+        // And the way back, from where the plan is kept.
+        await page.Locator("[data-keep-chip]").ClickAsync();
+        await page.GetByRole(AriaRole.Link, new() { Name = "Your street groups" }).ClickAsync();
+        await Expect(page.Locator("[data-street-groups] a")).ToHaveTextAsync("Maple Road");
+    }
+
     [Theory]
     [InlineData("wide", 2000, 1100, "dark")]
     [InlineData("phone", 390, 844, "dark")]

@@ -16,7 +16,7 @@ public static class LegalCopy
     public const string MailProvider = "Postmark, a mail service";
 
     /// <summary>When the legal pages were last reviewed.</summary>
-    public static DateOnly Reviewed { get; } = new(2026, 11, 12);
+    public static DateOnly Reviewed { get; } = new(2026, 11, 13);
 
     /// <summary>
     /// The privacy page in four sentences, for the rail beside the prose. A legal page is a hard
@@ -27,6 +27,7 @@ public static class LegalCopy
     [
         ("No account needed", "Everything works without one. Nobody is asked to sign up, and a plan made as a guest is a whole plan."),
         ("An account is yours to make and to delete", "If you make one, we keep your email address and your plan and nothing else. Deleting it removes both, straight away."),
+        ("A street group is locked before it leaves", "If you join one, we keep that you are in it and a record we cannot read. Your neighbours see only what you choose to show them."),
         ("No tracking, no analytics", "Nobody is counting you, here or anywhere else. The only cookies are the ones that protect a form and keep you signed in."),
         ("Your plan stays on your device", "Your answers, your ticks and the pin on your map live in your own browser's storage. Clearing your browser clears them."),
         ("Your postcode goes once", "It goes to public lookups to find your area, your height above sea level and what the flood map says there, and it is not kept afterwards."),

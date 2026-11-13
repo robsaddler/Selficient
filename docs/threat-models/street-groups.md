@@ -45,6 +45,14 @@ The journeys are in `tests/Selficient.E2E.Tests/Street.cs`, each household in a 
 | 20 | **A second device becomes a second home**, or cannot see what the first set | What a home's devices need is kept sealed beside its membership and answered only to its account | The journey: Rob's phone opens the invitation and has his name, his circle and his offers |
 | 21 | **A lost device**: the household is locked out, or the key is put where the server can read it to "help" | A device without the key says so in a sentence and says what to do: open the invitation again. The key is in the device's storage and nowhere else (decision 160) | The journey: Rob's phone before it has opened the invitation; a group address this device never heard of |
 
+## Stage 3: the plan and the group
+
+| # | What could go wrong | What stops it | Test |
+|---|---|---|---|
+| 22 | **The server learns what a home has** by being asked which offers it could make | It is never asked. The page carries the same list of signs to everyone and the browser holds it against its own store | `The_plan_leads_to_the_street_and_the_street_says_what_the_plan_holds_without_choosing_for_anyone`; `StreetPagesTests` reads the list off the page |
+| 23 | **A household shares something it did not choose**, because its plan held it | A sign is a sentence. No offer is set by it, and nothing is published until "Save what I share" | The same journey: every choice is still nobody and the street has nothing between it |
+| 24 | **A server with no accounts offers a group** that cannot be joined | `/street` answers with the accounts-unavailable page and the plan draws no way in | `A_server_that_offers_no_accounts_offers_no_street_groups_and_the_plan_does_not_point_to_them` |
+
 Accepted: every member holds the group key, so any member can read what is shared with the whole group and can write a record for itself that says anything. That is what a member is. What a member cannot do is read a closer circle it is not in, write another home's record, or make another home's page do anything.
 
 Accepted: a home in a closer circle can tell it is in it (it sees the first name). It cannot tell who else is.

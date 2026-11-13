@@ -27,7 +27,7 @@
   <ul hidden data-street-offers>
     @foreach (var offer in StreetCopy.Offers)
     {
-      <li data-offer="@offer.Id" data-between="@offer.Between">@offer.Words</li>
+      <li data-offer="@offer.Id" data-between="@offer.Between" data-held="@StreetCopy.PlanSigns[offer.Id].Held" data-answers="@StreetCopy.PlanSigns[offer.Id].Answers">@offer.Words</li>
     }
   </ul>
 
@@ -131,8 +131,12 @@
           @foreach (var offer in StreetCopy.Offers)
           {
             <div class="street__offer">
-              <label for="offer-@offer.Id">@offer.Words</label>
-              <select id="offer-@offer.Id" class="input" name="offer-@offer.Id" data-street-offer="@offer.Id">
+              <div class="street__offer-words">
+                <label for="offer-@offer.Id">@offer.Words</label>
+                @* Shown by the script where this browser's plan says so. The plan never leaves the browser for this. *@
+                <p class="field__hint" id="offer-@offer.Id-plan" data-offer-plan="@offer.Id" hidden>@StreetCopy.PlanSays</p>
+              </div>
+              <select id="offer-@offer.Id" class="input" name="offer-@offer.Id" data-street-offer="@offer.Id" aria-describedby="offer-@offer.Id-plan">
                 @foreach (var circle in StreetCopy.Circles)
                 {
                   <option value="@circle.Value">@circle.Words</option>

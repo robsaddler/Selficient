@@ -1837,6 +1837,7 @@ progress.tier-progress {
 }
 
 .plan__photos,
+.plan__street,
 .plan__explain {
   margin-block-start: var(--space-4);
 }

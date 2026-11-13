@@ -12,6 +12,7 @@
 import { toBase64Url, fromBase64Url } from "selficient/handoff.js";
 import { qrSvg } from "selficient/qr.js";
 import * as crypt from "selficient/street-crypto.js";
+import { getProfile, getTicks } from "selficient/plan-store.js";
 
 const KEYS = "selficient.streets";
 const PENDING = "selficient.street-invite";
@@ -382,6 +383,7 @@ function draw(page, gid, about, shown, mine, mayRemove) {
       select.value = mine.offers[select.dataset.streetOffer ?? ""] ?? "";
     }
   }
+  void showPlanSigns(root);
   const circle = root.querySelector("[data-street-circle]");
   const noCircle = root.querySelector("[data-street-circle-none]");
   if (circle instanceof HTMLElement) {
@@ -588,6 +590,38 @@ function byHouse(a, b) {
     return Number.isFinite(x) ? -1 : 1;
   }
   return a.house.localeCompare(b.house, "en-GB");
+}
+
+/**
+ * Says, beside each offer this browser's plan says the household could make, that it does. The
+ * plan is read from this browser's own store and goes nowhere; the page carries what to look for.
+ * It is a prompt: nothing is chosen for the household. With no plan, or a store that will not
+ * open, nothing is said.
+ * @param {HTMLElement} root
+ */
+async function showPlanSigns(root) {
+  /** @type {Set<string>} */
+  let held = new Set();
+  /** @type {Record<string, string>} */
+  let profile = {};
+  try {
+    held = new Set(await getTicks());
+    profile = (await getProfile()) ?? {};
+  } catch {
+    // No store: no signs.
+  }
+  for (const item of root.querySelectorAll("[data-street-offers] li")) {
+    const says = item instanceof HTMLElement ? root.querySelector(`[data-offer-plan="${item.dataset.offer ?? ""}"]`) : null;
+    if (!(item instanceof HTMLElement) || !(says instanceof HTMLElement)) {
+      continue;
+    }
+    const holds = (item.dataset.held ?? "").split(" ").some((action) => held.has(action));
+    const answered = (item.dataset.answers ?? "").split(" ").some((answer) => {
+      const [field, value] = answer.split("=");
+      return field !== undefined && field !== "" && profile[field] === value;
+    });
+    says.hidden = !(holds || answered);
+  }
 }
 
 /**

@@ -56,6 +56,10 @@ The same idea as "send a copy" (decision 35): the key is made in the browser and
 - **What a home's own devices need.** Its key pair, its house number and first name, what it offers to whom and who is in its closer circle are sealed with the group's key and kept beside its membership (`keep`). The server answers it only to the account it belongs to and cannot read it. A second device that opens the invitation finds it and is the same home at once.
 - **The page.** `/street`, `/street/join` and `/street/group` are one page the server draws the same for everyone (`Pages/Street`, `StreetCopy`). `street.js` chooses the state and `street-crypto.js` does everything that needs a key. Nothing a neighbour wrote is ever put on the page as markup, and everything read from a record is checked first.
 
+## What the plan says
+
+Beside each offer the page can say "Your plan says you have this." The browser works it out from the plan it keeps: `StreetCopy.PlanSigns` lists, for each offer, the plan actions any one of which held says so and the answers about the home that say so, and the page carries that list for `street.js` to hold against the store. Nothing is sent to find out. It is a prompt and no more: every offer stays at nobody until the household chooses.
+
 ## Limits
 
 A hundred homes to a group; five groups to an account; a member's record 24 KB at most; the invitation's pass 32 bytes. The longest-standing member is the one who may remove, so a starter who leaves or deletes their account hands the group on without anyone doing anything. A group with nobody in it is swept away.
@@ -70,4 +74,4 @@ The rule in `CLAUDE.md` says the server keeps, for a household with an account, 
 |---|---|---|
 | 1 | The server: groups, members, the pass, removal, leaving, limits, the sweep; the endpoints | Done |
 | 2 | The browser: keys, the record, the closer circle; the page for starting, joining, sharing and the street; the printed sheet | Done |
-| 3 | The way in from the plan page; what the plan says a household has, beside each offer; the privacy page | Next |
+| 3 | The way in from the plan page; what the plan says a household has, beside each offer; the privacy page | Done |

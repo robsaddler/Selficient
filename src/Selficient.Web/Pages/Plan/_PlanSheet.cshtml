@@ -115,6 +115,11 @@
   {
     <p class="plan__solar">The biggest line is the roof. <a href="/plan/solar">Estimate what solar and a battery would make, save and cost for your house</a>, with the backup that keeps the lights on.</p>
   }
+  @* Only where this server offers accounts, because a group needs one. *@
+  @if (Accounts.IsAvailable)
+  {
+    <p class="plan__street">@Selficient.Web.Pages.Street.StreetCopy.OnPlanBefore <a href="/street">@Selficient.Web.Pages.Street.StreetCopy.OnPlanLink</a>@Selficient.Web.Pages.Street.StreetCopy.OnPlanAfter</p>
+  }
   <p class="plan__photos">Rather than count by hand, <a href="/plan/photos">photograph your kit cupboard, the boiler's plate and the fuse board</a> and let the photos fill the plan in.</p>
   @await Html.PartialAsync("_PlanExplain", Model)
   <p class="disclosure">Where we point to a shop, some links earn Selficient a small commission at no cost to you. Prices are what we saw on the date shown and will have moved; the sentence beside each item is why we chose it.</p>

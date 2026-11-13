@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Selficient.Application.Accounts;
 
 namespace Selficient.Web.Pages.Street;
 
@@ -12,9 +13,23 @@ namespace Selficient.Web.Pages.Street;
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 public sealed class IndexModel : PageModel
 {
-    /// <summary>Renders the page.</summary>
+    private readonly AccountSignIn _accounts;
+
+    /// <summary>Creates the page model.</summary>
+    public IndexModel(AccountSignIn accounts)
+    {
+        ArgumentNullException.ThrowIfNull(accounts);
+        _accounts = accounts;
+    }
+
+    /// <summary>Renders the page. A group needs an account, so a server that offers none says so on the page that says it for accounts.</summary>
     public IActionResult OnGet()
     {
+        if (!_accounts.IsAvailable)
+        {
+            return RedirectToPage("/Account/Unavailable");
+        }
+
         Response.Headers["Referrer-Policy"] = "no-referrer";
         return Page();
     }
