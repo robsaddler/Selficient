@@ -468,6 +468,43 @@ progress.tier-progress {
       inline-size: 6rem;
     }
   }
+
+  /* The figures for things the household has: one line until it is opened, so a new plan is not
+     met with a row of technical boxes, and laid two or three across once it is. */
+  & .assumptions__own {
+    margin-block-start: var(--space-5);
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--c-contour);
+
+    & summary {
+      color: var(--c-pine);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    &[open] {
+      display: grid;
+      gap: 0 var(--space-6);
+      grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+      align-items: start;
+
+      & summary,
+      & .assumptions__lede {
+        grid-column: 1 / -1;
+      }
+    }
+
+    /* A figure of the household's own is marked down its side, as a drafted figure is on the desk. */
+    & .assumptions__item[data-own-state="own"],
+    & .assumptions__item[data-own-state="declined"] {
+      padding-inline-start: var(--space-3);
+      border-inline-start: 4px solid var(--c-lantern);
+    }
+  }
+
+  & .callout {
+    margin-block-start: var(--space-4);
+  }
 }
 
 /* The tally: how many of a stretch, or of the whole plan, the household has, plans, has not decided

@@ -82,6 +82,19 @@ Accepted: an expert can see every other operator's drafts, reasons and names. Th
 
 Accepted: there is still no screen to name a second publisher. It is a row in `figure_publishers`, added by hand, until Rob wants somebody else to publish.
 
+## Step 6: a household's own figures (done)
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 36 | **A household gives itself a figure that is not its to give**: what a person drinks, how long a storm lasts, a price | Only the figures flagged as a household's are used, inside the same range as anyone's, for that request only. Anything else is declined and the figure in force stands (case 5, now on the page) | `Each_figure_that_can_be_used_is_used_and_each_that_cannot_is_declined…`, `A_plan_is_built_from_the_households_own_figures_over_the_ones_in_force` |
+| 37 | **A figure kept in a browser for years breaks the plan** after a release narrows its range or removes it | It is declined with a sentence at its question, the plan's figure is used, and the plan is built. Each figure is tried on its own, so one bad one does not cost the household the others | `A_figure_that_contradicts_the_set_it_is_laid_over_is_declined_and_the_others_still_stand`, `The_plan_and_the_board_are_worked_out_from_a_households_own_figures_and_say_so` |
+| 38 | **A rebuild loop.** The browser keeps figures the page was not built from, rebuilds, and the page it gets still differs | The page lists what it was asked, used or not, so a declined figure is not a difference. The page that follows a rebuild does not rebuild; figures are compared to four places | The journey `A_household_gives_its_own_figure…`, which waits on a declined figure and finds the page where it was |
+| 39 | **A hand-made post with text for a number, or thousands of figures** | Refused with a sentence before anything is looked up or built: twenty at most, each a plain number | `What_no_browser_of_ours_would_send_is_refused_with_a_sentence` |
+| 40 | **An id from a post is written onto the page** | It is written, as text, in a hidden list and in hidden inputs, encoded by Razor; a declined id's sentence is shown only beside a question, and there is a question only for a figure in the registry | The page test reads an unknown id back from the hidden list |
+| 41 | **The plan and the board under it are worked out from different figures** | Every post that carries the profile carries the own figures: the page, the board fragment, the explanation, the no-script form for what a household relies on | The same page test: the fragment says the same row was worked out from the same figure; both echo forms carry it |
+| 42 | **The account's copy refuses a plan that has own figures, or accepts anything under that name** | `isAssumptions` in the browser and `PlanGuard` on the server take the same shape: up to twenty, an id of the registry's form, a number from nothing to a million | The cases added to `PlanSyncTests`; the journey saves through `saveAssumptions` |
+| 43 | **A household's figures reach the server's keeping** | They are in the browser. For an account they are inside the copy encrypted in the browser, which the server cannot read. A post carries them for the length of the request, as it carries the answers | The privacy rule; nothing new is stored |
+
 ## Not yet answered (later steps)
 
 - The plan's sentences are not swept by a test the way the board's are: they are full of numbers that are facts and not figures (a date, a phone number, an insurance limit), so a list of number words would fail every one. They were read by hand. A new rule sentence that states an engine figure in plain words would not be caught.

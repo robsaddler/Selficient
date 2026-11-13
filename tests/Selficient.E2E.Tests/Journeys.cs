@@ -1021,6 +1021,72 @@ public sealed class Journeys
         (await page.EvaluateAsync<int>("() => import('/js/figures.js').then(figures => figures.known().version)")).ShouldBe(7);
     }
 
+    [Fact]
+    public async Task A_household_gives_its_own_figure_for_something_it_has_and_its_plan_is_worked_out_again_from_it()
+    {
+        await using IBrowserContext context = await _browser.PhoneAsync();
+        IPage page = await context.NewPageAsync();
+        await BuildPlanAsync(page);
+        await Sync.TickAsync(page, "headtorches");
+        const string Kept = "() => import('/js/plan-store.js').then(store => store.getAssumptions()).then(kept => JSON.stringify(kept))";
+
+        // The questions are one shut line under the cash figure until somebody opens them.
+        ILocator questions = page.Locator("[data-own-figures]");
+        ILocator butt = page.Locator("#own-water-butt-stock");
+        ILocator says = page.Locator("[data-own-rebuilt]");
+        await Expect(questions.Locator("summary")).ToContainTextAsync("figures you may know better than the plan");
+        await Expect(butt).ToBeHiddenAsync();
+        await Expect(page.Locator("[data-action-row=\"water-butt\"]")).ToContainTextAsync("A 210-litre water butt on a downpipe");
+        await questions.Locator("summary").ClickAsync();
+        await Expect(butt).ToHaveValueAsync("210");
+
+        // Its own figure: the plan is built again from it, says so, and comes back to the question.
+        await butt.FillAsync("300");
+        await butt.PressAsync("Tab");
+        await Expect(says).ToBeVisibleAsync(new() { Timeout = 15_000 });
+        await Expect(says).ToHaveTextAsync("Your plan has been worked out again from your figures.");
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(butt).ToBeVisibleAsync();
+        await Expect(butt).ToHaveValueAsync("300");
+        await Expect(page.Locator("[data-own-state=\"own\"] [data-own-says]")).ToHaveTextAsync("The plan is using your figure. Its own is 210 litres.");
+        await Expect(page.Locator("[data-action-row=\"water-butt\"]")).ToContainTextAsync("A 300-litre water butt on a downpipe");
+        await Expect(page.Locator("[data-action-row=\"headtorches\"] [data-choice=\"have\"]")).ToBeCheckedAsync(new() { Timeout = 10_000 });
+        (await page.EvaluateAsync<string>(Kept)).ShouldBe("{\"figures\":{\"water-butt.stock\":300}}");
+        await ShouldNotScrollSidewaysAsync(page);
+        AxeResult axe = await RunAxeWhenSettledAsync(page);
+        axe.Violations.ShouldBeEmpty();
+        await page.Locator(".assumptions").ScreenshotAsync(new() { Path = Screenshots.Target("own-figures-phone-light.png") });
+
+        // It is rebuilt once: the page stays, and the cash figure beside it does not disturb it.
+        await page.WaitForTimeoutAsync(1_000);
+        await Expect(says).ToBeVisibleAsync();
+        await page.Locator("#assume-cash").FillAsync("15");
+        await page.Locator("#assume-cash").PressAsync("Tab");
+        await Until.TrueAsync(page, "() => import('/js/plan-store.js').then(store => store.getAssumptions()).then(kept => kept.cashRate === 15 && kept.figures?.['water-butt.stock'] === 300)");
+
+        // Opened again, the plan is built from the figure the first time, with nothing to say about it.
+        await page.GotoAsync("/plan");
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await Expect(page.Locator("[data-action-row=\"water-butt\"]")).ToContainTextAsync("A 300-litre water butt on a downpipe");
+        await Expect(says).ToBeHiddenAsync();
+        await Expect(questions).ToHaveAttributeAsync("open", "open");
+
+        // "Use the plan's" takes the figure back, and the cash figure stays.
+        await page.Locator("[data-own-reset=\"water-butt.stock\"]").ClickAsync();
+        await Expect(says).ToBeVisibleAsync(new() { Timeout = 15_000 });
+        await Expect(page.Locator("[data-action-row=\"water-butt\"]")).ToContainTextAsync("A 210-litre water butt on a downpipe");
+        (await page.EvaluateAsync<string>(Kept)).ShouldBe("{\"cashRate\":15}");
+
+        // A figure kept from before that the plan can no longer use: the plan is built, says which, and does not go round again.
+        await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
+        await page.EvaluateAsync("() => import('/js/plan-store.js').then(store => store.saveAssumptions({ figures: { 'closed-freezer.stock': 5000 } }))");
+        ILocator declined = page.Locator("[data-own-state=\"declined\"] [data-own-says]");
+        await Expect(declined).ToContainTextAsync("The plan could not use the figure you gave before, so it is using its own.", new() { Timeout = 15_000 });
+        await page.WaitForTimeoutAsync(1_500);
+        await Expect(declined).ToBeVisibleAsync();
+        await Expect(page.Locator("#own-closed-freezer-stock")).ToHaveValueAsync("2");
+    }
+
     private static async Task BuildPlanAsync(IPage page)
     {
         await page.GotoAsync("/plan/start");

@@ -17,7 +17,7 @@ const LOCK = "selficient-plan-write";
 /** @typedef {{ name: string, kind: "PoweredDevice" | "Medicine" | "Supply", watts: number, hoursPerDay: number, daysOfStock: number, mustStayCold: boolean }} Dependency */
 /** @typedef {"have" | "plan" | "skip"} Choice */
 /** @typedef {Record<string, number>} Amounts */
-/** @typedef {{ cashRate?: number }} Assumptions */
+/** @typedef {{ cashRate?: number, figures?: Record<string, number> }} Assumptions */
 /** @typedef {{ profile: Profile | null, ticks: string[], planned?: string[], skipped?: string[], amounts?: Amounts, assumptions?: Assumptions, house?: House | null, dependencies?: Dependency[], shortlist?: string[] }} Snapshot */
 
 /** @returns {Promise<IDBDatabase>} */
@@ -245,6 +245,26 @@ export async function setAmounts(changes) {
 export async function getAssumptions() {
   const value = await withStore("amounts", "readonly", (s) => s.get("assumptions"));
   return isAssumptions(value) ? { ...value } : {};
+}
+
+/**
+ * Adds the household's own figures to a form that is about to post its answers, so the plan that
+ * comes back is built from them and not built twice.
+ * @param {HTMLFormElement} form
+ */
+export async function addOwnFigures(form) {
+  const assumptions = await getAssumptions().catch(() => /** @type {Assumptions} */ ({}));
+  for (const old of form.querySelectorAll("input[data-own-posted]")) {
+    old.remove();
+  }
+  for (const [id, figure] of Object.entries(assumptions.figures ?? {})) {
+    const input = form.ownerDocument.createElement("input");
+    input.type = "hidden";
+    input.name = "Own[" + id + "]";
+    input.value = String(figure);
+    input.setAttribute("data-own-posted", "");
+    form.append(input);
+  }
 }
 
 /** @param {Assumptions} assumptions */
@@ -479,8 +499,8 @@ export function isAmounts(value) {
 }
 
 /**
- * The assumptions a household may change: so far, a whole number of pounds from 1 to 100 that a
- * person's day costs in cash. Nothing else is kept.
+ * The assumptions a household may change: a whole number of pounds from 1 to 100 that a person's
+ * day costs in cash, and its own figures for things it has. Nothing else is kept.
  * @param {unknown} value
  * @returns {value is Assumptions}
  */
@@ -488,8 +508,26 @@ export function isAssumptions(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
+  return Object.entries(value).every(([name, held]) => name === "cashRate"
+    ? Number.isInteger(held) && held >= 1 && held <= 100
+    : name === "figures" && isOwnFigures(held));
+}
+
+const FIGURE = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
+
+/**
+ * The household's own figures for things it has: up to twenty, each a number from nothing to a
+ * million against a figure's id. Whether the plan can use one is the plan's business when it is built.
+ * @param {unknown} value
+ * @returns {value is Record<string, number>}
+ */
+function isOwnFigures(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
   const entries = Object.entries(value);
-  return entries.every(([name, rate]) => name === "cashRate" && Number.isInteger(rate) && rate >= 1 && rate <= 100);
+  return entries.length <= 20 && entries.every(([id, figure]) => id.length <= 160 && FIGURE.test(id)
+    && typeof figure === "number" && Number.isFinite(figure) && figure >= 0 && figure <= 1000000);
 }
 
 const KINDS = ["PoweredDevice", "Medicine", "Supply"];

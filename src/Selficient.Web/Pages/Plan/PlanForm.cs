@@ -204,7 +204,10 @@ public sealed class PlanForm
     public int FloorOfFlat => DwellingType == DwellingType.Flat ? Floor ?? 0 : 0;
 
     /// <summary>The request for the Application layer.</summary>
-    public PlanHouseholdRequest ToRequest() => new(
+    public PlanHouseholdRequest ToRequest() => ToRequest(new Dictionary<string, decimal>());
+
+    /// <summary>The request, with the figures the household gave for itself.</summary>
+    public PlanHouseholdRequest ToRequest(IReadOnlyDictionary<string, decimal> ownFigures) => new(
         Postcode,
         new GeneratePlanCommand(People, Children, HasVulnerablePerson, HasPets, RunsBusinessFromHome, DwellingType, Storeys, Heating, Hob, OwnsCar, HasGarden, HasDecking, HasTallTreeNearHouse, null, FloodRisk,
             CarIsElectric: Car >= CarKind.Electric,
@@ -219,7 +222,7 @@ public sealed class PlanForm
             HasCellar: HasCellar,
             SleepsDownstairs: SleepsDownstairs,
             Floor: FloorOfFlat,
-            Stairlift: Stairlift ?? Selficient.Domain.Households.Stairlift.None));
+            Stairlift: Stairlift ?? Selficient.Domain.Households.Stairlift.None) { OwnFigures = ownFigures });
 
     /// <summary>
     /// The household as the resilience engine sees it. The newer questions are optional so a profile

@@ -56,6 +56,7 @@ public sealed class ParameterSet
 {
     private readonly FrozenDictionary<string, decimal> _values;
     private readonly ConcurrentDictionary<Type, object> _derived = new();
+    private ParameterSet? _plans;
 
     private ParameterSet(int version, FrozenDictionary<string, decimal> values, IReadOnlyDictionary<string, decimal> corrections)
     {
@@ -98,6 +99,56 @@ public sealed class ParameterSet
         ArgumentNullException.ThrowIfNull(own);
         return own.Count == 0 ? Result.Success(this) : Over(Version, own, static parameter => parameter.HouseholdMayOverride, "is not a figure a household can give for itself");
     }
+
+    /// <summary>The most figures of its own a household may give. There are fewer than this to give.</summary>
+    public const int MaxOwn = 20;
+
+    /// <summary>The figures one household gave for itself, as it gave them, whether or not each could be used. Empty for a published set.</summary>
+    public IReadOnlyDictionary<string, decimal> Asked { get; private init; } = new Dictionary<string, decimal>();
+
+    /// <summary>For each figure a household gave that could not be used, the sentence that says why. The plan's own figure stands in its place.</summary>
+    public IReadOnlyDictionary<string, string> Declined { get; private init; } = new Dictionary<string, string>();
+
+    /// <summary>The same set without the household's own figures: what the plan would use, and what "use the plan's" goes back to.</summary>
+    public ParameterSet Plans => _plans ?? this;
+
+    /// <summary>Whether a figure is the household's own in this set: it gave one and it was used.</summary>
+    public bool IsOwn(string id) => Asked.ContainsKey(id) && !Declined.ContainsKey(id);
+
+    /// <summary>
+    /// This set with one household's own figures over it, for its plan only, leniently: a household
+    /// keeps its figures in its browser for years, and a release may since have narrowed a range or
+    /// removed a figure. Each figure that can still be used is used; each that cannot is declined
+    /// with a sentence and the plan's own stands. The plan is always built. What a person needs in
+    /// cash is the household's to give too, but it is given beside the cash it counts and not here.
+    /// </summary>
+    public ParameterSet WithOwn(IReadOnlyDictionary<string, decimal> own)
+    {
+        ArgumentNullException.ThrowIfNull(own);
+        if (own.Count == 0)
+        {
+            return this;
+        }
+
+        ParameterSet made = this;
+        Dictionary<string, string> declined = new(StringComparer.Ordinal);
+        foreach ((string id, decimal value) in own.OrderBy(static figure => figure.Key, StringComparer.Ordinal))
+        {
+            Result<ParameterSet> with = made.Over(Version, new Dictionary<string, decimal> { [id] = value }, OwnToGive, "is not a figure a household can give for itself");
+            if (with.IsSuccess)
+            {
+                made = with.Value;
+            }
+            else
+            {
+                declined[id] = with.Error.Message;
+            }
+        }
+
+        return new ParameterSet(Version, made._values, made.Corrections) { Asked = new Dictionary<string, decimal>(own, StringComparer.Ordinal), Declined = declined, _plans = this };
+    }
+
+    private static bool OwnToGive(ParameterDefinition parameter) => parameter.HouseholdMayOverride && parameter.Id != Assumptions.CashFigure;
 
     /// <summary>Something worked out from the whole set, built once and kept: the providers and the scenarios as these figures make them.</summary>
     internal T Derive<T>(Func<ParameterSet, T> build)

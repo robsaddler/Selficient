@@ -50,6 +50,10 @@ public sealed class BoardModel : PageModel
     [BindProperty]
     public string? CashRate { get; set; }
 
+    /// <summary>The household's own figures for things it has, by the figure's id.</summary>
+    [BindProperty(Name = nameof(Own))]
+    public Dictionary<string, string> Own { get; init; } = [];
+
     /// <summary>There is nothing to see here; the plan page is where the board lives.</summary>
     public IActionResult OnGet() => RedirectToPage("/Plan/Index");
 
@@ -62,7 +66,13 @@ public sealed class BoardModel : PageModel
             return Refused(ModelState.Values.SelectMany(entry => entry.Errors).First().ErrorMessage);
         }
 
-        Result<PlannedHousehold> planned = await _handler.HandleAsync(Form.ToRequest(), cancellationToken);
+        Result<IReadOnlyDictionary<string, decimal>> own = OwnFigures.Read(Own);
+        if (own.IsFailure)
+        {
+            return Refused(own.Error.Message);
+        }
+
+        Result<PlannedHousehold> planned = await _handler.HandleAsync(Form.ToRequest(own.Value), cancellationToken);
         if (planned.IsFailure)
         {
             return Refused(planned.Error.Message);

@@ -37,7 +37,11 @@ public sealed record GeneratePlanCommand(
     bool HasCellar = false,
     bool SleepsDownstairs = false,
     int Floor = 0,
-    Stairlift Stairlift = Stairlift.None);
+    Stairlift Stairlift = Stairlift.None)
+{
+    /// <summary>The figures this household gave for itself, by the figure's id: how long its own stairlift runs, what its own water butt holds. Used for its plan only.</summary>
+    public IReadOnlyDictionary<string, decimal> OwnFigures { get; init; } = new Dictionary<string, decimal>();
+}
 
 /// <summary>Turns a command into a profile, assesses the risks and builds the plan.</summary>
 public sealed class GeneratePlanHandler
@@ -68,7 +72,8 @@ public sealed class GeneratePlanHandler
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        return ToProfile(command, _figures.Current).Bind(profile =>
+        // The figures in force, with this household's own over them where it gave any that can be used.
+        return ToProfile(command, _figures.Current.WithOwn(command.OwnFigures)).Bind(profile =>
         {
             RiskAssessment risks = _risks.Run(profile);
             return _builder.Build(profile, risks);

@@ -6,6 +6,7 @@
   {
     <input type="hidden" name="Form.@field" value="@value">
   }
+  @await Html.PartialAsync("_OwnEcho", Model.Planned!.Plan.Profile.Figures.Asked)
   <input type="hidden" name="household" value="" data-household-key>
   <button type="submit" class="button button--quiet">Explain my plan in plain words</button>
 </form>

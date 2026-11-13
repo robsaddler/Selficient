@@ -144,6 +144,10 @@ async function redraw(doc, slot, echo, choice) {
   if (assumptions.cashRate !== undefined) {
     body.set("CashRate", String(assumptions.cashRate));
   }
+  // Its own figures for things it has, so the board is worked out from the same figures as the plan it sits under.
+  for (const [id, figure] of Object.entries(assumptions.figures ?? {})) {
+    body.append("Own[" + id + "]", String(figure));
+  }
   const dependencies = await store.getDependencies().catch(() => []);
   dependencies.forEach((dependency, i) => {
     body.append(`Form.Dependencies[${i}].Name`, dependency.name);

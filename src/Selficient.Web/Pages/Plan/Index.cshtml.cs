@@ -90,6 +90,16 @@ public sealed class IndexModel : PageModel
     [BindProperty]
     public string? CashRate { get; set; }
 
+    /// <summary>The household's own figures for things it has, by the figure's id; none for the plan's. Text, so that nonsense is answered with our sentence.</summary>
+    [BindProperty(Name = nameof(Own))]
+    public Dictionary<string, string> Own { get; init; } = [];
+
+    /// <summary>The figures of its own this household is asked for, with what the plan is using for each.</summary>
+    public IReadOnlyList<OwnFigureQuestion> Questions { get; private set; } = [];
+
+    /// <summary>Whether the questions are open when the page is drawn: only when the household has answered one.</summary>
+    public bool QuestionsOpen => Questions.Any(static question => question.State != "plans");
+
     /// <summary>The plan, once built.</summary>
     public PlannedHousehold? Planned { get; private set; }
 
@@ -117,7 +127,16 @@ public sealed class IndexModel : PageModel
             return Page();
         }
 
-        Result<PlannedHousehold> result = await _handler.HandleAsync(Form.ToRequest(), cancellationToken);
+        Result<IReadOnlyDictionary<string, decimal>> own = OwnFigures.Read(Own);
+        if (own.IsFailure)
+        {
+            ShowForm = true;
+            // Under the form's own name, which is where the form's summary looks.
+            ModelState.AddModelError(nameof(Form), own.Error.Message);
+            return Page();
+        }
+
+        Result<PlannedHousehold> result = await _handler.HandleAsync(Form.ToRequest(own.Value), cancellationToken);
         if (result.IsFailure)
         {
             ShowForm = true;
@@ -138,6 +157,8 @@ public sealed class IndexModel : PageModel
 
         Planned = result.Value;
         Board = board.Value;
+        // The board was composed, so the form makes a household the engine accepts.
+        Questions = OwnFigures.Questions(result.Value.Plan, Form.ToResilienceProfile(result.Value.Plan.Profile).Value);
         EchoedProfile = Echo(Form);
         return Page();
     }

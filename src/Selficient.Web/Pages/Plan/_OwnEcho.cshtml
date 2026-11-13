@@ -1,0 +1,6 @@
+@model IReadOnlyDictionary<string, decimal>
+@* The household's own figures as the plan was built with them, for a form that posts the profile again. *@
+@foreach (var (id, value) in Model)
+{
+  <input type="hidden" name="Own[@id]" value="@Selficient.Web.Pages.Plan.OwnFigures.Plain(value)">
+}

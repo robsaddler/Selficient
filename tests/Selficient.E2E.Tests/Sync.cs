@@ -308,7 +308,7 @@ public sealed class Sync
     /// Ticks an action and waits until the browser's store holds it. The box is ticked at once and
     /// the store a moment later; a journey that left the page in between would leave the tick behind.
     /// </summary>
-    private static async Task TickAsync(IPage page, string action)
+    internal static async Task TickAsync(IPage page, string action)
     {
         await page.Locator($"[data-action-id=\"{action}\"]").CheckAsync();
         await Until.TrueAsync(page, "id => import('/js/plan-store.js').then(store => store.getTicks()).then(ticks => ticks.includes(id))", action);

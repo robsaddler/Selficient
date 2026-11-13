@@ -30,6 +30,12 @@ export async function initPlanPage(doc) {
   }
 
   await rememberProfile(doc);
+  // The plan on the page was built from the figures it was posted with. Where this browser keeps
+  // others (they were changed on another device, or the questions were answered again), the plan
+  // is built again from them before anything else is done to it.
+  if (await followOwnFigures(doc)) {
+    return;
+  }
   await applyAssumptions(doc);
   await applyChoices(doc);
   recompute(doc);
@@ -67,6 +73,19 @@ export async function initPlanPage(doc) {
     void saveCashRate(doc, rate);
   });
 
+  // A figure of the household's own for something it has: kept, and the plan is built again from it.
+  doc.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.dataset.ownFigure) {
+      return;
+    }
+    const typed = Number(input.value);
+    const within = Math.min(Math.max(typed, Number(input.min)), Number(input.max));
+    // Kept to four places, which is as fine as the plan reads a figure.
+    const figure = input.value.trim() === "" || !Number.isFinite(typed) ? null : input.step === "1" ? Math.round(within) : Math.round(within * 10000) / 10000;
+    void saveOwnFigure(doc, input.dataset.ownFigure, figure === Number(input.dataset.ownPlans) ? null : figure);
+  });
+
   // What an action asks for moved with an assumption, so a count may now reach it, or no longer.
   doc.addEventListener("selficient:targets", () => {
     // Whether or not a choice changed, a figure may now be part of what is asked where it was all of it.
@@ -94,6 +113,8 @@ export async function initPlanPage(doc) {
       void applyBulk(doc, bulk);
     } else if (target?.closest("[data-assume-reset]")) {
       void saveCashRate(doc, null);
+    } else if (target?.closest("[data-own-reset]") instanceof HTMLElement) {
+      void saveOwnFigure(doc, target.closest("[data-own-reset]")?.getAttribute("data-own-reset") ?? "", null);
     } else if (target?.closest("[data-undo-button]")) {
       void undo(doc);
     } else if (target?.closest("[data-undo-dismiss]")) {
@@ -102,6 +123,7 @@ export async function initPlanPage(doc) {
   });
 
   store.onChange(() => {
+    void followOwnFigures(doc);
     void applyAssumptions(doc);
     void applyChoices(doc).then(() => recompute(doc));
   });
@@ -131,6 +153,7 @@ async function resubmitIfStored(form) {
       input.value = profile[input.dataset.field] ?? "";
     }
   }
+  await store.addOwnFigures(form);
   form.requestSubmit();
 }
 
@@ -241,7 +264,9 @@ async function saveCashRate(doc, rate) {
     return;
   }
   const plans = Number(input.dataset.assumeDefault);
-  await store.saveAssumptions(rate === null || rate === plans ? {} : { cashRate: rate });
+  // The rate is one assumption among several: the figures kept beside it stay as they are.
+  const { figures } = await store.getAssumptions().catch(() => /** @type {import("selficient/plan-store.js").Assumptions} */ ({}));
+  await store.saveAssumptions({ ...(figures === undefined ? {} : { figures }), ...(rate === null || rate === plans ? {} : { cashRate: rate }) });
   input.value = String(rate ?? plans);
   await settle(doc);
 }
@@ -256,6 +281,86 @@ async function applyAssumptions(doc) {
   if (input instanceof HTMLInputElement && doc.activeElement !== input) {
     input.value = String(assumptions.cashRate ?? input.dataset.assumeDefault ?? "");
   }
+}
+
+const OWN_REBUILT = "selficient.own-rebuilt";
+
+// Set once this page has asked for the plan to be built again, so a second asker does not take the mark the next page is to find.
+let leaving = false;
+
+/**
+ * Keeps one figure of the household's own, or forgets it, and has the plan built again. The page
+ * that comes back is the one that shows the figure in its box: nothing is changed on this one.
+ * @param {Document} doc
+ * @param {string} id
+ * @param {number | null} figure null is the plan's own
+ */
+async function saveOwnFigure(doc, id, figure) {
+  const assumptions = await store.getAssumptions().catch(() => null);
+  if (assumptions === null || id === "") {
+    return;
+  }
+  const figures = { ...(assumptions.figures ?? {}) };
+  if (figure === null) {
+    delete figures[id];
+  } else {
+    figures[id] = figure;
+  }
+  const rest = assumptions.cashRate === undefined ? {} : { cashRate: assumptions.cashRate };
+  await store.saveAssumptions(Object.keys(figures).length === 0 ? rest : { ...rest, figures });
+  await followOwnFigures(doc);
+}
+
+/**
+ * Holds the figures this browser keeps against the ones the plan on the page was built with, and
+ * has the plan built again when they differ. The page that follows a rebuild says so, opens the
+ * questions and is not rebuilt a second time, so a figure the server will not take cannot loop.
+ * @param {Document} doc
+ * @returns {Promise<boolean>} true when the page is on its way out
+ */
+async function followOwnFigures(doc) {
+  const asked = doc.querySelector("[data-own-asked]");
+  if (!(asked instanceof HTMLElement) || leaving) {
+    return leaving;
+  }
+  let justRebuilt = false;
+  try {
+    justRebuilt = sessionStorage.getItem(OWN_REBUILT) !== null;
+    sessionStorage.removeItem(OWN_REBUILT);
+  } catch {
+    // Without the mark the page could rebuild for ever, so without storage it is left as it is.
+    return false;
+  }
+  if (justRebuilt) {
+    const says = doc.querySelector("[data-own-rebuilt]");
+    const questions = doc.querySelector("[data-own-figures]");
+    if (says instanceof HTMLElement && questions instanceof HTMLDetailsElement) {
+      says.hidden = false;
+      questions.open = true;
+      says.scrollIntoView({ block: "center" });
+    }
+    return false;
+  }
+  const assumptions = await store.getAssumptions().catch(() => null);
+  if (assumptions === null) {
+    return false;
+  }
+  const kept = Object.entries(assumptions.figures ?? {});
+  const built = new Map([...asked.querySelectorAll("li")].map((item) => [item.dataset.id ?? "", Number(item.dataset.value)]));
+  if (kept.length === built.size && kept.every(([id, figure]) => Math.abs((built.get(id) ?? Number.NaN) - figure) < 0.00005)) {
+    return false;
+  }
+  if (leaving) {
+    return true;
+  }
+  try {
+    sessionStorage.setItem(OWN_REBUILT, "1");
+  } catch {
+    return false;
+  }
+  leaving = true;
+  location.replace("/plan");
+  return true;
 }
 
 /**

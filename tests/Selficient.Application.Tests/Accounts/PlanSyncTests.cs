@@ -178,6 +178,11 @@ public sealed class PlanSyncTests
     [InlineData("\"ticks\":[],\"assumptions\":{\"cashRate\":101}")]
     [InlineData("\"ticks\":[],\"assumptions\":{\"cashRate\":\"ten\"}")]
     [InlineData("\"ticks\":[],\"assumptions\":{\"discount\":10}")]
+    [InlineData("\"ticks\":[],\"assumptions\":{\"figures\":[]}")]
+    [InlineData("\"ticks\":[],\"assumptions\":{\"figures\":{\"Water Butt\":210}}")]
+    [InlineData("\"ticks\":[],\"assumptions\":{\"figures\":{\"water-butt.stock\":\"lots\"}}")]
+    [InlineData("\"ticks\":[],\"assumptions\":{\"figures\":{\"water-butt.stock\":-1}}")]
+    [InlineData("\"ticks\":[],\"assumptions\":{\"figures\":{\"water-butt.stock\":1000001}}")]
     [InlineData("\"ticks\":[],\"house\":[]")]
     [InlineData("\"ticks\":[],\"house\":{\"lat\":51.6}")]
     [InlineData("\"ticks\":[],\"house\":{\"lng\":-3.2}")]
@@ -230,6 +235,11 @@ public sealed class PlanSyncTests
         PlanGuard.IsSyncBody(Body(extra: """ "house":{"lat":61,"lng":-9}""")).ShouldBeTrue();
         PlanGuard.IsSyncBody(Body(extra: """ "assumptions":{}""")).ShouldBeTrue("no assumption changed is the plan's own");
         PlanGuard.IsSyncBody(Body(extra: """ "assumptions":{"cashRate":1}""")).ShouldBeTrue();
+        PlanGuard.IsSyncBody(Body(extra: """ "assumptions":{"cashRate":15,"figures":{"water-butt.stock":300,"wood-stove.stock":10.5,"stairlift-batteries.stock":0}}""")).ShouldBeTrue("a household's own figures travel with its plan");
+        PlanGuard.IsSyncBody(Body(extra: """ "assumptions":{"figures":{}}""")).ShouldBeTrue();
+        string many = string.Join(",", Enumerable.Range(0, 21).Select(static i => $"\"figure-{i}.stock\":1"));
+        PlanGuard.IsSyncBody(Body(extra: " \"assumptions\":{\"figures\":{" + many + "}}")).ShouldBeFalse("there are fewer figures to give than twenty");
+        PlanGuard.IsSyncBody(Body(extra: " \"assumptions\":{\"figures\":{\"" + new string('a', 161) + "\":1}}")).ShouldBeFalse();
         PlanGuard.IsSyncBody(Body(extra: """ "amounts":{"water-bottled-three-days":0,"cash-in-small-notes":10000}""")).ShouldBeTrue();
     }
 

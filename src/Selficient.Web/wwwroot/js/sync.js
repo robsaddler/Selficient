@@ -57,6 +57,16 @@ function choicesOf(plan) {
 }
 
 /**
+ * The assumptions in one order all the way down: the figures inside them are a list by name too.
+ * @param {Snapshot["assumptions"]} assumptions
+ * @returns {NonNullable<Snapshot["assumptions"]>}
+ */
+function sortedAssumptions(assumptions) {
+  const { figures, ...rest } = assumptions ?? {};
+  return sorted(figures === undefined || Object.keys(figures).length === 0 ? rest : { ...rest, figures: sorted(figures) });
+}
+
+/**
  * @param {Record<string, unknown> | null | undefined} object
  * @returns {Record<string, any>}
  */
@@ -79,7 +89,7 @@ export function canonical(plan) {
     planned: of("plan"),
     skipped: of("skip"),
     amounts: sorted(plan.amounts),
-    assumptions: sorted(plan.assumptions),
+    assumptions: sortedAssumptions(plan.assumptions),
     house: plan.house ? { lat: plan.house.lat, lng: plan.house.lng } : null,
     dependencies: (plan.dependencies ?? []).map((d) => ({ name: d.name, kind: d.kind, watts: d.watts, hoursPerDay: d.hoursPerDay, daysOfStock: d.daysOfStock, mustStayCold: d.mustStayCold })),
     shortlist: [...new Set(plan.shortlist ?? [])].sort(),

@@ -103,10 +103,21 @@ public static partial class PlanGuard
         && amounts.EnumerateObject().Count() <= 20
         && amounts.EnumerateObject().All(static amount => Id().IsMatch(amount.Name) && IsWhole(amount.Value, 0, 10_000));
 
-    /// <summary>The assumptions a household may change: so far, the cash rate in whole pounds.</summary>
+    /// <summary>The assumptions a household may change: the cash rate in whole pounds, and its own figures for the things it has.</summary>
     private static bool IsAssumptions(JsonElement assumptions) =>
         assumptions.ValueKind == JsonValueKind.Object
-        && assumptions.EnumerateObject().All(static assumption => assumption.Name == "cashRate" && IsWhole(assumption.Value, 1, 100));
+        && assumptions.EnumerateObject().All(static assumption => assumption.Name switch
+        {
+            "cashRate" => IsWhole(assumption.Value, 1, 100),
+            "figures" => IsOwnFigures(assumption.Value),
+            _ => false,
+        });
+
+    /// <summary>Up to twenty figures of the household's own, each a number from nothing to a million against a figure's id. Whether each is one the plan can use is the plan's business when it is built.</summary>
+    private static bool IsOwnFigures(JsonElement figures) =>
+        figures.ValueKind == JsonValueKind.Object
+        && figures.EnumerateObject().Count() <= Selficient.Domain.Parameters.ParameterSet.MaxOwn
+        && figures.EnumerateObject().All(static figure => figure.Name.Length <= 160 && Figure().IsMatch(figure.Name) && IsNumber(figure.Value, 0, 1_000_000));
 
     /// <summary>A pin in the United Kingdom and its waters.</summary>
     private static bool IsHouse(JsonElement house) =>
@@ -135,6 +146,9 @@ public static partial class PlanGuard
 
     [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
     private static partial Regex Id();
+
+    [GeneratedRegex("^[a-z0-9]+([.-][a-z0-9]+)*$", RegexOptions.CultureInvariant)]
+    private static partial Regex Figure();
 
     [GeneratedRegex("^[0-9]{1,18}$", RegexOptions.CultureInvariant)]
     private static partial Regex Offer();

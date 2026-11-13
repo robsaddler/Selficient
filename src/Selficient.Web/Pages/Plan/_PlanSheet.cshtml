@@ -84,6 +84,31 @@
       </div>
       <p class="field__hint" id="assume-cash-says" data-assume-cash-says>@Selficient.Web.Pages.Plan.AmountCopy.CashRateSays(assumed, household.Size.Count)</p>
     </div>
+    @* The figures for things this household has, which it may know better than any table. Shut until opened, and open once one has been answered. Changing one builds the plan again from it. *@
+    <p class="callout" role="status" data-own-rebuilt hidden>@Selficient.Web.Pages.Plan.OwnFigureCopy.Rebuilt</p>
+    <details class="assumptions__own" open="@Model.QuestionsOpen" data-own-figures>
+      <summary>@Selficient.Web.Pages.Plan.OwnFigureCopy.Summary(Model.Questions.Count)</summary>
+      <p class="assumptions__lede">@Selficient.Web.Pages.Plan.OwnFigureCopy.Lede</p>
+      @foreach (var question in Model.Questions)
+      {
+        <div class="assumptions__item" data-own-state="@question.State">
+          <label for="@question.InputId">@question.Definition.HouseholdQuestion</label>
+          <div class="assumptions__row">
+            <input id="@question.InputId" class="input input--short" type="number" inputmode="decimal" min="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Min)" max="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Max)" step="@question.Step" autocomplete="off" value="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Value)" data-own-figure="@question.Definition.Id" data-own-plans="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Plans)" aria-describedby="@(question.InputId)-says">
+            <span>@question.Definition.Unit</span>
+            <button type="button" class="tally__button" data-own-reset="@question.Definition.Id">@question.Reset</button>
+          </div>
+          <p class="field__hint" id="@(question.InputId)-says" data-own-says>@question.Says</p>
+        </div>
+      }
+    </details>
+    @* What the plan was built with, for the script to hold against what this browser keeps. *@
+    <ul hidden data-own-asked>
+      @foreach (var (id, value) in planned.Plan.Profile.Figures.Asked)
+      {
+        <li data-id="@id" data-value="@Selficient.Web.Pages.Plan.OwnFigures.Plain(value)"></li>
+      }
+    </ul>
   </section>
   <p class="plan__total">Everything together: <span class="data">@MoneyFormat.Range(planned.Plan.Cost)</span>.</p>
   @if (planned.Plan.Profile.Dwelling.HasOwnRoof)
@@ -108,6 +133,7 @@
     {
       <input type="hidden" name="Form.@field" value="@value">
     }
+    @await Html.PartialAsync("_OwnEcho", planned.Plan.Profile.Figures.Asked)
     @for (var i = 0; i < Model.Form.Dependencies.Count && i < 11; i++)
     {
       var existing = Model.Form.Dependencies[i];

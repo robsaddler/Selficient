@@ -858,6 +858,11 @@
   font-size: var(--text-s);
 }
 
+/* Said after the reason when the row was worked out from a figure the household gave for itself. */
+.board__own {
+  font-weight: 600;
+}
+
 .board__headline {
   margin-block-start: var(--space-5);
   padding-block-start: var(--space-4);

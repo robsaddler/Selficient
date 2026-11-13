@@ -29,6 +29,10 @@ public sealed class ExplainModel : PageModel
     [BindProperty]
     public PlanForm Form { get; set; } = new();
 
+    /// <summary>The household's own figures for things it has, re-posted with the profile so the plan explained is the plan on its page.</summary>
+    [BindProperty(Name = nameof(Own))]
+    public Dictionary<string, string> Own { get; init; } = [];
+
     /// <summary>The plan the narrative is about.</summary>
     public Domain.Plans.Plan? Plan { get; private set; }
 
@@ -44,13 +48,14 @@ public sealed class ExplainModel : PageModel
     /// <summary>Explains the plan.</summary>
     public async Task<IActionResult> OnPostAsync(string? household, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        Result<IReadOnlyDictionary<string, decimal>> own = OwnFigures.Read(Own);
+        if (!ModelState.IsValid || own.IsFailure)
         {
             Notice = "The plan's answers did not arrive whole. Open your plan and try again from there.";
             return Page();
         }
 
-        Result<(Domain.Plans.Plan Plan, PlanNarrative Narrative)> result = await _handler.HandleAsync(Form.ToRequest(), HouseholdKey.From(household, HttpContext), cancellationToken);
+        Result<(Domain.Plans.Plan Plan, PlanNarrative Narrative)> result = await _handler.HandleAsync(Form.ToRequest(own.Value), HouseholdKey.From(household, HttpContext), cancellationToken);
         if (result.IsFailure)
         {
             Notice = result.Error.Message;

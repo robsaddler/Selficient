@@ -20,6 +20,9 @@ export async function initWizard(doc) {
   if (!profile) {
     return;
   }
+  // The figures this household gave for things it has go with its answers, so the plan that comes
+  // back is built from them the first time.
+  await store.addOwnFigures(form);
   const typed = control(form, "Postcode");
   const handed = typed instanceof HTMLInputElement ? squash(typed.value) : "";
   if (handed !== "" && handed !== squash(profile.Postcode ?? "")) {
