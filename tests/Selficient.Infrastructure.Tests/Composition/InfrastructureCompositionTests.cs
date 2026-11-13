@@ -206,7 +206,7 @@ public sealed class InfrastructureCompositionTests
         passkeys.RelyingPartyId.ShouldBe("selficient.app", "a passkey is bound to the site's own address unless a server is told otherwise");
         passkeys.RelyingPartyName.ShouldBe("Selficient");
         passkeys.Origins.ShouldBe(["https://selficient.app"]);
-        provider.GetServices<Selficient.Application.Operations.IExpiring>().Select(e => e.GetType().Name).ShouldBe(["HandoffDesk", "AccountSignIn"], "everything that expires is swept by the one housekeeper");
+        provider.GetServices<Selficient.Application.Operations.IExpiring>().Select(e => e.GetType().Name).ShouldBe(["HandoffDesk", "AccountSignIn", "StreetGroups"], "everything that expires is swept by the one housekeeper");
         provider.GetRequiredService<Selficient.Infrastructure.Data.Housekeeper>().ShouldNotBeNull();
     }
 

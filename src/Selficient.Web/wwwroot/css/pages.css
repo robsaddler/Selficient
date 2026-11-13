@@ -1929,6 +1929,13 @@
   }
 }
 
+/* Where there is no switch, a quiet line in its place says why. */
+.desk-figure__fixed {
+  margin-block-start: var(--space-1);
+  color: var(--c-ink-muted);
+  font-size: var(--text-s);
+}
+
 /* The second line under a figure: whether a household may give its own, which opens the box that changes it.
    A figure a household may give carries the lantern's mark down the line, so the ones that are on can be picked out down a card. */
 .desk-figure__edit[data-ask] {

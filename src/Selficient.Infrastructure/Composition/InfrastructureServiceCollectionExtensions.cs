@@ -132,6 +132,10 @@ public static class InfrastructureServiceCollectionExtensions
             provider.GetRequiredService<Selficient.Application.Accounts.IPasskeyCeremony>(),
             provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<Selficient.Application.Accounts.IPlanStore>(static provider => new Selficient.Infrastructure.Accounts.SqlPlanStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        // Street groups: who is in what, and a record for each that only its members can read.
+        services.AddSingleton<Selficient.Application.Streets.IStreetStore>(static provider => new Selficient.Infrastructure.Streets.SqlStreetStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddSingleton(static provider => new Selficient.Application.Streets.StreetGroups(provider.GetRequiredService<Selficient.Application.Streets.IStreetStore>(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IExpiring>(static provider => provider.GetRequiredService<Selficient.Application.Streets.StreetGroups>());
         // The housekeeper removes whatever has run out, once a minute, and tells the run log once a day.
         services.AddSingleton<Housekeeper>();
         services.AddHostedService(static provider => provider.GetRequiredService<Housekeeper>());

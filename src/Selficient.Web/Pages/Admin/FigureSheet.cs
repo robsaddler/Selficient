@@ -54,8 +54,11 @@ public sealed record AskBox(string View, string Stands, bool Allow, string Quest
     /// <summary>Whether the box is open when the page is drawn: only when a change posted to it was just refused.</summary>
     public bool Open => Refusal is not null;
 
-    /// <summary>A figure with nothing to switch.</summary>
-    public static AskBox None { get; } = new("_FiguresNoAsk", string.Empty, false, string.Empty, string.Empty, null);
+    /// <summary>A figure with nothing to switch, before anything has been said about why.</summary>
+    public static AskBox None { get; } = Fixed(string.Empty);
+
+    /// <summary>A figure with nothing to switch, and the line that says why, so nobody looks for a switch that is not there.</summary>
+    public static AskBox Fixed(string why) => new("_FiguresNoAsk", why, false, string.Empty, string.Empty, null);
 
     /// <summary>The other choice.</summary>
     public bool Deny => !Allow;
@@ -143,12 +146,6 @@ public static class FigureSheet
             FigureRow row = Row(parameter, subject, desk, drafts.GetValueOrDefault((parameter.Id, FigureDraftKind.Value)), refused);
             AskBox ask = Asking(parameter, desk, drafts.GetValueOrDefault((parameter.Id, FigureDraftKind.Ask)), refusedAsk, out FigureChip? drafted);
             List<FigureChip> chips = [.. row.Chips];
-            // Where it can be switched, the line that opens the switch says how it stands; the mark is for the one figure that cannot be.
-            if (desk.InForce.MayGive(parameter.Id) && !parameter.HouseholdMayBeAsked)
-            {
-                chips.Add(new FigureChip("household", "A household may give its own"));
-            }
-
             if (drafted is not null)
             {
                 chips.Add(drafted);
@@ -205,7 +202,10 @@ public static class FigureSheet
         drafted = null;
         if (!parameter.HouseholdMayBeAsked)
         {
-            return AskBox.None;
+            // Said on the figure, because an expert looking for the switch should be told why there is none.
+            return AskBox.Fixed(desk.InForce.MayGive(parameter.Id)
+                ? "A household always gives its own figure here, on its plan. That cannot be switched off."
+                : "This is the same for every household, so a household cannot give its own.");
         }
 
         string? asked = desk.InForce.QuestionFor(parameter.Id);

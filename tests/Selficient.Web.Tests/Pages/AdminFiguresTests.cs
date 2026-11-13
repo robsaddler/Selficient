@@ -96,7 +96,7 @@ public sealed class AdminFiguresTests : IDisposable
         work.ShouldContain(">The draft</a>");
         work.ShouldContain("Every figure the board and the plan work from, grouped as a household meets them");
         work.ShouldContain("Under each figure about a thing a household has, a second line says whether a household may give its own figure and opens the box that changes that");
-        Row(work, "demand.drinking-litres").ShouldNotContain("data-ask", customMessage: "and what people need has no such line");
+        Row(work, "demand.drinking-litres").ShouldNotContain("data-ask-summary", customMessage: "and what people need has no switch");
         foreach (string group in new[] { "What people need", "Water to drink", "Getting upstairs", "Sources of electricity", "What the plan asks for" })
         {
             work.ShouldContain($"data-group=\"{group}\"");
@@ -122,8 +122,9 @@ public sealed class AdminFiguresTests : IDisposable
         lift.ShouldContain("<details class=\"desk-figure__edit\" data-ask data-ask-allowed=\"true\">", customMessage: "the switch is on the figure's own line, shut until opened, and says how it stands");
         lift.ShouldContain("<summary data-ask-summary>A household may give its own figure: change that</summary>");
         lift.ShouldNotContain("data-chip=\"household\"", customMessage: "the line says it, so no mark repeats it");
-        Row(work, "assumed.cash-pounds-a-person-a-day").ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"household\">A household may give its own</li>", customMessage: "the cash a person needs cannot be switched, so it carries the mark instead");
-        Row(work, "assumed.cash-pounds-a-person-a-day").ShouldNotContain("data-ask");
+        Row(work, "assumed.cash-pounds-a-person-a-day").ShouldContain("<p class=\"desk-figure__fixed\" data-ask-fixed>A household always gives its own figure here, on its plan. That cannot be switched off.</p>", customMessage: "the cash a person needs cannot be switched, and says so");
+        Row(work, "assumed.cash-pounds-a-person-a-day").ShouldNotContain("data-ask-summary");
+        Row(work, "demand.drinking-litres").ShouldContain("<p class=\"desk-figure__fixed\" data-ask-fixed>This is the same for every household, so a household cannot give its own.</p>", customMessage: "nobody is left looking for a switch that is not there");
         Row(work, "headtorches.stock").ShouldContain("<summary data-ask-summary>A household may not give its own figure: change that</summary>");
         lift.ShouldContain("<details class=\"desk-figure__edit\">", customMessage: "a figure's box is shut until it is opened");
         lift.ShouldContain("A correction must be between 0 and 100.");
@@ -409,6 +410,7 @@ public sealed class AdminFiguresTests : IDisposable
         Row(before, "water-butt.stock").ShouldContain("data-ask-stands>As it stands, a household may give its own figure here, and is asked: \"How many litres does your water butt hold?\"</p>");
         Row(before, "water-butt.stock").ShouldContain("name=\"allow\" value=\"true\" checked=\"checked\">");
         Row(before, "demand.drinking-litres").ShouldNotContain("data-ask-form", customMessage: "what a person drinks is not a household's figure to switch");
+        Row(before, "demand.drinking-litres").ShouldContain("data-ask-fixed");
 
         // Refused at the figure, with what was chosen and typed still there.
         Row(noQuestion, Lamp).ShouldContain("<p class=\"callout callout--warning\" role=\"alert\" data-ask-refusal>Write the question a household will be asked, ending in a question mark.</p>");

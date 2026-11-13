@@ -34,7 +34,7 @@ public sealed class FiguresModel : PageModel
 
     private static readonly Dictionary<string, string> Sheets = new(StringComparer.Ordinal)
     {
-        [Work] = "Every figure the board and the plan work from, grouped as a household meets them, with the words the board says built from the figures in force. Open a figure to correct it. Under each figure about a thing a household has, a second line says whether a household may give its own figure and opens the box that changes that; what people need and what a scenario does are nobody's own to give, so they have no such line. Everything goes into the draft and changes nothing until it is published.",
+        [Work] = "Every figure the board and the plan work from, grouped as a household meets them, with the words the board says built from the figures in force. Open a figure to correct it. Under each figure about a thing a household has, a second line says whether a household may give its own figure and opens the box that changes that; what people need and what a scenario does are the same for every household, and each says so in that line's place. Everything goes into the draft and changes nothing until it is published.",
         [Prices] = "What each thing on the plan costs, at least and at most, for one of it; the plan multiplies by what a household needs. Open a price to correct it. The second line under each says whether a household may give its own price and opens the box that changes that. Everything goes into the draft and changes nothing until it is published.",
     };
 
