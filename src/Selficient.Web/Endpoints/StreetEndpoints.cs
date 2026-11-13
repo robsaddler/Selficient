@@ -39,14 +39,14 @@ public static class StreetEndpoints
             .ExcludeFromDescription();
         street.MapGet("/", MineAsync).WithName("StreetGroups");
         street.MapPost("/", (HttpContext context, StreetGroups groups, CancellationToken cancellationToken) =>
-            WriteAsync(context, async (account, body) => Answer(await groups.StartAsync(account, body.PassHash, body.About, body.Record, cancellationToken), static made => new StreetJoined(made.GroupId, made.MemberId)), cancellationToken)).WithName("StartStreetGroup");
+            WriteAsync(context, async (account, body) => Answer(await groups.StartAsync(account, body.PassHash, body.About, body.Record, body.Keep, cancellationToken), static made => new StreetJoined(made.GroupId, made.MemberId)), cancellationToken)).WithName("StartStreetGroup");
         street.MapGet("/{id:guid}", ReadAsync).WithName("StreetGroup");
         street.MapPost("/{id:guid}/join", (Guid id, HttpContext context, StreetGroups groups, CancellationToken cancellationToken) =>
-            WriteAsync(context, async (account, body) => Answer(await groups.JoinAsync(account, id, body.Pass, body.Record, cancellationToken), static made => new StreetJoined(made.GroupId, made.MemberId)), cancellationToken)).WithName("JoinStreetGroup");
+            WriteAsync(context, async (account, body) => Answer(await groups.JoinAsync(account, id, body.Pass, body.Record, body.Keep, cancellationToken), static made => new StreetJoined(made.GroupId, made.MemberId)), cancellationToken)).WithName("JoinStreetGroup");
         street.MapPut("/{id:guid}/record", (Guid id, HttpContext context, StreetGroups groups, CancellationToken cancellationToken) =>
-            WriteAsync(context, async (account, body) => Answer(await groups.ShareAsync(account, id, body.Record, cancellationToken), static _ => new StreetDone(true)), cancellationToken)).WithName("ShareWithStreetGroup");
+            WriteAsync(context, async (account, body) => Answer(await groups.ShareAsync(account, id, body.Record, body.Keep, cancellationToken), static _ => new StreetDone(true)), cancellationToken)).WithName("ShareWithStreetGroup");
         street.MapPost("/{id:guid}/remove", (Guid id, HttpContext context, StreetGroups groups, CancellationToken cancellationToken) =>
-            WriteAsync(context, async (account, body) => Answer(await groups.RemoveAsync(account, id, body.MemberId ?? Guid.Empty, body.PassHash, cancellationToken), static _ => new StreetDone(true)), cancellationToken)).WithName("RemoveFromStreetGroup");
+            WriteAsync(context, async (account, body) => Answer(await groups.RemoveAsync(account, id, body.MemberId ?? Guid.Empty, body.PassHash, body.About, cancellationToken), static _ => new StreetDone(true)), cancellationToken)).WithName("RemoveFromStreetGroup");
         street.MapPost("/{id:guid}/leave", (Guid id, HttpContext context, StreetGroups groups, CancellationToken cancellationToken) =>
             WriteAsync(context, async (account, _) => Answer(await groups.LeaveAsync(account, id, cancellationToken), static _ => new StreetDone(true)), cancellationToken)).WithName("LeaveStreetGroup");
 
@@ -68,6 +68,7 @@ public static class StreetEndpoints
             read.GroupId,
             read.About,
             read.You,
+            read.Keep,
             [.. read.Members.Select(static member => new StreetHome(member.MemberId, member.Record, member.UpdatedAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture), member.MayRemove))]));
     }
 
@@ -112,7 +113,8 @@ public static class StreetEndpoints
 /// <param name="About">The group's name, encrypted, when starting.</param>
 /// <param name="Record">What the home shares, encrypted.</param>
 /// <param name="MemberId">The home to remove.</param>
-public sealed record StreetBody(string? PassHash, string? Pass, string? About, string? Record, Guid? MemberId);
+/// <param name="Keep">What the home's own devices keep, sealed with the group's key, which the server does not have.</param>
+public sealed record StreetBody(string? PassHash, string? Pass, string? About, string? Record, Guid? MemberId, string? Keep = null);
 
 /// <summary>The answer to starting or joining a group.</summary>
 /// <param name="GroupId">The group.</param>
@@ -133,8 +135,9 @@ public sealed record StreetMine(Guid GroupId, Guid MemberId, bool MayRemove);
 /// <param name="GroupId">The group.</param>
 /// <param name="About">The group's name, encrypted.</param>
 /// <param name="You">The asking household's member id.</param>
+/// <param name="Keep">What the asking household's own devices keep here, or null. No other home's is ever answered.</param>
 /// <param name="Homes">Every home in it, longest-standing first.</param>
-public sealed record StreetRead(Guid GroupId, string About, Guid You, IReadOnlyList<StreetHome> Homes);
+public sealed record StreetRead(Guid GroupId, string About, Guid You, string? Keep, IReadOnlyList<StreetHome> Homes);
 
 /// <summary>One home in a group.</summary>
 /// <param name="MemberId">Its id in this group.</param>

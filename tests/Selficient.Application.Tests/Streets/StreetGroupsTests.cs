@@ -17,6 +17,7 @@ public sealed class StreetGroupsTests
     private static readonly string Pass = Convert.ToBase64String(PassBytes);
     private static readonly string PassHash = Convert.ToBase64String(SHA256.HashData(PassBytes));
     private static readonly string Blob = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    private static readonly string Keep = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
     private static readonly Guid Group = Guid.NewGuid();
 
     private readonly IStreetStore _store = Substitute.For<IStreetStore>();
@@ -28,19 +29,18 @@ public sealed class StreetGroupsTests
     }
 
     [Fact]
-    public async Task Starting_a_group_keeps_the_hash_of_the_pass_and_two_blobs_and_never_a_key()
+    public async Task Starting_a_group_keeps_the_hash_of_the_pass_and_blobs_and_never_a_key()
     {
-        _store.CreateAsync(7, Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<byte[]>(), Blob, Blob, Now, StreetGroups.MostGroups, Arg.Any<CancellationToken>()).Returns(true);
+        _store.CreateAsync(7, Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<byte[]>(), Blob, Blob, Keep, Now, StreetGroups.MostGroups, Arg.Any<CancellationToken>()).Returns(true);
 
-        Result<StreetMembership> made = await _groups.StartAsync(7, PassHash, Blob, Blob, CancellationToken.None);
+        Result<StreetMembership> made = await _groups.StartAsync(7, PassHash, Blob, Blob, Keep, CancellationToken.None);
 
         made.Value.MayRemove.ShouldBeTrue();
         made.Value.GroupId.ShouldNotBe(Guid.Empty);
         made.Value.MemberId.ShouldNotBe(made.Value.GroupId);
-        await _store.Received(1).CreateAsync(7, made.Value.GroupId, made.Value.MemberId, Arg.Is<byte[]>(hash => hash.SequenceEqual(SHA256.HashData(PassBytes))), Blob, Blob, Now, 5, Arg.Any<CancellationToken>());
+        await _store.Received(1).CreateAsync(7, made.Value.GroupId, made.Value.MemberId, Arg.Is<byte[]>(hash => hash.SequenceEqual(SHA256.HashData(PassBytes))), Blob, Blob, Keep, Now, 5, Arg.Any<CancellationToken>());
 
-        _store.CreateAsync(8, Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<byte[]>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(false);
-        (await _groups.StartAsync(8, PassHash, Blob, Blob, CancellationToken.None)).Error.Message.ShouldBe("An account can be in five groups. Leave one to join another.");
+        (await _groups.StartAsync(8, PassHash, Blob, Blob, Keep, CancellationToken.None)).Error.Message.ShouldBe("An account can be in five groups. Leave one to join another.");
     }
 
     [Theory]
@@ -54,16 +54,21 @@ public sealed class StreetGroupsTests
         string tooLong = Convert.ToBase64String(new byte[StreetGroups.MaxRecordLength]);
         string longAbout = Convert.ToBase64String(new byte[StreetGroups.MaxAboutLength]);
 
-        (await _groups.StartAsync(7, PassHash, Blob, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.StartAsync(7, PassHash, bad, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.StartAsync(7, bad, Blob, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.StartAsync(7, Blob, Blob, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord, "a hash is thirty-two bytes and nothing else");
-        (await _groups.StartAsync(7, PassHash, Blob, tooLong, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.StartAsync(7, PassHash, longAbout, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.JoinAsync(7, Group, Pass, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.ShareAsync(7, Group, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
-        (await _groups.RemoveAsync(7, Group, Guid.NewGuid(), bad, CancellationToken.None)).Error.Message.ShouldBe("That could not be kept: it is not something this page wrote, or it is too large.");
-        await _store.DidNotReceiveWithAnyArgs().CreateAsync(default, default, default, default!, default!, default!, default, default, default);
+        (await _groups.StartAsync(7, PassHash, Blob, bad, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.StartAsync(7, PassHash, Blob, Blob, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord, "what a member's own devices keep is ciphertext too");
+        (await _groups.StartAsync(7, PassHash, bad, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.StartAsync(7, bad, Blob, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.StartAsync(7, Blob, Blob, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord, "a hash is thirty-two bytes and nothing else");
+        (await _groups.StartAsync(7, PassHash, Blob, tooLong, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.StartAsync(7, PassHash, longAbout, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.JoinAsync(7, Group, Pass, bad, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.JoinAsync(7, Group, Pass, Blob, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.ShareAsync(7, Group, bad, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.ShareAsync(7, Group, Blob, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord);
+        (await _groups.RemoveAsync(7, Group, Guid.NewGuid(), bad, Blob, CancellationToken.None)).Error.Message.ShouldBe("That could not be kept: it is not something this page wrote, or it is too large.");
+        (await _groups.RemoveAsync(7, Group, Guid.NewGuid(), PassHash, bad, CancellationToken.None)).Error.ShouldBe(StreetGroups.NotARecord, "the new pass goes to the members inside the group's name, so a removal without one is refused");
+        await _store.DidNotReceiveWithAnyArgs().CreateAsync(default, default, default, default!, default!, default!, default!, default, default, default);
+        await _store.DidNotReceiveWithAnyArgs().RemoveAsync(default, default, default, default!, default!, default);
         StreetGroups.IsCiphertext(Blob, StreetGroups.MaxRecordLength).ShouldBeTrue();
         StreetGroups.IsCiphertext(Blob + "\n", StreetGroups.MaxRecordLength).ShouldBeFalse("white space is not something our script sends");
     }
@@ -73,46 +78,48 @@ public sealed class StreetGroupsTests
     {
         Guid dorisId = Guid.NewGuid();
         _store.PassHashAsync(Group, Arg.Any<CancellationToken>()).Returns(SHA256.HashData(PassBytes));
-        _store.JoinAsync(9, Group, Arg.Any<Guid>(), Blob, Now, StreetGroups.MostMembers, StreetGroups.MostGroups, Arg.Any<CancellationToken>()).Returns(JoinOutcome.Joined);
+        _store.JoinAsync(9, Group, Arg.Any<Guid>(), Blob, Keep, Now, StreetGroups.MostMembers, StreetGroups.MostGroups, Arg.Any<CancellationToken>()).Returns(JoinOutcome.Joined);
         _store.MembershipsAsync(9, Arg.Any<CancellationToken>()).Returns([new StreetMembership(Guid.NewGuid(), Guid.NewGuid(), true), new StreetMembership(Group, dorisId, false)]);
 
-        Result<StreetMembership> joined = await _groups.JoinAsync(9, Group, Pass, Blob, CancellationToken.None);
+        Result<StreetMembership> joined = await _groups.JoinAsync(9, Group, Pass, Blob, Keep, CancellationToken.None);
 
         joined.Value.ShouldBe(new StreetMembership(Group, dorisId, false), "the member id the store holds, which for a member who was in already is not the one just made");
 
         string wrong = Convert.ToBase64String(new byte[32]);
-        (await _groups.JoinAsync(9, Group, wrong, Blob, CancellationToken.None)).Error.Message.ShouldBe("That invitation does not open a group. Ask your neighbour for a new one.");
-        (await _groups.JoinAsync(9, Group, "not a pass", Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation);
-        (await _groups.JoinAsync(9, Group, null, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation);
-        (await _groups.JoinAsync(9, Guid.NewGuid(), Pass, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation, "a group that is not there says the same as a wrong pass");
-        (await _groups.JoinAsync(9, Guid.NewGuid(), null, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation, "and no pass at all does not match a group that is not there");
-        await _store.ReceivedWithAnyArgs(1).JoinAsync(default, default, default, default!, default, default, default, default);
+        (await _groups.JoinAsync(9, Group, wrong, Blob, Keep, CancellationToken.None)).Error.Message.ShouldBe("That invitation does not open a group. Ask your neighbour for a new one.");
+        (await _groups.JoinAsync(9, Group, "not a pass", Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation);
+        (await _groups.JoinAsync(9, Group, null, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation);
+        (await _groups.JoinAsync(9, Guid.NewGuid(), Pass, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation, "a group that is not there says the same as a wrong pass");
+        (await _groups.JoinAsync(9, Guid.NewGuid(), null, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.BadInvitation, "and no pass at all does not match a group that is not there");
+        await _store.ReceivedWithAnyArgs(1).JoinAsync(default, default, default, default!, default!, default, default, default, default);
 
-        _store.JoinAsync(9, Group, Arg.Any<Guid>(), Blob, Now, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(JoinOutcome.Full, JoinOutcome.TooManyGroups, JoinOutcome.AlreadyIn);
-        (await _groups.JoinAsync(9, Group, Pass, Blob, CancellationToken.None)).Error.Message.ShouldBe("This group is full: it holds a hundred homes.");
-        (await _groups.JoinAsync(9, Group, Pass, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.TooMany);
-        (await _groups.JoinAsync(9, Group, Pass, Blob, CancellationToken.None)).Value.MemberId.ShouldBe(dorisId, "opening the link a second time is not an error");
+        _store.JoinAsync(9, Group, Arg.Any<Guid>(), Blob, Keep, Now, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(JoinOutcome.Full, JoinOutcome.TooManyGroups, JoinOutcome.AlreadyIn);
+        (await _groups.JoinAsync(9, Group, Pass, Blob, Keep, CancellationToken.None)).Error.Message.ShouldBe("This group is full: it holds a hundred homes.");
+        (await _groups.JoinAsync(9, Group, Pass, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.TooMany);
+        (await _groups.JoinAsync(9, Group, Pass, Blob, Keep, CancellationToken.None)).Value.MemberId.ShouldBe(dorisId, "opening the link a second time is not an error");
     }
 
     [Fact]
     public async Task A_group_is_answered_only_to_its_members_and_every_write_is_the_accounts_own()
     {
-        StreetGroup group = new(Group, Blob, Guid.NewGuid(), []);
+        StreetGroup group = new(Group, Blob, Guid.NewGuid(), []) { Keep = Keep };
         _store.ReadAsync(7, Group, Arg.Any<CancellationToken>()).Returns(group);
-        _store.PutRecordAsync(7, Group, Blob, Now, Arg.Any<CancellationToken>()).Returns(true);
-        _store.RemoveAsync(7, Group, Arg.Any<Guid>(), Arg.Any<byte[]>(), Arg.Any<CancellationToken>()).Returns(true);
+        _store.PutRecordAsync(7, Group, Blob, Keep, Now, Arg.Any<CancellationToken>()).Returns(true);
+        _store.RemoveAsync(7, Group, Arg.Any<Guid>(), Arg.Any<byte[]>(), Blob, Arg.Any<CancellationToken>()).Returns(true);
         _store.LeaveAsync(7, Group, Arg.Any<CancellationToken>()).Returns(true);
         _store.MembershipsAsync(7, Arg.Any<CancellationToken>()).Returns([new StreetMembership(Group, group.You, true)]);
 
         (await _groups.ReadAsync(7, Group, CancellationToken.None)).Value.ShouldBeSameAs(group);
+        (await _groups.ReadAsync(7, Group, CancellationToken.None)).Value.Keep.ShouldBe(Keep);
         (await _groups.ReadAsync(8, Group, CancellationToken.None)).Error.Message.ShouldBe("There is no such group, or you are not in it.");
         (await _groups.MineAsync(7, CancellationToken.None)).ShouldHaveSingleItem();
-        (await _groups.ShareAsync(7, Group, Blob, CancellationToken.None)).IsSuccess.ShouldBeTrue();
-        (await _groups.ShareAsync(8, Group, Blob, CancellationToken.None)).Error.ShouldBe(StreetGroups.NoSuchGroup);
-        (await _groups.RemoveAsync(7, Group, Guid.NewGuid(), PassHash, CancellationToken.None)).IsSuccess.ShouldBeTrue();
-        (await _groups.RemoveAsync(8, Group, Guid.NewGuid(), PassHash, CancellationToken.None)).Error.Message.ShouldBe("Only the person who has been in the group longest can remove a home from it, and nobody removes themselves: leave instead.");
+        (await _groups.ShareAsync(7, Group, Blob, Keep, CancellationToken.None)).IsSuccess.ShouldBeTrue();
+        (await _groups.ShareAsync(8, Group, Blob, Keep, CancellationToken.None)).Error.ShouldBe(StreetGroups.NoSuchGroup);
+        (await _groups.RemoveAsync(7, Group, Guid.NewGuid(), PassHash, Blob, CancellationToken.None)).IsSuccess.ShouldBeTrue();
+        (await _groups.RemoveAsync(8, Group, Guid.NewGuid(), PassHash, Blob, CancellationToken.None)).Error.Message.ShouldBe("Only the person who has been in the group longest can remove a home from it, and nobody removes themselves: leave instead.");
         (await _groups.LeaveAsync(7, Group, CancellationToken.None)).IsSuccess.ShouldBeTrue();
         (await _groups.LeaveAsync(8, Group, CancellationToken.None)).Error.ShouldBe(StreetGroups.NoSuchGroup);
+        new StreetGroup(Group, Blob, Guid.NewGuid(), []).Keep.ShouldBeNull();
     }
 
     [Fact]

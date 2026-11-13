@@ -52,9 +52,9 @@ public sealed class StreetEndpointsTests : IDisposable
         return await client.SendAsync(request);
     }
 
-    private static async Task<StreetJoined> StartAsync(HttpClient client, string? record = null)
+    private static async Task<StreetJoined> StartAsync(HttpClient client, string? record = null, string? keep = null)
     {
-        using HttpResponseMessage made = await SendAsync(client, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = record ?? Blob() });
+        using HttpResponseMessage made = await SendAsync(client, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = record ?? Blob(), keep = keep ?? Blob() });
         made.StatusCode.ShouldBe(HttpStatusCode.OK);
         return (await made.Content.ReadFromJsonAsync<StreetJoined>())!;
     }
@@ -76,9 +76,11 @@ public sealed class StreetEndpointsTests : IDisposable
         using HttpClient guest = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         string robsRecord = Blob();
         string dorisRecord = Blob();
+        string robsKeep = Blob();
+        string dorisKeep = Blob();
 
-        StreetJoined started = await StartAsync(rob, robsRecord);
-        using HttpResponseMessage joined = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = dorisRecord });
+        StreetJoined started = await StartAsync(rob, robsRecord, robsKeep);
+        using HttpResponseMessage joined = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = dorisRecord, keep = dorisKeep });
         StreetJoined dorisIn = (await joined.Content.ReadFromJsonAsync<StreetJoined>())!;
         using HttpResponseMessage read = await doris.GetAsync(new Uri($"/api/street/{started.GroupId}", UriKind.Relative));
         string raw = await read.Content.ReadAsStringAsync();
@@ -94,6 +96,9 @@ public sealed class StreetEndpointsTests : IDisposable
         group.GroupId.ShouldBe(started.GroupId);
         group.You.ShouldBe(dorisIn.MemberId);
         group.Homes.Select(home => (home.MemberId, home.Record, home.MayRemove)).ShouldBe([(started.MemberId, robsRecord, true), (dorisIn.MemberId, dorisRecord, false)]);
+        group.Keep.ShouldBe(dorisKeep, "what her own devices keep is answered to her");
+        raw.ShouldNotContain(robsKeep, customMessage: "and nobody else's is, ever");
+        (await rob.GetFromJsonAsync<StreetRead>(new Uri($"/api/street/{started.GroupId}", UriKind.Relative)))!.Keep.ShouldBe(robsKeep);
         raw.ShouldNotContain("example.com", customMessage: "no address reaches another member");
         raw.ShouldNotContain("accountId", Case.Insensitive);
         robsGroups.ShouldBe([new StreetMine(started.GroupId, started.MemberId, true)]);
@@ -112,10 +117,10 @@ public sealed class StreetEndpointsTests : IDisposable
         using HttpClient doris = await SignedInAsync("doris@example.com");
         StreetJoined started = await StartAsync(rob);
 
-        using HttpResponseMessage wrong = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)), record = Blob() });
-        using HttpResponseMessage noGroup = await SendAsync(doris, HttpMethod.Post, $"/api/street/{Guid.NewGuid()}/join", new { pass = Pass, record = Blob() });
-        using HttpResponseMessage first = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob() });
-        using HttpResponseMessage again = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob() });
+        using HttpResponseMessage wrong = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)), record = Blob(), keep = Blob() });
+        using HttpResponseMessage noGroup = await SendAsync(doris, HttpMethod.Post, $"/api/street/{Guid.NewGuid()}/join", new { pass = Pass, record = Blob(), keep = Blob() });
+        using HttpResponseMessage first = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob(), keep = Blob() });
+        using HttpResponseMessage again = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob(), keep = Blob() });
 
         wrong.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await SentenceAsync(wrong)).ShouldBe("That invitation does not open a group. Ask your neighbour for a new one.");
@@ -134,11 +139,11 @@ public sealed class StreetEndpointsTests : IDisposable
         using HttpClient stranger = await SignedInAsync("stranger@example.com");
         string robsRecord = Blob();
         StreetJoined started = await StartAsync(rob, robsRecord);
-        await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob() });
+        await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob(), keep = Blob() });
         string changed = Blob();
 
-        using HttpResponseMessage written = await SendAsync(doris, HttpMethod.Put, $"/api/street/{started.GroupId}/record", new { record = changed, memberId = started.MemberId });
-        using HttpResponseMessage outsider = await SendAsync(stranger, HttpMethod.Put, $"/api/street/{started.GroupId}/record", new { record = Blob() });
+        using HttpResponseMessage written = await SendAsync(doris, HttpMethod.Put, $"/api/street/{started.GroupId}/record", new { record = changed, keep = Blob(), memberId = started.MemberId });
+        using HttpResponseMessage outsider = await SendAsync(stranger, HttpMethod.Put, $"/api/street/{started.GroupId}/record", new { record = Blob(), keep = Blob() });
         StreetRead group = (await rob.GetFromJsonAsync<StreetRead>(new Uri($"/api/street/{started.GroupId}", UriKind.Relative)))!;
 
         written.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -155,19 +160,20 @@ public sealed class StreetEndpointsTests : IDisposable
         using HttpClient doris = await SignedInAsync("doris@example.com");
         using HttpClient third = await SignedInAsync("third@example.com");
         StreetJoined started = await StartAsync(rob);
-        using HttpResponseMessage dorisJoined = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob() });
+        using HttpResponseMessage dorisJoined = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob(), keep = Blob() });
         StreetJoined dorisIn = (await dorisJoined.Content.ReadFromJsonAsync<StreetJoined>())!;
         byte[] newPass = RandomNumberGenerator.GetBytes(32);
         string newHash = Convert.ToBase64String(SHA256.HashData(newPass));
+        string newAbout = Blob();
 
-        using HttpResponseMessage notHers = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = started.MemberId, passHash = newHash });
-        using HttpResponseMessage himself = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = started.MemberId, passHash = newHash });
-        using HttpResponseMessage nobody = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { passHash = newHash });
+        using HttpResponseMessage notHers = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = started.MemberId, passHash = newHash, about = Blob() });
+        using HttpResponseMessage himself = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = started.MemberId, passHash = newHash, about = Blob() });
+        using HttpResponseMessage nobody = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { passHash = newHash, about = Blob() });
         using HttpResponseMessage noHash = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = dorisIn.MemberId });
-        using HttpResponseMessage removed = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = dorisIn.MemberId, passHash = newHash });
+        using HttpResponseMessage removed = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = dorisIn.MemberId, passHash = newHash, about = newAbout });
         using HttpResponseMessage gone = await doris.GetAsync(new Uri($"/api/street/{started.GroupId}", UriKind.Relative));
-        using HttpResponseMessage back = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob() });
-        using HttpResponseMessage invited = await SendAsync(third, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Convert.ToBase64String(newPass), record = Blob() });
+        using HttpResponseMessage back = await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob(), keep = Blob() });
+        using HttpResponseMessage invited = await SendAsync(third, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Convert.ToBase64String(newPass), record = Blob(), keep = Blob() });
 
         notHers.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await SentenceAsync(notHers)).ShouldBe("Only the person who has been in the group longest can remove a home from it, and nobody removes themselves: leave instead.");
@@ -178,6 +184,9 @@ public sealed class StreetEndpointsTests : IDisposable
         gone.StatusCode.ShouldBe(HttpStatusCode.NotFound, "the server stops answering a home that was removed");
         back.StatusCode.ShouldBe(HttpStatusCode.NotFound, "and the link it had opens nothing");
         invited.StatusCode.ShouldBe(HttpStatusCode.OK, "while the new invitation lets a neighbour in");
+        (await rob.GetFromJsonAsync<StreetRead>(new Uri($"/api/street/{started.GroupId}", UriKind.Relative)))!.About.ShouldBe(newAbout, "and the members read the new pass from the group's name, which was replaced with it");
+        using HttpResponseMessage noAbout = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/remove", new { memberId = Guid.NewGuid(), passHash = newHash });
+        noAbout.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -186,7 +195,7 @@ public sealed class StreetEndpointsTests : IDisposable
         using HttpClient rob = await SignedInAsync("rob@example.com");
         using HttpClient doris = await SignedInAsync("doris@example.com");
         StreetJoined started = await StartAsync(rob);
-        await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob() });
+        await SendAsync(doris, HttpMethod.Post, $"/api/street/{started.GroupId}/join", new { pass = Pass, record = Blob(), keep = Blob() });
 
         using HttpResponseMessage left = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/leave", new { });
         using HttpResponseMessage twice = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/leave", new { });
@@ -207,7 +216,7 @@ public sealed class StreetEndpointsTests : IDisposable
         using HttpClient rob = await SignedInAsync("rob@example.com");
         StreetJoined started = await StartAsync(rob);
 
-        using HttpResponseMessage start = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = Blob() }, fromOurPages: false);
+        using HttpResponseMessage start = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = Blob(), keep = Blob() }, fromOurPages: false);
         using HttpResponseMessage leave = await SendAsync(rob, HttpMethod.Post, $"/api/street/{started.GroupId}/leave", new { }, fromOurPages: false);
 
         start.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
@@ -221,17 +230,17 @@ public sealed class StreetEndpointsTests : IDisposable
     {
         using HttpClient rob = await SignedInAsync("rob@example.com");
 
-        using HttpResponseMessage words = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = "Maple Road", record = Blob() });
+        using HttpResponseMessage words = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = "Maple Road", record = Blob(), keep = Blob() });
         using HttpResponseMessage notJson = await SendAsync(rob, HttpMethod.Post, "/api/street", "{ this is not json");
         using HttpResponseMessage nothing = await SendAsync(rob, HttpMethod.Post, "/api/street", "null");
-        using HttpResponseMessage huge = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = new string('A', StreetEndpoints.MaxBodyBytes) });
+        using HttpResponseMessage huge = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = new string('A', StreetEndpoints.MaxBodyBytes), keep = Blob() });
         using HttpResponseMessage noBody = await SendAsync(rob, HttpMethod.Post, "/api/street", null);
         for (int i = 0; i < StreetGroups.MostGroups; i++)
         {
             await StartAsync(rob);
         }
 
-        using HttpResponseMessage sixth = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = Blob() });
+        using HttpResponseMessage sixth = await SendAsync(rob, HttpMethod.Post, "/api/street", new { passHash = PassHash, about = Blob(), record = Blob(), keep = Blob() });
 
         words.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await SentenceAsync(words)).ShouldBe("That could not be kept: it is not something this page wrote, or it is too large.");

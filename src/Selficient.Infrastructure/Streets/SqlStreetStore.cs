@@ -23,11 +23,12 @@ public sealed class SqlStreetStore : IStreetStore
     }
 
     /// <inheritdoc />
-    public async Task<bool> CreateAsync(long accountId, Guid groupId, Guid memberId, byte[] passHash, string about, string record, DateTimeOffset now, int mostGroups, CancellationToken cancellationToken)
+    public async Task<bool> CreateAsync(long accountId, Guid groupId, Guid memberId, byte[] passHash, string about, string record, string keep, DateTimeOffset now, int mostGroups, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(passHash);
         ArgumentNullException.ThrowIfNull(about);
         ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(keep);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         await using SqlTransaction transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         int groups = await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM dbo.street_members WITH (UPDLOCK, HOLDLOCK) WHERE account_id = @accountId", new { accountId }, transaction);
@@ -37,9 +38,9 @@ public sealed class SqlStreetStore : IStreetStore
             await connection.ExecuteAsync(
                 """
                 INSERT INTO dbo.street_groups (id, created_at, pass_hash, about) VALUES (@groupId, @now, @passHash, @about);
-                INSERT INTO dbo.street_members (group_id, account_id, member_id, joined_at, updated_at, record) VALUES (@groupId, @accountId, @memberId, @now, @now, @record);
+                INSERT INTO dbo.street_members (group_id, account_id, member_id, joined_at, updated_at, record, keep) VALUES (@groupId, @accountId, @memberId, @now, @now, @record, @keep);
                 """,
-                new { groupId, accountId, memberId, passHash, about, record, now = now.UtcDateTime },
+                new { groupId, accountId, memberId, passHash, about, record, keep, now = now.UtcDateTime },
                 transaction);
         }
 
@@ -70,7 +71,7 @@ public sealed class SqlStreetStore : IStreetStore
         // One statement decides membership and reads the group, so a stranger is told nothing by the time it takes.
         IEnumerable<MemberRow> rows = await connection.QueryAsync<MemberRow>(
             """
-            SELECT m.member_id, m.record, m.updated_at, m.account_id, g.about
+            SELECT m.member_id, m.record, m.updated_at, m.account_id, g.about, CASE WHEN m.account_id = @accountId THEN m.keep END AS keep
             FROM dbo.street_members AS m
             JOIN dbo.street_groups AS g ON g.id = m.group_id
             WHERE m.group_id = @groupId
@@ -84,11 +85,15 @@ public sealed class SqlStreetStore : IStreetStore
             return null;
         }
 
+        MemberRow mine = members.Single(row => row.account_id == accountId);
         return new StreetGroup(
             groupId,
             members[0].about,
-            members.Single(row => row.account_id == accountId).member_id,
-            [.. members.Select(static (row, at) => new StreetMember(row.member_id, row.record, Utc(row.updated_at), at == 0))]);
+            mine.member_id,
+            [.. members.Select(static (row, at) => new StreetMember(row.member_id, row.record, Utc(row.updated_at), at == 0))])
+        {
+            Keep = mine.keep,
+        };
     }
 
     /// <inheritdoc />
@@ -99,9 +104,10 @@ public sealed class SqlStreetStore : IStreetStore
     }
 
     /// <inheritdoc />
-    public async Task<JoinOutcome> JoinAsync(long accountId, Guid groupId, Guid memberId, string record, DateTimeOffset now, int mostMembers, int mostGroups, CancellationToken cancellationToken)
+    public async Task<JoinOutcome> JoinAsync(long accountId, Guid groupId, Guid memberId, string record, string keep, DateTimeOffset now, int mostMembers, int mostGroups, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(keep);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         await using SqlTransaction transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         Counts counts = await connection.QuerySingleAsync<Counts>(
@@ -117,8 +123,8 @@ public sealed class SqlStreetStore : IStreetStore
         if (outcome == JoinOutcome.Joined)
         {
             await connection.ExecuteAsync(
-                "INSERT INTO dbo.street_members (group_id, account_id, member_id, joined_at, updated_at, record) VALUES (@groupId, @accountId, @memberId, @now, @now, @record)",
-                new { groupId, accountId, memberId, record, now = now.UtcDateTime },
+                "INSERT INTO dbo.street_members (group_id, account_id, member_id, joined_at, updated_at, record, keep) VALUES (@groupId, @accountId, @memberId, @now, @now, @record, @keep)",
+                new { groupId, accountId, memberId, record, keep, now = now.UtcDateTime },
                 transaction);
         }
 
@@ -127,19 +133,21 @@ public sealed class SqlStreetStore : IStreetStore
     }
 
     /// <inheritdoc />
-    public async Task<bool> PutRecordAsync(long accountId, Guid groupId, string record, DateTimeOffset now, CancellationToken cancellationToken)
+    public async Task<bool> PutRecordAsync(long accountId, Guid groupId, string record, string keep, DateTimeOffset now, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(keep);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         return await connection.ExecuteAsync(
-            "UPDATE dbo.street_members SET record = @record, updated_at = @now WHERE group_id = @groupId AND account_id = @accountId",
-            new { groupId, accountId, record, now = now.UtcDateTime }) > 0;
+            "UPDATE dbo.street_members SET record = @record, keep = @keep, updated_at = @now WHERE group_id = @groupId AND account_id = @accountId",
+            new { groupId, accountId, record, keep, now = now.UtcDateTime }) > 0;
     }
 
     /// <inheritdoc />
-    public async Task<bool> RemoveAsync(long accountId, Guid groupId, Guid memberId, byte[] newPassHash, CancellationToken cancellationToken)
+    public async Task<bool> RemoveAsync(long accountId, Guid groupId, Guid memberId, byte[] newPassHash, string newAbout, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(newPassHash);
+        ArgumentNullException.ThrowIfNull(newAbout);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         await using SqlTransaction transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         // Only the longest-standing member removes, and never themselves; the invitation's pass changes with the removal or not at all.
@@ -153,7 +161,7 @@ public sealed class SqlStreetStore : IStreetStore
             transaction);
         if (removed > 0)
         {
-            await connection.ExecuteAsync("UPDATE dbo.street_groups SET pass_hash = @newPassHash WHERE id = @groupId", new { groupId, newPassHash }, transaction);
+            await connection.ExecuteAsync("UPDATE dbo.street_groups SET pass_hash = @newPassHash, about = @newAbout WHERE id = @groupId", new { groupId, newPassHash, newAbout }, transaction);
         }
 
         await transaction.CommitAsync(cancellationToken);
@@ -211,7 +219,7 @@ public sealed class SqlStreetStore : IStreetStore
 #pragma warning disable CA1812, IDE1006, CA1707 // Dapper materialises these by column name.
     private sealed record MembershipRow(Guid group_id, Guid member_id, bool may_remove);
 
-    private sealed record MemberRow(Guid member_id, string record, DateTime updated_at, long account_id, string about);
+    private sealed record MemberRow(Guid member_id, string record, DateTime updated_at, long account_id, string about, string? keep);
 
     private sealed record Counts(int members, int groups, int already);
 #pragma warning restore CA1812, IDE1006, CA1707

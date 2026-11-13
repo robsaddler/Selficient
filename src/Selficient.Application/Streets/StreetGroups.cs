@@ -22,7 +22,11 @@ public sealed record StreetMember(Guid MemberId, string Record, DateTimeOffset U
 /// <param name="About">The group's name, encrypted in the starter's browser.</param>
 /// <param name="You">The asking account's member id.</param>
 /// <param name="Members">Every home in it, longest-standing first.</param>
-public sealed record StreetGroup(Guid GroupId, string About, Guid You, IReadOnlyList<StreetMember> Members);
+public sealed record StreetGroup(Guid GroupId, string About, Guid You, IReadOnlyList<StreetMember> Members)
+{
+    /// <summary>What the asking account's own devices keep here, sealed in its browser, or null when it has kept nothing. No other member is answered it.</summary>
+    public string? Keep { get; init; }
+}
 
 /// <summary>How an attempt to join ended, as the store saw it.</summary>
 public enum JoinOutcome
@@ -48,7 +52,7 @@ public enum JoinOutcome
 public interface IStreetStore
 {
     /// <summary>Makes a group with its first member. False when the account is already in as many groups as it may be.</summary>
-    Task<bool> CreateAsync(long accountId, Guid groupId, Guid memberId, byte[] passHash, string about, string record, DateTimeOffset now, int mostGroups, CancellationToken cancellationToken);
+    Task<bool> CreateAsync(long accountId, Guid groupId, Guid memberId, byte[] passHash, string about, string record, string keep, DateTimeOffset now, int mostGroups, CancellationToken cancellationToken);
 
     /// <summary>The groups an account is in, oldest membership first.</summary>
     Task<IReadOnlyList<StreetMembership>> MembershipsAsync(long accountId, CancellationToken cancellationToken);
@@ -60,16 +64,16 @@ public interface IStreetStore
     Task<byte[]?> PassHashAsync(Guid groupId, CancellationToken cancellationToken);
 
     /// <summary>Adds an account to a group, in one transaction with the counts that may refuse it.</summary>
-    Task<JoinOutcome> JoinAsync(long accountId, Guid groupId, Guid memberId, string record, DateTimeOffset now, int mostMembers, int mostGroups, CancellationToken cancellationToken);
+    Task<JoinOutcome> JoinAsync(long accountId, Guid groupId, Guid memberId, string record, string keep, DateTimeOffset now, int mostMembers, int mostGroups, CancellationToken cancellationToken);
 
-    /// <summary>Replaces the account's own record in a group. False when it is not a member.</summary>
-    Task<bool> PutRecordAsync(long accountId, Guid groupId, string record, DateTimeOffset now, CancellationToken cancellationToken);
+    /// <summary>Replaces the account's own record in a group, and what its own devices keep. False when it is not a member.</summary>
+    Task<bool> PutRecordAsync(long accountId, Guid groupId, string record, string keep, DateTimeOffset now, CancellationToken cancellationToken);
 
     /// <summary>
     /// Removes another home from a group and sets the invitation's new pass, in one transaction, if
     /// the asking account is the longest-standing member. False, and nothing changed, otherwise.
     /// </summary>
-    Task<bool> RemoveAsync(long accountId, Guid groupId, Guid memberId, byte[] newPassHash, CancellationToken cancellationToken);
+    Task<bool> RemoveAsync(long accountId, Guid groupId, Guid memberId, byte[] newPassHash, string newAbout, CancellationToken cancellationToken);
 
     /// <summary>Takes the account out of a group, and the group away with it when it was the last. False when it was not a member.</summary>
     Task<bool> LeaveAsync(long accountId, Guid groupId, CancellationToken cancellationToken);
@@ -131,15 +135,15 @@ public sealed class StreetGroups : IExpiring
     }
 
     /// <summary>Starts a group with the account as its first member, and answers the group's id and the account's member id in it.</summary>
-    public async Task<Result<StreetMembership>> StartAsync(long accountId, string? passHash, string? about, string? record, CancellationToken cancellationToken)
+    public async Task<Result<StreetMembership>> StartAsync(long accountId, string? passHash, string? about, string? record, string? keep, CancellationToken cancellationToken)
     {
-        if (Bytes(passHash, PassBytes) is not { } hash || !IsCiphertext(about, MaxAboutLength) || !IsCiphertext(record, MaxRecordLength))
+        if (Bytes(passHash, PassBytes) is not { } hash || !IsCiphertext(about, MaxAboutLength) || !AreCiphertext(record, keep))
         {
             return Result.Failure<StreetMembership>(NotARecord);
         }
 
         StreetMembership made = new(Guid.NewGuid(), Guid.NewGuid(), true);
-        return await _store.CreateAsync(accountId, made.GroupId, made.MemberId, hash, about!, record!, _clock.GetUtcNow(), MostGroups, cancellationToken).ConfigureAwait(false)
+        return await _store.CreateAsync(accountId, made.GroupId, made.MemberId, hash, about!, record!, keep!, _clock.GetUtcNow(), MostGroups, cancellationToken).ConfigureAwait(false)
             ? Result.Success(made)
             : Result.Failure<StreetMembership>(TooMany);
     }
@@ -158,9 +162,9 @@ public sealed class StreetGroups : IExpiring
     /// Joins a group with the pass from its invitation. An account that is in already is answered
     /// its membership and nothing is changed, so opening the link twice is not an error.
     /// </summary>
-    public async Task<Result<StreetMembership>> JoinAsync(long accountId, Guid groupId, string? pass, string? record, CancellationToken cancellationToken)
+    public async Task<Result<StreetMembership>> JoinAsync(long accountId, Guid groupId, string? pass, string? record, string? keep, CancellationToken cancellationToken)
     {
-        if (!IsCiphertext(record, MaxRecordLength))
+        if (!AreCiphertext(record, keep))
         {
             return Result.Failure<StreetMembership>(NotARecord);
         }
@@ -173,7 +177,7 @@ public sealed class StreetGroups : IExpiring
             return Result.Failure<StreetMembership>(BadInvitation);
         }
 
-        JoinOutcome outcome = await _store.JoinAsync(accountId, groupId, Guid.NewGuid(), record!, _clock.GetUtcNow(), MostMembers, MostGroups, cancellationToken).ConfigureAwait(false);
+        JoinOutcome outcome = await _store.JoinAsync(accountId, groupId, Guid.NewGuid(), record!, keep!, _clock.GetUtcNow(), MostMembers, MostGroups, cancellationToken).ConfigureAwait(false);
         if (outcome == JoinOutcome.Full)
         {
             return Result.Failure<StreetMembership>(Full);
@@ -189,28 +193,32 @@ public sealed class StreetGroups : IExpiring
         return Result.Success(mine.First(membership => membership.GroupId == groupId));
     }
 
-    /// <summary>Replaces the account's own record in a group.</summary>
-    public async Task<Result<bool>> ShareAsync(long accountId, Guid groupId, string? record, CancellationToken cancellationToken)
+    /// <summary>Replaces the account's own record in a group, and what its own devices keep there.</summary>
+    public async Task<Result<bool>> ShareAsync(long accountId, Guid groupId, string? record, string? keep, CancellationToken cancellationToken)
     {
-        if (!IsCiphertext(record, MaxRecordLength))
+        if (!AreCiphertext(record, keep))
         {
             return Result.Failure<bool>(NotARecord);
         }
 
-        return await _store.PutRecordAsync(accountId, groupId, record!, _clock.GetUtcNow(), cancellationToken).ConfigureAwait(false)
+        return await _store.PutRecordAsync(accountId, groupId, record!, keep!, _clock.GetUtcNow(), cancellationToken).ConfigureAwait(false)
             ? Result.Success(true)
             : Result.Failure<bool>(NoSuchGroup);
     }
 
-    /// <summary>Removes another home from a group and replaces the invitation's pass, so the link the removed home had opens nothing.</summary>
-    public async Task<Result<bool>> RemoveAsync(long accountId, Guid groupId, Guid memberId, string? newPassHash, CancellationToken cancellationToken)
+    /// <summary>
+    /// Removes another home from a group and replaces the invitation's pass, so the link the removed
+    /// home had opens nothing. The group's name blob is replaced with it, because the members read
+    /// the new pass from there, sealed with the group's key, to invite the next neighbour.
+    /// </summary>
+    public async Task<Result<bool>> RemoveAsync(long accountId, Guid groupId, Guid memberId, string? newPassHash, string? newAbout, CancellationToken cancellationToken)
     {
-        if (Bytes(newPassHash, PassBytes) is not { } hash)
+        if (Bytes(newPassHash, PassBytes) is not { } hash || !IsCiphertext(newAbout, MaxAboutLength))
         {
             return Result.Failure<bool>(NotARecord);
         }
 
-        return await _store.RemoveAsync(accountId, groupId, memberId, hash, cancellationToken).ConfigureAwait(false)
+        return await _store.RemoveAsync(accountId, groupId, memberId, hash, newAbout!, cancellationToken).ConfigureAwait(false)
             ? Result.Success(true)
             : Result.Failure<bool>(MayNotRemove);
     }
@@ -238,6 +246,9 @@ public sealed class StreetGroups : IExpiring
     /// </summary>
     public static bool IsCiphertext(string? value, int mostLength) =>
         value is not null && value.Length <= mostLength && Bytes(value, null) is { Length: >= LeastCiphertextBytes };
+
+    // A record and what the member's own devices keep travel together and are checked together.
+    private static bool AreCiphertext(string? record, string? keep) => IsCiphertext(record, MaxRecordLength) && IsCiphertext(keep, MaxRecordLength);
 
     // The bytes a base64 value holds, or nothing when it is not base64, has white space in it, or is not the length asked for.
     private static byte[]? Bytes(string? value, int? length)

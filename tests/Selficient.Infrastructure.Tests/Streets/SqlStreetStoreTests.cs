@@ -33,7 +33,7 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
     private async Task<(Guid Group, Guid Member)> StartAsync(long account, int most = 5)
     {
         (Guid group, Guid member) = (Guid.NewGuid(), Guid.NewGuid());
-        (await _store.CreateAsync(account, group, member, Pass, "about-ciphertext", "robs-record", Evening, most, CancellationToken.None)).ShouldBeTrue();
+        (await _store.CreateAsync(account, group, member, Pass, "about-ciphertext", "robs-record", "robs-keep", Evening, most, CancellationToken.None)).ShouldBeTrue();
         return (group, member);
     }
 
@@ -49,12 +49,14 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
         (Guid group, Guid robsId) = await StartAsync(_rob);
         Guid dorisId = Guid.NewGuid();
 
-        (await _store.JoinAsync(_doris, group, dorisId, "doris-record", Evening.AddMinutes(5), 100, 5, CancellationToken.None)).ShouldBe(JoinOutcome.Joined);
-        (await _store.JoinAsync(_doris, group, Guid.NewGuid(), "again", Evening.AddMinutes(6), 100, 5, CancellationToken.None)).ShouldBe(JoinOutcome.AlreadyIn);
+        (await _store.JoinAsync(_doris, group, dorisId, "doris-record", "doris-keep", Evening.AddMinutes(5), 100, 5, CancellationToken.None)).ShouldBe(JoinOutcome.Joined);
+        (await _store.JoinAsync(_doris, group, Guid.NewGuid(), "again", "again-keep", Evening.AddMinutes(6), 100, 5, CancellationToken.None)).ShouldBe(JoinOutcome.AlreadyIn);
         StreetGroup forRob = (await _store.ReadAsync(_rob, group, CancellationToken.None))!;
         StreetGroup forDoris = (await _store.ReadAsync(_doris, group, CancellationToken.None))!;
 
         forRob.About.ShouldBe("about-ciphertext");
+        forRob.Keep.ShouldBe("robs-keep");
+        forDoris.Keep.ShouldBe("doris-keep", "each is answered what its own devices keep, and nobody else's");
         forRob.You.ShouldBe(robsId);
         forDoris.You.ShouldBe(dorisId);
         forRob.Members.ShouldBe([new StreetMember(robsId, "robs-record", Evening, true), new StreetMember(dorisId, "doris-record", Evening.AddMinutes(5), false)]);
@@ -71,15 +73,16 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
     public async Task A_member_writes_only_its_own_record()
     {
         (Guid group, Guid robsId) = await StartAsync(_rob);
-        await _store.JoinAsync(_doris, group, Guid.NewGuid(), "doris-record", Evening, 100, 5, CancellationToken.None);
+        await _store.JoinAsync(_doris, group, Guid.NewGuid(), "doris-record", "doris-keep", Evening, 100, 5, CancellationToken.None);
 
-        (await _store.PutRecordAsync(_doris, group, "doris-again", Evening.AddHours(1), CancellationToken.None)).ShouldBeTrue();
-        (await _store.PutRecordAsync(_third, group, "an-outsider", Evening.AddHours(1), CancellationToken.None)).ShouldBeFalse();
+        (await _store.PutRecordAsync(_doris, group, "doris-again", "doris-keep-again", Evening.AddHours(1), CancellationToken.None)).ShouldBeTrue();
+        (await _store.PutRecordAsync(_third, group, "an-outsider", "keep", Evening.AddHours(1), CancellationToken.None)).ShouldBeFalse();
 
         StreetGroup read = (await _store.ReadAsync(_rob, group, CancellationToken.None))!;
         read.Members[0].ShouldBe(new StreetMember(robsId, "robs-record", Evening, true), "another member's write leaves this one alone");
         read.Members[1].Record.ShouldBe("doris-again");
         read.Members[1].UpdatedAt.ShouldBe(Evening.AddHours(1));
+        (await _store.ReadAsync(_doris, group, CancellationToken.None))!.Keep.ShouldBe("doris-keep-again");
     }
 
     [Fact]
@@ -87,9 +90,9 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
     {
         (Guid group, _) = await StartAsync(_rob);
 
-        (await _store.JoinAsync(_doris, group, Guid.NewGuid(), "record", Evening, 1, 5, CancellationToken.None)).ShouldBe(JoinOutcome.Full);
-        (await _store.JoinAsync(_doris, group, Guid.NewGuid(), "record", Evening, 2, 0, CancellationToken.None)).ShouldBe(JoinOutcome.TooManyGroups);
-        (await _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, "about", "record", Evening, 1, CancellationToken.None)).ShouldBeFalse("an account already in as many groups as it may be starts no more");
+        (await _store.JoinAsync(_doris, group, Guid.NewGuid(), "record", "keep", Evening, 1, 5, CancellationToken.None)).ShouldBe(JoinOutcome.Full);
+        (await _store.JoinAsync(_doris, group, Guid.NewGuid(), "record", "keep", Evening, 2, 0, CancellationToken.None)).ShouldBe(JoinOutcome.TooManyGroups);
+        (await _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, "about", "record", "keep", Evening, 1, CancellationToken.None)).ShouldBeFalse("an account already in as many groups as it may be starts no more");
         (await _store.MembershipsAsync(_rob, CancellationToken.None)).Count.ShouldBe(1);
         (await _store.ReadAsync(_doris, group, CancellationToken.None)).ShouldBeNull();
     }
@@ -99,17 +102,18 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
     {
         (Guid group, Guid robsId) = await StartAsync(_rob);
         (Guid dorisId, Guid thirdId) = (Guid.NewGuid(), Guid.NewGuid());
-        await _store.JoinAsync(_doris, group, dorisId, "doris", Evening, 100, 5, CancellationToken.None);
-        await _store.JoinAsync(_third, group, thirdId, "third", Evening, 100, 5, CancellationToken.None);
+        await _store.JoinAsync(_doris, group, dorisId, "doris", "keep", Evening, 100, 5, CancellationToken.None);
+        await _store.JoinAsync(_third, group, thirdId, "third", "keep", Evening, 100, 5, CancellationToken.None);
 
-        (await _store.RemoveAsync(_doris, group, thirdId, NewPass, CancellationToken.None)).ShouldBeFalse("only the longest-standing member removes");
-        (await _store.RemoveAsync(_rob, group, robsId, NewPass, CancellationToken.None)).ShouldBeFalse("and never themselves");
-        (await _store.RemoveAsync(_rob, group, Guid.NewGuid(), NewPass, CancellationToken.None)).ShouldBeFalse();
+        (await _store.RemoveAsync(_doris, group, thirdId, NewPass, "new-about", CancellationToken.None)).ShouldBeFalse("only the longest-standing member removes");
+        (await _store.RemoveAsync(_rob, group, robsId, NewPass, "new-about", CancellationToken.None)).ShouldBeFalse("and never themselves");
+        (await _store.RemoveAsync(_rob, group, Guid.NewGuid(), NewPass, "new-about", CancellationToken.None)).ShouldBeFalse();
         (await _store.PassHashAsync(group, CancellationToken.None)).ShouldBe(Pass, "a removal that did not happen changes no pass");
 
-        (await _store.RemoveAsync(_rob, group, thirdId, NewPass, CancellationToken.None)).ShouldBeTrue();
+        (await _store.RemoveAsync(_rob, group, thirdId, NewPass, "new-about", CancellationToken.None)).ShouldBeTrue();
 
         (await _store.PassHashAsync(group, CancellationToken.None)).ShouldBe(NewPass);
+        (await _store.ReadAsync(_rob, group, CancellationToken.None))!.About.ShouldBe("new-about", "the group's name blob, which carries the new pass to the members, changes in the same transaction");
         (await _store.ReadAsync(_third, group, CancellationToken.None)).ShouldBeNull();
         (await _store.ReadAsync(_rob, group, CancellationToken.None))!.Members.Select(member => member.MemberId).ShouldBe([robsId, dorisId]);
     }
@@ -119,8 +123,8 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
     {
         (Guid group, _) = await StartAsync(_rob);
         Guid dorisId = Guid.NewGuid();
-        await _store.JoinAsync(_doris, group, dorisId, "doris", Evening, 100, 5, CancellationToken.None);
-        await _store.JoinAsync(_third, group, Guid.NewGuid(), "third", Evening, 100, 5, CancellationToken.None);
+        await _store.JoinAsync(_doris, group, dorisId, "doris", "keep", Evening, 100, 5, CancellationToken.None);
+        await _store.JoinAsync(_third, group, Guid.NewGuid(), "third", "keep", Evening, 100, 5, CancellationToken.None);
 
         (await _store.LeaveAsync(_rob, group, CancellationToken.None)).ShouldBeTrue();
         (await _store.LeaveAsync(_rob, group, CancellationToken.None)).ShouldBeFalse();
@@ -146,12 +150,16 @@ public sealed class SqlStreetStoreTests : IAsyncLifetime
     [Fact]
     public async Task The_store_checks_its_arguments()
     {
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), null!, "about", "record", Evening, 5, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, null!, "record", Evening, 5, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, "about", null!, Evening, 5, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.JoinAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), null!, Evening, 100, 5, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.PutRecordAsync(_rob, Guid.NewGuid(), null!, Evening, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.RemoveAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), null!, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), null!, "about", "record", "keep", Evening, 5, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, null!, "record", "keep", Evening, 5, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, "about", null!, "keep", Evening, 5, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.JoinAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), null!, "keep", Evening, 100, 5, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.PutRecordAsync(_rob, Guid.NewGuid(), null!, "keep", Evening, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.RemoveAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), null!, "about", CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.RemoveAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), NewPass, null!, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.CreateAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), Pass, "about", "record", null!, Evening, 5, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.JoinAsync(_rob, Guid.NewGuid(), Guid.NewGuid(), "record", null!, Evening, 100, 5, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.PutRecordAsync(_rob, Guid.NewGuid(), "record", null!, Evening, CancellationToken.None));
     }
 
     public ValueTask DisposeAsync()
