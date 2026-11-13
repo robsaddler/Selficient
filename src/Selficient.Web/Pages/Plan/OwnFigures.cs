@@ -30,15 +30,15 @@ public sealed record OwnFigureQuestion(ParameterDefinition Definition, decimal V
 public static class OwnFigureCopy
 {
     /// <summary>What the questions are, and what answering one does.</summary>
-    public const string Lede = "Each of these is the plan's best figure for something in your home. If you know yours, put it in, and your plan and the board are worked out again from it. It is kept with your plan, in this browser.";
+    public const string Lede = "Where nothing published settles a figure for your home, the plan uses its own best one. If you know yours, put it in, and your plan and the board are worked out again from it. Your figures are kept with your plan, in this browser.";
 
     /// <summary>The sentence shown once, on the plan built from a figure just given or taken back.</summary>
     public const string Rebuilt = "Your plan has been worked out again from your figures.";
 
     /// <summary>The line that opens the questions, with how many there are.</summary>
     public static string Summary(int questions) => questions == 1
-        ? "One figure you may know better than the plan"
-        : string.Create(CultureInfo.InvariantCulture, $"{questions} figures you may know better than the plan");
+        ? "One figure you can change to your own"
+        : string.Create(CultureInfo.InvariantCulture, $"{questions} figures you can change to your own");
 }
 
 /// <summary>

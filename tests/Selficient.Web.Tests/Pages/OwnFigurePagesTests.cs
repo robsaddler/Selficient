@@ -50,7 +50,7 @@ public sealed partial class OwnFigurePagesTests : IDisposable
     {
         int start = html.IndexOf($"<label for=\"own-{id.Replace('.', '-')}\">", StringComparison.Ordinal);
         start.ShouldBeGreaterThan(-1, $"the household is asked about {id}");
-        return html[html.LastIndexOf("<div class=\"assumptions__item\"", start, StringComparison.Ordinal)..html.IndexOf("data-own-says>", start, StringComparison.Ordinal)] + html[html.IndexOf("data-own-says>", start, StringComparison.Ordinal)..html.IndexOf("</p>", html.IndexOf("data-own-says>", start, StringComparison.Ordinal), StringComparison.Ordinal)];
+        return html[html.LastIndexOf("<div class=\"assumptions__item\" data-own-state", start, StringComparison.Ordinal)..html.IndexOf("data-own-says>", start, StringComparison.Ordinal)] + html[html.IndexOf("data-own-says>", start, StringComparison.Ordinal)..html.IndexOf("</p>", html.IndexOf("data-own-says>", start, StringComparison.Ordinal), StringComparison.Ordinal)];
     }
 
     [Fact]
@@ -62,7 +62,9 @@ public sealed partial class OwnFigurePagesTests : IDisposable
         string without = await PageAsync(client, "/plan", House(("Form.Stairlift", "None"), ("Form.HasWoodStove", "true"), ("Form.Car", "Petrol")));
 
         withLift.ShouldContain("<details class=\"assumptions__own\" data-own-figures>", customMessage: "shut: a new plan is not met with a row of boxes");
-        withLift.ShouldContain(" figures you may know better than the plan</summary>");
+        withLift.ShouldContain(" figures you can change to your own</summary>");
+        withLift.ShouldContain("<div class=\"assumptions__item\" data-own-state=\"plans\" data-assume-cash-item>", customMessage: "the cash a person needs is asked the same way, in the same place, as the first of them");
+        withLift.IndexOf("data-assume-cash-item", StringComparison.Ordinal).ShouldBeGreaterThan(withLift.IndexOf("data-own-figures>", StringComparison.Ordinal));
         withLift.ShouldContain(OwnFigureCopy.Lede);
         withLift.ShouldContain("<p class=\"callout\" role=\"status\" data-own-rebuilt hidden>Your plan has been worked out again from your figures.</p>");
         string lift = Question(withLift, "stairlift-batteries.stock");
@@ -77,7 +79,7 @@ public sealed partial class OwnFigurePagesTests : IDisposable
         Question(withLift, "water-butt.stock").ShouldContain("How many litres does your water butt hold?", customMessage: "the plan offers this house a water butt, so it is asked what one of its own holds");
         withLift.ShouldNotContain("own-wood-stove-stock");
         withLift.ShouldNotContain("own-petrol-car-stock");
-        withLift.ShouldNotContain("own-assumed-cash", customMessage: "the cash a person needs has its own box above");
+        withLift.ShouldNotContain("own-assumed-cash", customMessage: "the cash a person needs is asked once");
         withLift.ShouldContain("<ul hidden data-own-asked>");
         withLift.ShouldNotContain("<li data-id=");
         withLift.ShouldNotContain("name=\"Own[");
@@ -157,8 +159,8 @@ public sealed partial class OwnFigurePagesTests : IDisposable
     [Fact]
     public void The_words_and_the_questions_are_decided_in_one_place()
     {
-        OwnFigureCopy.Summary(1).ShouldBe("One figure you may know better than the plan");
-        OwnFigureCopy.Summary(4).ShouldBe("4 figures you may know better than the plan");
+        OwnFigureCopy.Summary(1).ShouldBe("One figure you can change to your own");
+        OwnFigureCopy.Summary(4).ShouldBe("4 figures you can change to your own");
         OwnFigures.Plain(4.5000m).ShouldBe("4.5");
         OwnFigures.Read(new Dictionary<string, string>()).Value.ShouldBeEmpty();
         OwnFigures.Read(new Dictionary<string, string> { ["water-butt.stock"] = "300" }).Value.ShouldBe(new Dictionary<string, decimal> { ["water-butt.stock"] = 300m });

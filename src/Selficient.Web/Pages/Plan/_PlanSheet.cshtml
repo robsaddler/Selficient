@@ -70,37 +70,36 @@
   {
     @await Html.PartialAsync("_PlanTier", new Selficient.Web.Pages.Plan.PlanTierView(tier, Model.Catalogue, outcomes[tier.Tier], amounts))
   }
-  @* The figures the plan had to choose for itself, each open to the household's own. The script keeps the choice in this browser and the board redraws from it. *@
+  @* The figures the plan had to choose for itself, each open to the household's own, all asked the same way in one place: the cash a person needs, and a figure for each thing this household has. Shut until opened, so a new plan is not met with a row of boxes, and open once one has been answered. The script keeps each choice in this browser; the cash figure redraws the board and the others build the plan again. *@
   <section class="assumptions" aria-labelledby="assumptions-heading">
     <h3 id="assumptions-heading">What the plan assumes</h3>
-    <p class="assumptions__lede">Where nothing published settles a figure, the plan uses its own. Change it to yours and everything that rests on it follows.</p>
-    <div class="assumptions__item">
-      <label for="assume-cash">@Selficient.Web.Pages.Plan.AmountCopy.CashRateLabel</label>
-      <div class="assumptions__row">
-        <span aria-hidden="true">£</span>
-        <input id="assume-cash" class="input input--short" type="number" inputmode="numeric" min="@Selficient.Domain.Resilience.Assumptions.MinCashPoundsPerPersonPerDay" max="@Selficient.Domain.Resilience.Assumptions.MaxCashPoundsPerPersonPerDay" step="1" autocomplete="off" value="@assumed.CashPoundsPerPersonPerDay" data-assume-cash data-assume-default="@assumed.PlansCashPoundsPerPersonPerDay" aria-describedby="assume-cash-says">
-        <span>pounds a person a day</span>
-        <button type="button" class="tally__button" data-assume-reset>@Selficient.Web.Pages.Plan.AmountCopy.CashRateReset(assumed)</button>
-      </div>
-      <p class="field__hint" id="assume-cash-says" data-assume-cash-says>@Selficient.Web.Pages.Plan.AmountCopy.CashRateSays(assumed, household.Size.Count)</p>
-    </div>
-    @* The figures for things this household has, which it may know better than any table. Shut until opened, and open once one has been answered. Changing one builds the plan again from it. *@
+    <p class="assumptions__lede">@Selficient.Web.Pages.Plan.OwnFigureCopy.Lede</p>
     <p class="callout" role="status" data-own-rebuilt hidden>@Selficient.Web.Pages.Plan.OwnFigureCopy.Rebuilt</p>
     <details class="assumptions__own" open="@Model.QuestionsOpen" data-own-figures>
-      <summary>@Selficient.Web.Pages.Plan.OwnFigureCopy.Summary(Model.Questions.Count)</summary>
-      <p class="assumptions__lede">@Selficient.Web.Pages.Plan.OwnFigureCopy.Lede</p>
-      @foreach (var question in Model.Questions)
-      {
-        <div class="assumptions__item" data-own-state="@question.State">
-          <label for="@question.InputId">@question.Definition.HouseholdQuestion</label>
+      <summary>@Selficient.Web.Pages.Plan.OwnFigureCopy.Summary(Model.Questions.Count + 1)</summary>
+      <div class="assumptions__grid">
+        <div class="assumptions__item" data-own-state="plans" data-assume-cash-item>
+          <label for="assume-cash">@Selficient.Web.Pages.Plan.AmountCopy.CashRateLabel</label>
           <div class="assumptions__row">
-            <input id="@question.InputId" class="input input--short" type="number" inputmode="decimal" min="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Min)" max="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Max)" step="@question.Step" autocomplete="off" value="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Value)" data-own-figure="@question.Definition.Id" data-own-plans="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Plans)" aria-describedby="@(question.InputId)-says">
-            <span>@question.Definition.Unit</span>
-            <button type="button" class="tally__button" data-own-reset="@question.Definition.Id">@question.Reset</button>
+            <input id="assume-cash" class="input input--short" type="number" inputmode="numeric" min="@Selficient.Domain.Resilience.Assumptions.MinCashPoundsPerPersonPerDay" max="@Selficient.Domain.Resilience.Assumptions.MaxCashPoundsPerPersonPerDay" step="1" autocomplete="off" value="@assumed.CashPoundsPerPersonPerDay" data-assume-cash data-assume-default="@assumed.PlansCashPoundsPerPersonPerDay" aria-describedby="assume-cash-says">
+            <span>pounds a person a day</span>
+            <button type="button" class="tally__button" data-assume-reset>@Selficient.Web.Pages.Plan.AmountCopy.CashRateReset(assumed)</button>
           </div>
-          <p class="field__hint" id="@(question.InputId)-says" data-own-says>@question.Says</p>
+          <p class="field__hint" id="assume-cash-says" data-assume-cash-says>@Selficient.Web.Pages.Plan.AmountCopy.CashRateSays(assumed, household.Size.Count)</p>
         </div>
-      }
+        @foreach (var question in Model.Questions)
+        {
+          <div class="assumptions__item" data-own-state="@question.State">
+            <label for="@question.InputId">@question.Definition.HouseholdQuestion</label>
+            <div class="assumptions__row">
+              <input id="@question.InputId" class="input input--short" type="number" inputmode="decimal" min="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Min)" max="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Max)" step="@question.Step" autocomplete="off" value="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Value)" data-own-figure="@question.Definition.Id" data-own-plans="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Plans)" aria-describedby="@(question.InputId)-says">
+              <span>@question.Definition.Unit</span>
+              <button type="button" class="tally__button" data-own-reset="@question.Definition.Id">@question.Reset</button>
+            </div>
+            <p class="field__hint" id="@(question.InputId)-says" data-own-says>@question.Says</p>
+          </div>
+        }
+      </div>
     </details>
     @* What the plan was built with, for the script to hold against what this browser keeps. *@
     <ul hidden data-own-asked>

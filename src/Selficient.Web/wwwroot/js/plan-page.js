@@ -281,6 +281,13 @@ async function applyAssumptions(doc) {
   if (input instanceof HTMLInputElement && doc.activeElement !== input) {
     input.value = String(assumptions.cashRate ?? input.dataset.assumeDefault ?? "");
   }
+  // A rate of the household's own is marked as the other figures are, and the figures are open on it.
+  const own = assumptions.cashRate !== undefined;
+  input?.closest("[data-assume-cash-item]")?.setAttribute("data-own-state", own ? "own" : "plans");
+  const figures = doc.querySelector("[data-own-figures]");
+  if (own && figures instanceof HTMLDetailsElement) {
+    figures.open = true;
+  }
 }
 
 const OWN_REBUILT = "selficient.own-rebuilt";

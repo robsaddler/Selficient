@@ -296,7 +296,9 @@ public sealed class Journeys
         ILocator cashBox = page.Locator("#amount-cash-in-small-notes");
         ILocator rate = page.Locator("#assume-cash");
 
-        // The plan's rate is on the page with what it comes to, and the cash action says what it rests on.
+        // The plan's rate is with the plan's other figures, shut until opened, with what it comes to; the cash action says what it rests on.
+        await Expect(rate).ToBeHiddenAsync();
+        await page.Locator("[data-own-figures] summary").ClickAsync();
         await Expect(rate).ToHaveValueAsync("10");
         await Expect(page.Locator("[data-assume-cash-says]")).ToHaveTextAsync("At £10 a person a day, ten days of cash for the 4 of you is £400.");
         await cash.Locator("[data-choice=\"have\"]").CheckAsync();
@@ -1034,7 +1036,8 @@ public sealed class Journeys
         ILocator questions = page.Locator("[data-own-figures]");
         ILocator butt = page.Locator("#own-water-butt-stock");
         ILocator says = page.Locator("[data-own-rebuilt]");
-        await Expect(questions.Locator("summary")).ToContainTextAsync("figures you may know better than the plan");
+        await Expect(questions.Locator("summary")).ToContainTextAsync("figures you can change to your own");
+        await Expect(page.Locator("#assume-cash")).ToBeHiddenAsync();
         await Expect(butt).ToBeHiddenAsync();
         await Expect(page.Locator("[data-action-row=\"water-butt\"]")).ToContainTextAsync("A 210-litre water butt on a downpipe");
         await questions.Locator("summary").ClickAsync();
@@ -1056,12 +1059,27 @@ public sealed class Journeys
         AxeResult axe = await RunAxeWhenSettledAsync(page);
         axe.Violations.ShouldBeEmpty();
         await page.Locator(".assumptions").ScreenshotAsync(new() { Path = Screenshots.Target("own-figures-phone-light.png") });
+        // Every figure is the same tile, and along a row of tiles the boxes stand level.
+        foreach ((string size, int width, string theme) in new[] { ("desktop", 1440, "light"), ("wide", 2000, "dark") })
+        {
+            await page.SetViewportSizeAsync(width, 1000);
+            await page.EmulateMediaAsync(new() { ColorScheme = theme == "dark" ? ColorScheme.Dark : ColorScheme.Light });
+            double[][] boxes = await page.EvalOnSelectorAllAsync<double[][]>(".assumptions__item", "tiles => tiles.map(tile => { const tileAt = tile.getBoundingClientRect(); const box = tile.querySelector('input').getBoundingClientRect(); return [Math.round(tileAt.top), Math.round(box.top), Math.round(tileAt.width)]; })");
+            boxes.Length.ShouldBeGreaterThan(3);
+            boxes.GroupBy(tile => tile[0]).ShouldAllBe(row => row.Select(tile => tile[1]).Distinct().Count() == 1, $"at {width}px the boxes along a row of tiles are not level");
+            boxes.GroupBy(tile => tile[0]).First().Count().ShouldBeGreaterThan(2, $"at {width}px the tiles go across the page, not down it");
+            await page.Locator(".assumptions").ScreenshotAsync(new() { Path = Screenshots.Target($"own-figures-{size}-{theme}.png") });
+        }
+
+        await page.SetViewportSizeAsync(390, 844);
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
 
         // It is rebuilt once: the page stays, and the cash figure beside it does not disturb it.
         await page.WaitForTimeoutAsync(1_000);
         await Expect(says).ToBeVisibleAsync();
         await page.Locator("#assume-cash").FillAsync("15");
         await page.Locator("#assume-cash").PressAsync("Tab");
+        await Expect(page.Locator("[data-assume-cash-item]")).ToHaveAttributeAsync("data-own-state", "own");
         await Until.TrueAsync(page, "() => import('/js/plan-store.js').then(store => store.getAssumptions()).then(kept => kept.cashRate === 15 && kept.figures?.['water-butt.stock'] === 300)");
 
         // Opened again, the plan is built from the figure the first time, with nothing to say about it.
@@ -1069,7 +1087,7 @@ public sealed class Journeys
         await page.Locator("[data-plan][data-plan-ready]").WaitForAsync();
         await Expect(page.Locator("[data-action-row=\"water-butt\"]")).ToContainTextAsync("A 300-litre water butt on a downpipe");
         await Expect(says).ToBeHiddenAsync();
-        await Expect(questions).ToHaveAttributeAsync("open", "open");
+        await Expect(questions).ToHaveJSPropertyAsync("open", true);
 
         // "Use the plan's" takes the figure back, and the cash figure stays.
         await page.Locator("[data-own-reset=\"water-butt.stock\"]").ClickAsync();
