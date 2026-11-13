@@ -85,6 +85,19 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateOnStart();
         services.AddSingleton(static provider => new SqlMigrator(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         services.AddHostedService<MigrationStartup>();
+
+        // The figures in force: read once the schema is current, held in memory, and read again after every publication.
+        services.AddSingleton<Selficient.Application.Figures.IFigureStore>(static provider => new Selficient.Infrastructure.Figures.SqlFigureStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
+        services.AddSingleton(static provider => new Selficient.Application.Figures.CurrentFigures(provider.GetRequiredService<Selficient.Application.Figures.IFigureStore>()));
+        services.AddSingleton<Selficient.Application.Figures.ICurrentFigures>(static provider => provider.GetRequiredService<Selficient.Application.Figures.CurrentFigures>());
+        services.AddSingleton(static provider => new Selficient.Application.Figures.FigureDesk(
+            provider.GetRequiredService<Selficient.Application.Figures.IFigureStore>(),
+            provider.GetRequiredService<Selficient.Application.Figures.CurrentFigures>(),
+            provider.GetRequiredService<IOperationsLog>(),
+            provider.GetRequiredService<Selficient.Domain.Risks.RiskAssessmentPipeline>(),
+            provider.GetRequiredService<Selficient.Domain.Plans.PlanBuilder>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.AddHostedService<Selficient.Infrastructure.Figures.FiguresStartup>();
         services.AddSingleton<ICatalogueStore>(static provider => new SqlServerCatalogueStore(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         // The operations log: every hand the operator takes and every run of every job, in the database.
         services.AddSingleton<IOperationsLog>(static provider => new SqlOperationsLog(provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString, provider.GetRequiredService<TimeProvider>()));

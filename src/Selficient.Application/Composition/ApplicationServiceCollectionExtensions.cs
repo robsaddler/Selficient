@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Selficient.Application.Ai;
 using Selficient.Application.Planning;
 using Selficient.Application.Solar;
@@ -21,7 +22,9 @@ public static class ApplicationServiceCollectionExtensions
 
         services.AddSingleton(static _ => new RiskAssessmentPipeline(Assessors()));
         services.AddSingleton(static _ => new PlanBuilder(Rules()));
-        services.AddSingleton<GeneratePlanHandler>();
+        // The figures in force are whatever the host registered; a host with no store works from the shipped ones.
+        services.TryAddSingleton<Selficient.Application.Figures.ICurrentFigures, Selficient.Application.Figures.ShippedFigures>();
+        services.AddSingleton(static provider => new GeneratePlanHandler(provider.GetRequiredService<RiskAssessmentPipeline>(), provider.GetRequiredService<PlanBuilder>(), provider.GetRequiredService<Selficient.Application.Figures.ICurrentFigures>()));
         services.AddSingleton<PlanHouseholdHandler>();
         services.AddSingleton<EstimateSolarHandler>();
         services.AddSingleton<AnalysePhotoHandler>();
