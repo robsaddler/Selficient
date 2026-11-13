@@ -156,6 +156,12 @@ public sealed record Circumstances(Tenure Tenure, WaterSupply Water, bool OwnDra
 /// <summary>Everything the rules engine knows about a household and its home.</summary>
 public sealed record HouseholdProfile(Household Household, Dwelling Dwelling)
 {
+    /// <summary>
+    /// The figures this household's plan and board are worked out from: the shipped ones unless a
+    /// published set, or the household's own, has been laid over them.
+    /// </summary>
+    public Selficient.Domain.Parameters.ParameterSet Figures { get; init; } = Selficient.Domain.Parameters.ParameterSet.Default;
+
     /// <summary>How the household holds its home and what it is connected to.</summary>
     public Circumstances Circumstances { get; init; } = Circumstances.None;
 

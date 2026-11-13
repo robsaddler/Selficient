@@ -1,5 +1,6 @@
 using Selficient.Domain.Households;
 using Selficient.Domain.Measures;
+using Selficient.Domain.Parameters;
 using Selficient.Domain.Risks;
 using static Selficient.Domain.Plans.Rules.RuleSupport;
 
@@ -17,14 +18,15 @@ public sealed class WaterStoreRule : IPlanRule
         ArgumentNullException.ThrowIfNull(profile);
         int people = profile.Household.Size.Count;
         int cans = profile.Dwelling.Type == DwellingType.Flat ? Math.Max(1, (people + 1) / 2) : people;
-        decimal litres = 25m * cans;
+        decimal canLitres = profile.Figures[RuleFigures.WaterCanLitres];
+        decimal litres = canLitres * cans;
 
         yield return Action(
             "water-cans",
             Tier.ThisMonth,
-            $"{N(cans)} food-grade 25-litre water cans with taps",
-            $"{N(litres)} litres is about {N(Math.Floor(litres / (people * Litres.DrinkingPerPersonPerDay)))} days of drinking water for {People(people)}. Fill from the tap, add a water-purifying tablet, keep them dark, and refill at the clock changes.",
-            MoneyRange.Pounds(12m * cans + 8m, 18m * cans + 8m),
+            $"{N(cans)} food-grade {N(canLitres)}-litre water cans with taps",
+            $"{N(litres)} litres is about {N(Math.Floor(litres / (people * Selficient.Domain.Resilience.DemandFigures.Of(profile.Figures).DrinkingLitres)))} days of drinking water for {People(people)}. Fill from the tap, add a water-purifying tablet, keep them dark, and refill at the clock changes.",
+            Price(profile, "water-cans", cans).Add(Price(profile, "water-purifying-tablets")),
             Mitigates(RiskKind.WaterInterruption),
             new Provisions(WaterLitres: litres));
 
@@ -32,8 +34,8 @@ public sealed class WaterStoreRule : IPlanRule
             "bath-liner",
             Tier.ThisMonth,
             "A food-grade bath liner to fill when a warning comes",
-            "It holds about 380 litres and fills from the tap in twenty minutes, which is the bath-full-of-water idea without the stale water, the lost bathroom or the drowning risk. Keep it with the bath, not filled.",
-            MoneyRange.Pounds(15m, 42m),
+            $"It holds about {Say.Litres(profile.Figures["bath-liner.stock"])} and fills from the tap in twenty minutes, which is the bath-full-of-water idea without the stale water, the lost bathroom or the drowning risk. Keep it with the bath, not filled.",
+            Price(profile, "bath-liner"),
             Mitigates(RiskKind.WaterInterruption));
 
         // A garden that has a butt already is not sold another; the board counts the one that is there.
@@ -43,9 +45,9 @@ public sealed class WaterStoreRule : IPlanRule
             yield return Action(
                 "water-butt",
                 Tier.ThisMonth,
-                "A 200-litre water butt on a downpipe",
+                $"A {N(profile.Figures["water-butt.stock"])}-litre water butt on a downpipe",
                 $"For flushing and washing when the {(profile.HasOwnWater ? "supply" : "mains")} is off. Never drink it untreated.{ask}",
-                MoneyRange.Pounds(50m, 80m),
+                Price(profile, "water-butt"),
                 Mitigates(RiskKind.WaterInterruption));
         }
     }
@@ -99,15 +101,18 @@ public sealed class FoodStoreRule : IPlanRule
     {
         ArgumentNullException.ThrowIfNull(profile);
         int people = profile.Household.Size.Count;
+        decimal month = profile.Figures["food-one-month.stock"];
+        decimal fortnight = profile.Figures["pet-food-two-weeks.stock"];
 
         yield return Action(
             "food-one-month",
             Tier.ThisMonth,
-            "A month of food, built by buying one extra of what you already eat",
+            Say.Capital($"{Say.Days(month)} of food, built by buying one extra of what you already eat"),
             "Take from the front and restock at the back, and nothing ever goes off. Add a manual tin opener.",
-            MoneyRange.Pounds(35m * people, 60m * people),
+            Price(profile, "food-one-month", people),
             Mitigates(RiskKind.RegionalDisruption, RiskKind.WinterAccess),
-            new Provisions(FoodDays: 27m));
+            // The headline counts what this adds to the shelf the first action already put there.
+            new Provisions(FoodDays: month - profile.Figures["food-no-cook-three-days.stock"]));
 
         // Pets get a row of their own, which the board counts, in place of a clause on the end of the family's.
         if (profile.Household.HasPets)
@@ -115,9 +120,9 @@ public sealed class FoodStoreRule : IPlanRule
             yield return Action(
                 "pet-food-two-weeks",
                 Tier.ThisMonth,
-                "Two weeks of pet food, and any medication, kept ahead of the bag in use",
-                "Buy the next bag or box before the last one is opened, so there is always a fortnight in the house and nothing goes off. Store a few litres of water a day for them as well as your own.",
-                MoneyRange.Pounds(15m, 60m),
+                Say.Capital($"{Say.Days(fortnight)} of pet food, and any medication, kept ahead of the bag in use"),
+                $"Buy the next bag or box before the last one is opened, so there is always {Say.Days(fortnight)} in the house and nothing goes off. Store a few litres of water a day for them as well as your own.",
+                Price(profile, "pet-food-two-weeks"),
                 Mitigates(RiskKind.RegionalDisruption, RiskKind.WinterAccess));
         }
     }
@@ -140,7 +145,7 @@ public sealed class CookingRule : IPlanRule
                 Tier.ThisWeek,
                 "A long-reach lighter by the cooker",
                 "Your gas hob still works in a power cut when it is lit by hand, which makes it the simplest backup cooker there is.",
-                MoneyRange.Pounds(3m, 6m),
+                Price(profile, "long-reach-lighter-for-gas-hob"),
                 Mitigates(RiskKind.StormPowerCut));
             yield break;
         }
@@ -153,7 +158,7 @@ public sealed class CookingRule : IPlanRule
                 Tier.ThisMonth,
                 "Two large vacuum flasks, filled from the kettle when a warning comes",
                 "A camping stove is not safe indoors and a flat has nowhere outside to use one, so this plan does not ask you to buy one. Two flasks filled before the power goes are hot drinks and instant meals for most of a day; after that it is the food that needs no cooking.",
-                MoneyRange.Pounds(50m, 95m),
+                Price(profile, "flasks-for-hot-food"),
                 Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
             yield break;
         }
@@ -161,9 +166,9 @@ public sealed class CookingRule : IPlanRule
         yield return Action(
             "butane-cartridge-stove",
             Tier.ThisMonth,
-            "A butane cartridge stove and ten cartridges",
+            $"A butane cartridge stove and {Say.Number(profile.Figures["butane-cartridge-stove.stock"])} cartridges",
             "About two hours of cooking per cartridge. Use it outside, under an open window, or in the garage with the door open, with the carbon monoxide alarm within reach. Never in a closed room.",
-            MoneyRange.Pounds(60m, 100m),
+            Price(profile, "butane-cartridge-stove"),
             Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
     }
 }
@@ -185,7 +190,7 @@ public sealed class WoodStoveRule : IPlanRule
                 Tier.ThisMonth,
                 "Have the flue swept and the log store full before winter",
                 "Your stove is heat, a kettle and a hot meal that need nothing from anyone, for as long as the logs last. A swept flue and dry logs are what make it safe to lean on, and the carbon monoxide alarm belongs in the same room.",
-                MoneyRange.Pounds(75m, 250m),
+                Price(profile, "wood-stove-ready"),
                 Mitigates(RiskKind.StormPowerCut, RiskKind.IndoorFireOrCarbonMonoxide));
         }
     }
@@ -207,9 +212,9 @@ public sealed class LanternRule : IPlanRule
             Tier.ThisMonth,
             $"{N(lanterns)} rechargeable LED lanterns",
             "One for the living room that doubles as a power bank, and one per occupied bedroom. Two hundred hours on the low setting.",
-            MoneyRange.Pounds(36m * lanterns, 90m * lanterns),
+            Price(profile, "rechargeable-lanterns", lanterns),
             Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: 60m * lanterns));
+            new Provisions(LightHours: profile.Figures[RuleFigures.LightHours("rechargeable-lanterns")] * lanterns));
     }
 }
 
@@ -227,7 +232,7 @@ public sealed class DocumentsRule : IPlanRule
             Tier.ThisMonth,
             "A thirty-minute fire-rated box for cash, passports, insurance and prescriptions",
             "Scan the documents to an encrypted memory stick and keep it in the same box. Hidden, not in the bedroom drawer.",
-            MoneyRange.Pounds(45m, 55m),
+            Price(profile, "fire-box-for-cash-and-documents"),
             Mitigates(RiskKind.RegionalDisruption, RiskKind.Flooding));
     }
 }
@@ -259,9 +264,9 @@ public sealed class SolarQuotesRule : IPlanRule
         yield return Action(
             "rooftop-solar-and-battery",
             Tier.TwelveMonths,
-            "Rooftop solar with a 13.5 kWh battery and whole-home backup",
+            $"Rooftop solar with a {N(profile.Figures["rooftop-solar-and-battery.store-wh"] / 1000m)} kWh battery and whole-home backup",
             "The one item that pays for itself. It also keeps the fridge, boiler, lights and router running through a cut while the panels recharge the battery. VAT is 0% until 31 March 2027.",
-            MoneyRange.Pounds(9000m, 17000m),
+            Price(profile, "rooftop-solar-and-battery"),
             Mitigates(RiskKind.StormPowerCut, RiskKind.CommsLoss));
     }
 }
@@ -281,24 +286,26 @@ public sealed class PowerStationRule : IPlanRule
             Tier.ThreeMonths,
             "A 1 to 2 kWh portable power station and a 200 W folding solar panel",
             profile.IsTenant
-                ? "Runs the fridge-freezer for fourteen hours and the router and lights for a day, and acts as a UPS. It needs nothing fitted and goes with you when you move, which makes it the backup a rented home can have: buy the 2 kWh size if you can."
-                : "Runs the fridge-freezer for fourteen hours and the router and lights for a day, and acts as a UPS. Buy the 1 kWh size if rooftop solar with backup is coming within a year; otherwise the 2 kWh size.",
-            MoneyRange.Pounds(720m, 1250m),
+                ? "Runs the fridge-freezer, the router and the lights through a cut, and acts as a UPS. It needs nothing fitted and goes with you when you move, which makes it the backup a rented home can have: buy the 2 kWh size if you can."
+                : "Runs the fridge-freezer, the router and the lights through a cut, and acts as a UPS. Buy the 1 kWh size if rooftop solar with backup is coming within a year; otherwise the 2 kWh size.",
+            Price(profile, "portable-power-station"),
             Mitigates(RiskKind.StormPowerCut, RiskKind.CommsLoss),
-            new Provisions(LightHours: 100m));
+            new Provisions(LightHours: profile.Figures[RuleFigures.LightHours("portable-power-station")]));
 
         if (profile.Dwelling.Heating is HeatingType.GasBoiler or HeatingType.Oil or HeatingType.Lpg)
         {
             // The boiler at a rented home is the landlord's, and so is the decision to change its wiring.
-            (string title, string consent, decimal least) = profile.IsTenant
-                ? ("Ask your landlord to have an electrician fit a plug-and-socket on the boiler's spur", " The boiler is your landlord's, so get their agreement in writing first; some will pay for it.", 0m)
-                : ("Have an electrician fit a plug-and-socket on the boiler's spur", string.Empty, 100m);
+            (string title, string consent) = profile.IsTenant
+                ? ("Ask your landlord to have an electrician fit a plug-and-socket on the boiler's spur", " The boiler is your landlord's, so get their agreement in writing first; some will pay for it.")
+                : ("Have an electrician fit a plug-and-socket on the boiler's spur", string.Empty);
+            MoneyRange electrician = Price(profile, "boiler-plug-and-socket");
             yield return Action(
                 "boiler-plug-and-socket",
                 Tier.ThreeMonths,
                 title,
-                $"A boiler draws about a hundred watts, so the power station runs it for a day. Only if the boiler manual allows it, and never by backfeeding a wall socket.{consent}",
-                MoneyRange.Pounds(least, 200m),
+                $"A boiler's pump and controls use about {Say.Energy(profile.Figures["gas-boiler.winter-wh"])} on a winter day, which a power station can carry. Only if the boiler manual allows it, and never by backfeeding a wall socket.{consent}",
+                // A landlord may pay for it, so for a tenant the least it can cost is nothing.
+                profile.IsTenant ? new MoneyRange(Money.Zero, electrician.To) : electrician,
                 Mitigates(RiskKind.StormPowerCut));
         }
         else if (!profile.HasWoodStove)
@@ -316,7 +323,7 @@ public sealed class PowerStationRule : IPlanRule
                 Tier.ThreeMonths,
                 title,
                 why,
-                MoneyRange.Pounds(0m, 150m),
+                Price(profile, "heating-fallback"),
                 Mitigates(RiskKind.StormPowerCut));
         }
     }
@@ -336,10 +343,10 @@ public sealed class WaterFilterRule : IPlanRule
             "gravity-water-filter",
             Tier.ThreeMonths,
             "A gravity water filter",
-            "Turns the water butt, a stream or rain into drinking water at seventy litres a day, indefinitely. This is what makes a month credible without storing hundreds of litres.",
-            MoneyRange.Pounds(160m, 180m),
+            $"Turns the water butt, a stream or rain into drinking water at about {Say.Litres(profile.Figures["gravity-water-filter.per-day"])} a day, indefinitely. This is what makes a month credible without storing hundreds of litres.",
+            Price(profile, "gravity-water-filter"),
             Mitigates(RiskKind.WaterInterruption, RiskKind.RegionalDisruption),
-            new Provisions(WaterLitres: 70m * 14m));
+            new Provisions(WaterLitres: profile.Figures["gravity-water-filter.per-day"] * profile.Figures[RuleFigures.WaterFilterDays]));
     }
 }
 
@@ -359,8 +366,8 @@ public sealed class BusinessCommsRule : IPlanRule
                 "satellite-internet-on-standby",
                 Tier.ThreeMonths,
                 "A satellite internet kit kept on a standby plan",
-                "The only internet that survives a regional outage. It draws about thirty watts, so the power station runs it for a day. A few pounds a month on standby, more only in a month you use it.",
-                MoneyRange.Pounds(179m, 200m),
+                $"The only internet that survives a regional outage. It uses about {Say.Energy(profile.Figures["satellite-internet-on-standby.winter-wh"])} a day, which a power station can carry for a while. A few pounds a month on standby, more only in a month you use it.",
+                Price(profile, "satellite-internet-on-standby"),
                 Mitigates(RiskKind.CommsLoss));
         }
     }

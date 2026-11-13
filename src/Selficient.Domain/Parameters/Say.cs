@@ -44,6 +44,9 @@ public static class Say
         return One(days, "a day", "days");
     }
 
+    /// <summary>How long a stock lasts at what is used of it in a day, to a tenth of a day: "three days", "half a day".</summary>
+    public static string Lasts(decimal quantity, decimal aDay) => Days(Math.Round(quantity / aDay, 1, MidpointRounding.AwayFromZero));
+
     /// <summary>A number of hours: "an hour", "sixteen hours" is "16 hours".</summary>
     public static string Hours(decimal hours) => One(hours, "an hour", "hours");
 

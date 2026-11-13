@@ -251,7 +251,7 @@ public sealed class RulesTests
         withPets.Select(a => a.Id.Value).ShouldBe(["food-one-month", "pet-food-two-weeks"]);
         withPets[0].Why.ShouldBe("Take from the front and restock at the back, and nothing ever goes off. Add a manual tin opener.");
         withPets[1].Title.ShouldBe("Two weeks of pet food, and any medication, kept ahead of the bag in use");
-        withPets[1].Why.ShouldBe("Buy the next bag or box before the last one is opened, so there is always a fortnight in the house and nothing goes off. Store a few litres of water a day for them as well as your own.");
+        withPets[1].Why.ShouldBe("Buy the next bag or box before the last one is opened, so there is always two weeks in the house and nothing goes off. Store a few litres of water a day for them as well as your own.");
         withPets[1].Cost.ShouldBe(MoneyRange.Pounds(15m, 60m));
         withPets[1].Tier.ShouldBe(Tier.ThisMonth);
         Run(new FoodStoreRule(), Profiles.RobsHouse()).Single().Id.Value.ShouldBe("food-one-month");
@@ -288,7 +288,7 @@ public sealed class RulesTests
         Run(new LanternRule(), Profiles.RobsHouse()).Single().Title.ShouldBe("3 rechargeable LED lanterns");
         Run(new LanternRule(), Profiles.Flat()).Single().Title.ShouldBe("2 rechargeable LED lanterns");
         Run(new DocumentsRule(), Profiles.Flat()).Single().Tier.ShouldBe(Tier.ThisMonth);
-        Run(new WaterFilterRule(), Profiles.Flat()).Single().Provides.WaterLitres.ShouldBe(980m);
+        Run(new WaterFilterRule(), Profiles.Flat()).Single().Provides.WaterLitres.ShouldBe(280m, "twenty litres a day, which is what the board counts, for the fourteen days the headline counts");
         Run(new DrillRule(), Profiles.Flat()).Single().Id.Value.ShouldBe("lights-out-drill");
     }
 

@@ -101,6 +101,4 @@ internal static class ProviderWords
         return worded;
     }
 
-    // How long a stock lasts at what a person uses in a day, to a tenth of a day.
-    private static string Lasts(decimal quantity, decimal aDay) => Days(Math.Round(quantity / aDay, 1, MidpointRounding.AwayFromZero));
 }

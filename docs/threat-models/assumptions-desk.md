@@ -29,9 +29,17 @@
 | 9 | **A new sentence states a figure in plain words and nobody notices** | A sentence with no builder must contain no digit and none of a list of number words; the shipped sentence of one that has a builder must be what the builder says | `A_provider_whose_words_are_not_built_from_its_figures_states_none`, the loop in the scenario test |
 | 10 | **A slow upstream becomes a server error** (found while testing this step, not caused by it) | Decision 121 | `The_pipelines_own_timeout_is_a_fault_in_every_adapter`, `A_caller_who_has_gone_is_not_answered_by_any_adapter` |
 
+## Step 2, second half: the plan's own figures and sentences (done)
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 11 | **The plan and the board count the same thing differently.** The plan asks for 36 litres because it multiplies three days by three litres; the board holds nine litres a person because somebody typed nine; an expert corrects one | A rule reads the quantity from the provider that counts it, and its sentence is said from that. What a household's own figure counts towards is read the same way | `The_plan_asks_for_what_the_board_counts_and_says_so`, `A_households_own_figure_counts_towards_what_the_plan_asks_for_under_its_figures` |
+| 12 | **A price that makes no sense.** A least above a most; a negative price | Each price is a pair checked together, inside a range from nothing to ten times what ships | `Every_action_that_costs_money_has_a_least_and_a_most_that_can_be_corrected` |
+| 13 | **A corrected price is multiplied wrongly**, so four headtorches cost the price of one | The parameter is the price of one and the rule multiplies it, as it did before | `A_corrected_price_is_the_cost_on_the_plan_multiplied_as_the_rule_multiplies_it` |
+
 ## Not yet answered (later steps)
 
 - Who may change a figure, the audit of every change, and rollback (step 3).
-- The plan's own sentences (the action titles and reasons the rules write) still state figures in words that are not parameters. That is the second half of step 2.
-- The browser's own arithmetic has two constants of its own (step 4).
-- The plan's rules (how many litres to buy, how many cans) and their price ranges are not parameters yet (step 2).
+- The plan's sentences are not swept by a test the way the board's are: they are full of numbers that are facts and not figures (a date, a phone number, an insurance limit), so a list of number words would fail every one. They were read by hand. A new rule sentence that states an engine figure in plain words would not be caught.
+- The headline calculator's constants and the browser's copy of them, and the default cash a person needs in a day (step 4, decision 124).
+- The counts the rules work out by formula (one power-failure torch a storey and one more; a power bank between two people, at least two; a lantern between two and one more) are logic, not figures, and are not on the desk.

@@ -29,7 +29,7 @@ public sealed class BoardComposerTests
             ["portable-power-station.store-wh"] = 2048m,
             ["scenario.water.mainswater-from-1.last-day"] = 5m,
         }).Value;
-        ResilienceProfile profile = ResilienceProfile.FromProfile(rob) with { Figures = figures };
+        ResilienceProfile profile = ResilienceProfile.FromProfile(rob with { Figures = figures });
 
         BoardSet set = BoardComposer.Compose(new BoardRequest(profile, new HashSet<string>(), PlanFor(rob), "water", null));
         BoardSet shipped = BoardComposer.Compose(new BoardRequest(ResilienceProfile.FromProfile(rob), new HashSet<string>(), PlanFor(rob), "water", null));

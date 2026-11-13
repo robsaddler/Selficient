@@ -86,7 +86,7 @@ public sealed class CircumstancesTests
         Run(new TallTreeRule(), With(Profiles.Flat(), tenure: Tenure.Tenant)).ShouldBeEmpty("no tree, no letter");
 
         List<PlanAction> power = Run(new PowerStationRule(), tenant);
-        power[0].Why.ShouldBe("Runs the fridge-freezer for fourteen hours and the router and lights for a day, and acts as a UPS. It needs nothing fitted and goes with you when you move, which makes it the backup a rented home can have: buy the 2 kWh size if you can.");
+        power[0].Why.ShouldBe("Runs the fridge-freezer, the router and the lights through a cut, and acts as a UPS. It needs nothing fitted and goes with you when you move, which makes it the backup a rented home can have: buy the 2 kWh size if you can.");
         power[0].Why.ShouldNotContain("rooftop solar");
         power[1].Id.Value.ShouldBe("boiler-plug-and-socket");
         power[1].Title.ShouldBe("Ask your landlord to have an electrician fit a plug-and-socket on the boiler's spur");

@@ -42,7 +42,7 @@ public sealed record ParameterDefinition(string Id, string Group, string Name, s
 public static class ParameterRegistry
 {
     /// <summary>Every parameter, in the order a person would read them: what people need, what meets it, what happens.</summary>
-    public static IReadOnlyList<ParameterDefinition> All { get; } = [.. DemandFigures.Definitions, .. ProviderFigures.Definitions, .. ScenarioFigures.Definitions];
+    public static IReadOnlyList<ParameterDefinition> All { get; } = [.. DemandFigures.Definitions, .. ProviderFigures.Definitions, .. ScenarioFigures.Definitions, .. Selficient.Domain.Plans.Rules.RuleFigures.Definitions];
 
     private static readonly FrozenDictionary<string, ParameterDefinition> ById = All.ToFrozenDictionary(static parameter => parameter.Id, StringComparer.Ordinal);
 
@@ -125,7 +125,7 @@ public sealed class ParameterSet
             values[id] = value;
         }
 
-        string? contradiction = ProviderFigures.Contradiction(values) ?? ScenarioFigures.Contradiction(values);
+        string? contradiction = ProviderFigures.Contradiction(values) ?? ScenarioFigures.Contradiction(values) ?? Selficient.Domain.Plans.Rules.RuleFigures.Contradiction(values);
         if (contradiction is not null)
         {
             return Result.Failure<ParameterSet>(new Fault("parameters.contradiction", contradiction));

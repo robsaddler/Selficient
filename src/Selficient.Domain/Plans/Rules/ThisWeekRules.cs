@@ -1,5 +1,6 @@
 using Selficient.Domain.Households;
 using Selficient.Domain.Measures;
+using Selficient.Domain.Parameters;
 using Selficient.Domain.Risks;
 using static Selficient.Domain.Plans.Rules.RuleSupport;
 
@@ -16,26 +17,32 @@ public sealed class BaselineChecklistRule : IPlanRule
     {
         ArgumentNullException.ThrowIfNull(profile);
         int people = profile.Household.Size.Count;
-        decimal litres = 3m * people * Litres.DrinkingPerPersonPerDay;
-        decimal bottles = Math.Ceiling(litres / 2m);
+        Selficient.Domain.Parameters.ParameterSet figures = profile.Figures;
+        Selficient.Domain.Resilience.DemandFigures needs = Selficient.Domain.Resilience.DemandFigures.Of(figures);
+
+        // What the plan asks for is what the board counts: the litres a person on the shelf, the days of food, the days of liners.
+        decimal litres = figures["water-bottled-three-days.stock"] * people;
+        decimal bottle = figures[RuleFigures.BottleLitres];
+        decimal bottles = Math.Ceiling(litres / bottle);
+        decimal foodDays = figures["food-no-cook-three-days.stock"];
 
         yield return Action(
             "water-bottled-three-days",
             Tier.ThisWeek,
             $"{N(litres)} litres of sealed bottled water",
-            $"Three days of drinking water for {People(people)}. That is {N(bottles)} of the big two-litre bottles, and it keeps for two years.",
-            MoneyRange.Pounds(litres * 0.35m, litres * 0.5m),
+            $"{Say.Capital(Say.Lasts(figures["water-bottled-three-days.stock"], needs.DrinkingLitres))} of drinking water for {People(people)}. That is {N(bottles)} of the big {Say.Number(bottle)}-litre bottles, and it keeps for two years.",
+            Price(profile, "water-bottled-three-days", litres),
             Mitigates(RiskKind.WaterInterruption, RiskKind.StormPowerCut),
             new Provisions(WaterLitres: litres));
 
         yield return Action(
             "food-no-cook-three-days",
             Tier.ThisWeek,
-            "Three days of food that needs no fridge or cooking",
+            Say.Capital($"{Say.Days(foodDays)} of food that needs no fridge or cooking"),
             "Tinned meat, fish, beans and fruit, oats, nuts and biscuits, so a cut does not mean a cold house and a hungry one. Buy what you already eat.",
-            MoneyRange.Pounds(8m * people, 12m * people),
+            Price(profile, "food-no-cook-three-days", people),
             Mitigates(RiskKind.StormPowerCut, RiskKind.RegionalDisruption),
-            new Provisions(FoodDays: 3m));
+            new Provisions(FoodDays: foodDays));
 
         int failureLights = profile.Dwelling.Storeys + 1;
         yield return Action(
@@ -43,18 +50,18 @@ public sealed class BaselineChecklistRule : IPlanRule
             Tier.ThisWeek,
             $"{N(failureLights)} plug-in power-failure torches",
             "They charge in the socket and switch on the instant the power drops, so nobody is on a dark stair. One for every hall and stairwell and one in the kitchen.",
-            MoneyRange.Pounds(20m * failureLights, 24m * failureLights),
+            Price(profile, "power-failure-lights", failureLights),
             Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: 6m * failureLights));
+            new Provisions(LightHours: figures[RuleFigures.LightHours("power-failure-lights")] * failureLights));
 
         yield return Action(
             "headtorches",
             Tier.ThisWeek,
             $"{N(people)} headtorches",
             "Hands-free light is worth more than any lantern. One each, with cells that are easy to find.",
-            MoneyRange.Pounds(14m * people, 28m * people),
+            Price(profile, "headtorches", people),
             Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: 20m * people));
+            new Provisions(LightHours: figures[RuleFigures.LightHours("headtorches")] * people));
 
         int banks = Math.Max(2, (people + 1) / 2);
         yield return Action(
@@ -62,7 +69,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             Tier.ThisWeek,
             $"{N(banks)} power banks of about 25,000 mAh",
             "Each charges a phone four or five times. Keep them at half to three-quarters full and top them up every three months.",
-            MoneyRange.Pounds(47m * banks, 79m * banks),
+            Price(profile, "power-banks", banks),
             Mitigates(RiskKind.CommsLoss, RiskKind.StormPowerCut));
 
         yield return Action(
@@ -70,7 +77,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             Tier.ThisWeek,
             "A radio with FM that runs on AA cells, with a wind-up handle",
             "When the whole grid is down, the emergency broadcasts go out on BBC Radio 2 and Radio 4, and FM is what still reaches almost everywhere. In Lancaster in 2015 it was the one source of news that worked. Write the two frequencies for your area on the back. The cells are the real backup; the handle is the bonus.",
-            MoneyRange.Pounds(30m, 150m),
+            Price(profile, "radio-dab-fm-with-crank"),
             Mitigates(RiskKind.CommsLoss, RiskKind.RegionalDisruption));
 
         // A tank of the home's own does not stop with the sewers, so the bags are for houses on the sewer.
@@ -79,9 +86,9 @@ public sealed class BaselineChecklistRule : IPlanRule
             yield return Action(
                 "no-flush-toilet-kit",
                 Tier.ThisWeek,
-                $"Toilet liners and gelling powder for {People(people)} for three days",
+                $"Toilet liners and gelling powder for {People(people)} for {Say.Lasts(figures["no-flush-toilet-kit.stock"], needs.SanitationLitres)}",
                 "In a wide power cut the sewers stop as well, and the official advice is not to flush at all, even with stored water. These are bags that line the bowl of the toilet you already have, with a powder that sets the contents solid. Tie each one off and put it in the outside bin. Without them the advice is a bin bag, which works and is as unpleasant as it sounds.",
-                MoneyRange.Pounds(10m, 34m),
+                Price(profile, "no-flush-toilet-kit"),
                 Mitigates(RiskKind.RegionalDisruption, RiskKind.WaterInterruption));
         }
 
@@ -90,7 +97,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             Tier.ThisWeek,
             "A battery backup for the router, so the broadband and the house phone work in a power cut",
             "The copper phone network is being switched off, with 31 January 2027 as the date, and a digital line dies with the router the moment the power does. Ask your phone company first: it has to give a backup that lasts at least an hour, free, to anyone who relies on the landline. Otherwise a small backup unit keeps the router and the phone going for a few hours of a local cut.",
-            MoneyRange.Pounds(0m, 62m),
+            Price(profile, "landline-battery-backup"),
             Mitigates(RiskKind.CommsLoss, RiskKind.StormPowerCut));
 
         yield return Action(
@@ -98,7 +105,7 @@ public sealed class BaselineChecklistRule : IPlanRule
             Tier.ThisWeek,
             "Carbon monoxide alarm, fire blanket, first-aid kit and two weeks of any prescriptions",
             "Backup cooking and heating are where people get hurt in a power cut. Buy the alarm before the stove.",
-            MoneyRange.Pounds(60m, 80m),
+            Price(profile, "safety-kit"),
             Mitigates(RiskKind.IndoorFireOrCarbonMonoxide));
 
         yield return Action(
@@ -114,9 +121,9 @@ public sealed class BaselineChecklistRule : IPlanRule
             Tier.ThisWeek,
             "Tea lights in jars, a few pillar candles, lighters and matches",
             "A third line of light that never goes off, and matches light a gas hob in a cut. Hard surfaces only, never on the stairs, never left burning in a bedroom.",
-            MoneyRange.Pounds(10m, 15m),
+            Price(profile, "candles-and-matches"),
             Mitigates(RiskKind.StormPowerCut),
-            new Provisions(LightHours: 10m));
+            new Provisions(LightHours: figures[RuleFigures.LightHours("candles-and-matches")]));
 
         yield return Action(
             "save-emergency-numbers",
@@ -190,7 +197,7 @@ public sealed class TallTreeRule : IPlanRule
             Tier.ThisWeek,
             "Book an arborist survey of the tall tree",
             "An Arboricultural Association approved contractor will assess species, health, lean and root plate. A sound tree often needs little work, and heavy topping can make one more dangerous. Check whether it has a Tree Preservation Order before any work.",
-            MoneyRange.Pounds(150m, 300m),
+            Price(profile, "arborist-survey"),
             Mitigates(RiskKind.FallingTree));
 
         yield return Action(
@@ -198,7 +205,7 @@ public sealed class TallTreeRule : IPlanRule
             Tier.ThisMonth,
             "Act on the arborist's report",
             "Crown reduction or thinning if advised, with council consent first if the tree is protected. If it is not your tree, send the report and a dated letter to the owner, and tell your insurer in writing.",
-            MoneyRange.Pounds(0m, 1500m),
+            Price(profile, "tree-work-if-advised"),
             Mitigates(RiskKind.FallingTree));
     }
 }
@@ -235,7 +242,7 @@ public sealed class GardenFireRule : IPlanRule
             Tier.ThisMonth,
             "A metre of gravel or bare ground at the boundary, and a hose that reaches the back fence",
             "Keep anything that burns a metre from the boundary, hang a garden fire blanket by the back door, and never use a disposable barbecue on or near the decking.",
-            MoneyRange.Pounds(50m, 150m),
+            Price(profile, "garden-firebreak-and-hose"),
             Mitigates(RiskKind.GardenFire));
     }
 }
@@ -257,7 +264,7 @@ public sealed class CarRule : IPlanRule
                 Tier.ThisWeek,
                 "Keep the car above half a tank from November to March, with a 12 V inverter in the glovebox",
                 "Fuel pumps need electricity too. A charged car charges laptops and power banks, and gets you off the hill before the road closes.",
-                MoneyRange.Pounds(25m, 37m),
+                Price(profile, "car-above-half-a-tank"),
                 Mitigates(RiskKind.WinterAccess, RiskKind.StormPowerCut));
         }
 
@@ -291,9 +298,9 @@ public sealed class InfantsRule : IPlanRule
             yield return Action(
                 "formula-and-nappies",
                 Tier.ThisWeek,
-                "Two weeks of nappies, wipes and, if you use it, formula",
+                Say.Capital($"{Say.Days(profile.Figures["formula-and-nappies.stock"])} of nappies, wipes and, if you use it, formula"),
                 "The shops and the deliveries are the first things to stop. Formula made from powder needs boiled water, so it depends on a way to cook: keep some ready-to-feed cartons, which need neither, for the first days.",
-                MoneyRange.Pounds(25m * infants, 70m * infants),
+                Price(profile, "formula-and-nappies", infants),
                 Mitigates(RiskKind.StormPowerCut, RiskKind.WinterAccess, RiskKind.RegionalDisruption));
         }
     }
@@ -358,8 +365,8 @@ public sealed class StairliftRule : IPlanRule
                 "downstairs-in-a-power-cut",
                 Tier.ThisMonth,
                 "A bed downstairs and a commode, for a cut that outlasts the stairlift's batteries",
-                "The batteries are about two days of trips to bed and the bathroom. After that, whoever relies on the lift lives on one floor until the power is back. Decide which room downstairs, where the bedding is kept and who carries it, and keep a commode for those days. Bring them down while the lift still has a trip left in it.",
-                MoneyRange.Pounds(30m, 120m),
+                $"The batteries are about {Say.Days(profile.Figures["stairlift-batteries.stock"])} of trips to bed and the bathroom. After that, whoever relies on the lift lives on one floor until the power is back. Decide which room downstairs, where the bedding is kept and who carries it, and keep a commode for those days. Bring them down while the lift still has a trip left in it.",
+                Price(profile, "downstairs-in-a-power-cut"),
                 Mitigates(RiskKind.StormPowerCut, RiskKind.RegionalDisruption));
             yield break;
         }
@@ -381,7 +388,7 @@ public sealed class StairliftRule : IPlanRule
             Tier.ThisWeek,
             "A bed made up downstairs and a commode, decided now and not on the night",
             "When the stairlift stops, whoever relies on it lives on the floor they are on. Decide which room downstairs, where the bedding is kept and who carries it, and keep a commode for as long as the power is off. If they are upstairs when it goes, they stay there until someone can help them down, so keep a phone, a torch and water on both floors.",
-            MoneyRange.Pounds(30m, 120m),
+            Price(profile, "downstairs-in-a-power-cut"),
             Mitigates(RiskKind.StormPowerCut));
     }
 }
@@ -468,7 +475,7 @@ public sealed class FloodRule : IPlanRule
             Tier.ThisMonth,
             "Air-brick covers, door guards and sandbags or absorbent barriers",
             $"Simple products that keep shallow water out of the ground floor for long enough to matter. Fit the air-brick covers before the warning, not during it.{fixing}",
-            MoneyRange.Pounds(100m, 400m),
+            Price(profile, "flood-protection-kit"),
             Mitigates(RiskKind.Flooding));
 
         // Where the water arrives before anyone knows: a cellar nobody is in, or a bed on the floor it reaches first.
@@ -482,7 +489,7 @@ public sealed class FloodRule : IPlanRule
                 cellar
                     ? "It sounds the moment water touches it. A cellar fills first and nobody is down there to see it, so the alarm is the hour you would not otherwise have. Test it when you test the smoke alarms."
                     : "It sounds the moment water touches it. Someone here sleeps on the floor the water reaches first, and surface water comes at night with no warning call, so the alarm is what wakes you. Test it when you test the smoke alarms.",
-                MoneyRange.Pounds(8m, 25m),
+                Price(profile, "flood-water-alarm"),
                 Mitigates(RiskKind.Flooding));
         }
     }

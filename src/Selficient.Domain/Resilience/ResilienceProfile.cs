@@ -158,11 +158,8 @@ public sealed record ResilienceProfile
         Dependencies = dependencies;
     }
 
-    /// <summary>
-    /// The figures this household's board is worked out from: the shipped ones unless a published
-    /// set, or the household's own, has been laid over them.
-    /// </summary>
-    public Selficient.Domain.Parameters.ParameterSet Figures { get; init; } = Selficient.Domain.Parameters.ParameterSet.Default;
+    /// <summary>The figures this household's board is worked out from, which are the ones its plan was.</summary>
+    public Selficient.Domain.Parameters.ParameterSet Figures => Profile.Figures;
 
     /// <summary>The household and the dwelling from the plan.</summary>
     public HouseholdProfile Profile { get; }

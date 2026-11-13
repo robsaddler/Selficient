@@ -17,7 +17,7 @@ public sealed class ParameterTests
         ParameterSet.Create(1, corrections.ToDictionary(static c => c.Id, static c => c.Value)).Value;
 
     private static ResilienceProfile Rob(ParameterSet figures, HouseholdProfile? profile = null) =>
-        ResilienceProfile.FromProfile(profile ?? Profiles.RobsHouse()) with { Figures = figures };
+        ResilienceProfile.FromProfile((profile ?? Profiles.RobsHouse()) with { Figures = figures });
 
     private static Board Simulate(ResilienceProfile profile, Scenario scenario, Season season = Season.Winter, params string[] held) =>
         OutageBoard.Simulate(profile, held.ToHashSet(StringComparer.Ordinal), scenario, season);
@@ -29,7 +29,7 @@ public sealed class ParameterTests
     {
         IReadOnlyList<ParameterDefinition> all = ParameterRegistry.All;
 
-        all.Count.ShouldBeGreaterThan(200);
+        all.Count.ShouldBeGreaterThan(340);
         all.Select(p => p.Id).ShouldBeUnique();
         foreach (ParameterDefinition parameter in all)
         {
@@ -38,7 +38,7 @@ public sealed class ParameterTests
             parameter.Unit.ShouldNotBeNullOrWhiteSpace(parameter.Id);
             parameter.Source.ShouldNotBeNullOrWhiteSpace(parameter.Id);
             parameter.Group.ShouldNotBeNullOrWhiteSpace(parameter.Id);
-            parameter.Shown.ShouldStartWith("On the board", customMessage: parameter.Id);
+            (parameter.Shown.StartsWith("On the board", StringComparison.Ordinal) || parameter.Shown.StartsWith("In the plan", StringComparison.Ordinal)).ShouldBeTrue($"{parameter.Id} does not say where a household meets it");
             parameter.Min.ShouldBeLessThan(parameter.Max, parameter.Id);
             parameter.Accepts(parameter.Default).ShouldBeTrue($"{parameter.Id} ships outside its own range");
         }

@@ -471,7 +471,7 @@ public sealed class BoardPagesTests : IDisposable
         Selficient.Domain.Parameters.ParameterSet resized = Selficient.Domain.Parameters.ParameterSet.Create(1, new Dictionary<string, decimal> { ["food-no-cook-three-days.stock"] = 5m }).Value;
         BoardCopy.Name("food-no-cook-three-days").ShouldBe("three days of food that needs no fridge or cooking");
         BoardCopy.Name("food-no-cook-three-days", resized).ShouldBe("five days of food that needs no fridge or cooking");
-        BoardRow fed = OutageBoard.Simulate(ResilienceProfile.FromProfile(Selficient.TestKit.Profiles.RobsHouse()) with { Figures = resized }, new HashSet<string> { "food-no-cook-three-days", "cash-in-small-notes" }, Scenarios.Snow, Season.Winter).Row("Food")!;
+        BoardRow fed = OutageBoard.Simulate(ResilienceProfile.FromProfile(Selficient.TestKit.Profiles.RobsHouse() with { Figures = resized }), new HashSet<string> { "food-no-cook-three-days", "cash-in-small-notes" }, Scenarios.Snow, Season.Winter).Row("Food")!;
         BoardCopy.Row(fed).ShouldContain("five days of food that needs no fridge or cooking");
         BoardCopy.Days(1).ShouldBe("1 day");
         BoardCopy.Days(3).ShouldBe("3 days");

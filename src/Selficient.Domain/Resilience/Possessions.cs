@@ -82,11 +82,11 @@ public static class MeasuredStocks
     /// <summary>Every measured stock.</summary>
     public static IReadOnlyList<MeasuredStock> All { get; } =
     [
-        new(FoodDays, "stored-food", [new("food-no-cook-three-days", static (_, _) => 3m), new("food-one-month", static (_, _) => 30m)], 365, static (profile, _, days) => days * profile.Household.Size.Count, ProratesCost: true),
-        new(BottledWaterLitres, "water-bottled-three-days", [new("water-bottled-three-days", static (profile, _) => 3m * profile.Household.Size.Count * Litres.DrinkingPerPersonPerDay)], 2000, static (_, _, litres) => litres, ProratesCost: true),
+        new(FoodDays, "stored-food", [new("food-no-cook-three-days", static (profile, _) => profile.Figures["food-no-cook-three-days.stock"]), new("food-one-month", static (profile, _) => profile.Figures["food-one-month.stock"])], 365, static (profile, _, days) => days * profile.Household.Size.Count, ProratesCost: true),
+        new(BottledWaterLitres, "water-bottled-three-days", [new("water-bottled-three-days", static (profile, _) => profile.Figures["water-bottled-three-days.stock"] * profile.Household.Size.Count)], 2000, static (_, _, litres) => litres, ProratesCost: true),
         new(WaterCansLitres, "water-cans", [new("water-cans", static (profile, _) => CanLitres(profile))], 2000, static (_, _, litres) => litres, ProratesCost: true),
-        new(CashPounds, "cash-in-small-notes", [new("cash-in-small-notes", static (profile, assumed) => 10m * profile.Household.Size.Count * assumed.CashPoundsPerPersonPerDay)], 10000, static (profile, assumed, pounds) => pounds / (profile.Household.Size.Count * assumed.CashPoundsPerPersonPerDay), ProratesCost: false),
-        new(StoveCartridges, "butane-cartridge-stove", [new("butane-cartridge-stove", static (_, _) => 10m)], 200, static (_, _, cartridges) => cartridges, ProratesCost: false),
+        new(CashPounds, "cash-in-small-notes", [new("cash-in-small-notes", static (profile, assumed) => profile.Figures["cash-in-small-notes.stock"] * profile.Household.Size.Count * assumed.CashPoundsPerPersonPerDay)], 10000, static (profile, assumed, pounds) => pounds / (profile.Household.Size.Count * assumed.CashPoundsPerPersonPerDay), ProratesCost: false),
+        new(StoveCartridges, "butane-cartridge-stove", [new("butane-cartridge-stove", static (profile, _) => profile.Figures["butane-cartridge-stove.stock"])], 200, static (_, _, cartridges) => cartridges, ProratesCost: false),
     ];
 
     private static readonly Dictionary<string, MeasuredStock> ById = All.ToDictionary(static stock => stock.Id, StringComparer.Ordinal);
@@ -133,7 +133,7 @@ public static class MeasuredStocks
     private static decimal CanLitres(ResilienceProfile profile)
     {
         int people = profile.Household.Size.Count;
-        return 25m * (profile.Dwelling.Type == DwellingType.Flat ? Math.Max(1, (people + 1) / 2) : people);
+        return profile.Figures[Selficient.Domain.Plans.Rules.RuleFigures.WaterCanLitres] * (profile.Dwelling.Type == DwellingType.Flat ? Math.Max(1, (people + 1) / 2) : people);
     }
 }
 

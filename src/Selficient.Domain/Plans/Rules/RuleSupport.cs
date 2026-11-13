@@ -12,6 +12,10 @@ internal static class RuleSupport
     internal static PlanAction Action(string id, Tier tier, string title, string why, MoneyRange cost, IReadOnlySet<RiskKind> mitigates, Provisions? provides = null, ActionLink? link = null) =>
         new(ActionId.From(id), tier, title, why, cost, mitigates, provides ?? Provisions.None, link);
 
+    /// <summary>What an action costs for this household: the price of one under its figures, as many times as it needs.</summary>
+    internal static MoneyRange Price(Selficient.Domain.Households.HouseholdProfile profile, string action, decimal times = 1m) =>
+        RuleFigures.Price(profile.Figures, action, times);
+
     /// <summary>Formats a whole number for a sentence, invariant so a comma never becomes a point.</summary>
     internal static string N(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);
 
