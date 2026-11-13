@@ -27,7 +27,7 @@ public sealed class SqlFigureStore : IFigureStore
     public async Task<PublishedFigures?> CurrentAsync(CancellationToken cancellationToken)
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
-        SetRow? row = await connection.QuerySingleOrDefaultAsync<SetRow>("SELECT TOP (1) version, published_at, published_by, note, restores, corrections FROM dbo.figure_sets ORDER BY version DESC");
+        SetRow? row = await connection.QuerySingleOrDefaultAsync<SetRow>("SELECT TOP (1) version, published_at, published_by, note, restores, corrections, asks FROM dbo.figure_sets ORDER BY version DESC");
         return row is null ? null : ToSet(row);
     }
 
@@ -35,7 +35,7 @@ public sealed class SqlFigureStore : IFigureStore
     public async Task<PublishedFigures?> FindAsync(int version, CancellationToken cancellationToken)
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
-        SetRow? row = await connection.QuerySingleOrDefaultAsync<SetRow>("SELECT version, published_at, published_by, note, restores, corrections FROM dbo.figure_sets WHERE version = @version", new { version });
+        SetRow? row = await connection.QuerySingleOrDefaultAsync<SetRow>("SELECT version, published_at, published_by, note, restores, corrections, asks FROM dbo.figure_sets WHERE version = @version", new { version });
         return row is null ? null : ToSet(row);
     }
 
@@ -43,7 +43,7 @@ public sealed class SqlFigureStore : IFigureStore
     public async Task<IReadOnlyList<PublishedFigures>> HistoryAsync(int take, CancellationToken cancellationToken)
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
-        IEnumerable<SetRow> rows = await connection.QueryAsync<SetRow>("SELECT TOP (@take) version, published_at, published_by, note, restores, corrections FROM dbo.figure_sets ORDER BY version DESC", new { take });
+        IEnumerable<SetRow> rows = await connection.QueryAsync<SetRow>("SELECT TOP (@take) version, published_at, published_by, note, restores, corrections, asks FROM dbo.figure_sets ORDER BY version DESC", new { take });
         return [.. rows.Select(ToSet)];
     }
 
@@ -53,7 +53,7 @@ public sealed class SqlFigureStore : IFigureStore
         ArgumentNullException.ThrowIfNull(parameterId);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         IEnumerable<ChangeRow> rows = await connection.QueryAsync<ChangeRow>(
-            "SELECT TOP (@take) version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at FROM dbo.figure_changes WHERE parameter_id = @parameterId ORDER BY version DESC, id DESC",
+            "SELECT TOP (@take) version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at, kind, question FROM dbo.figure_changes WHERE parameter_id = @parameterId ORDER BY version DESC, id DESC",
             new { take, parameterId });
         return [.. rows.Select(ToChange)];
     }
@@ -63,19 +63,19 @@ public sealed class SqlFigureStore : IFigureStore
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
         IEnumerable<ChangeRow> rows = await connection.QueryAsync<ChangeRow>(
-            "SELECT version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at FROM dbo.figure_changes WHERE version = @version ORDER BY parameter_id",
+            "SELECT version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at, kind, question FROM dbo.figure_changes WHERE version = @version ORDER BY parameter_id, kind",
             new { version });
         return [.. rows.Select(ToChange)];
     }
 
-    private static FigureChange ToChange(ChangeRow r) => new(r.version, r.parameter_id, r.value_before, r.value_after, r.reason, r.source, r.drafted_by, Utc(r.drafted_at));
+    private static FigureChange ToChange(ChangeRow r) => new(r.version, r.parameter_id, r.value_before, r.value_after, r.reason, r.source, r.drafted_by, Utc(r.drafted_at)) { Kind = (FigureDraftKind)r.kind, Question = r.question };
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<FigureDraft>> DraftsAsync(CancellationToken cancellationToken)
     {
         await using SqlConnection connection = await OpenAsync(cancellationToken);
-        IEnumerable<DraftRow> rows = await connection.QueryAsync<DraftRow>("SELECT parameter_id, value, reason, source, drafted_by, drafted_at FROM dbo.figure_drafts ORDER BY parameter_id");
-        return [.. rows.Select(static r => new FigureDraft(r.parameter_id, r.value, r.reason, r.source, r.drafted_by, Utc(r.drafted_at)))];
+        IEnumerable<DraftRow> rows = await connection.QueryAsync<DraftRow>("SELECT parameter_id, value, reason, source, drafted_by, drafted_at, kind, question FROM dbo.figure_drafts ORDER BY parameter_id, kind");
+        return [.. rows.Select(static r => new FigureDraft(r.parameter_id, r.value, r.reason, r.source, r.drafted_by, Utc(r.drafted_at)) { Kind = (FigureDraftKind)r.kind, Question = r.question })];
     }
 
     /// <inheritdoc />
@@ -86,19 +86,19 @@ public sealed class SqlFigureStore : IFigureStore
         await connection.ExecuteAsync(
             """
             MERGE dbo.figure_drafts WITH (HOLDLOCK) AS held
-            USING (SELECT @id AS parameter_id) AS given ON held.parameter_id = given.parameter_id
-            WHEN MATCHED THEN UPDATE SET value = @value, reason = @reason, source = @source, drafted_by = @by, drafted_at = @at
-            WHEN NOT MATCHED THEN INSERT (parameter_id, value, reason, source, drafted_by, drafted_at) VALUES (@id, @value, @reason, @source, @by, @at);
+            USING (SELECT @id AS parameter_id, @kind AS kind) AS given ON held.parameter_id = given.parameter_id AND held.kind = given.kind
+            WHEN MATCHED THEN UPDATE SET value = @value, reason = @reason, source = @source, drafted_by = @by, drafted_at = @at, question = @question
+            WHEN NOT MATCHED THEN INSERT (parameter_id, kind, value, reason, source, drafted_by, drafted_at, question) VALUES (@id, @kind, @value, @reason, @source, @by, @at, @question);
             """,
-            new { id = draft.ParameterId, value = draft.Value, reason = draft.Reason, source = draft.Source, by = draft.DraftedBy, at = draft.DraftedAt.UtcDateTime });
+            new { id = draft.ParameterId, kind = (byte)draft.Kind, value = draft.Value, reason = draft.Reason, source = draft.Source, by = draft.DraftedBy, at = draft.DraftedAt.UtcDateTime, question = draft.Question });
     }
 
     /// <inheritdoc />
-    public async Task<bool> DiscardDraftAsync(string parameterId, CancellationToken cancellationToken)
+    public async Task<bool> DiscardDraftAsync(string parameterId, FigureDraftKind kind, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(parameterId);
         await using SqlConnection connection = await OpenAsync(cancellationToken);
-        return await connection.ExecuteAsync("DELETE FROM dbo.figure_drafts WHERE parameter_id = @parameterId", new { parameterId }) > 0;
+        return await connection.ExecuteAsync("DELETE FROM dbo.figure_drafts WHERE parameter_id = @parameterId AND kind = @kind", new { parameterId, kind = (byte)kind }) > 0;
     }
 
     /// <inheritdoc />
@@ -112,7 +112,7 @@ public sealed class SqlFigureStore : IFigureStore
         try
         {
             await connection.ExecuteAsync(
-                "INSERT INTO dbo.figure_sets (version, published_at, published_by, note, restores, corrections) VALUES (@version, @at, @by, @note, @restores, @corrections)",
+                "INSERT INTO dbo.figure_sets (version, published_at, published_by, note, restores, corrections, asks) VALUES (@version, @at, @by, @note, @restores, @corrections, @asks)",
                 new
                 {
                     version = published.Version,
@@ -121,6 +121,7 @@ public sealed class SqlFigureStore : IFigureStore
                     note = published.Note,
                     restores = published.Restores,
                     corrections = JsonSerializer.Serialize(new Dictionary<string, decimal>(published.Corrections), FigureJson.Default.DictionaryStringDecimal),
+                    asks = JsonSerializer.Serialize(new Dictionary<string, string?>(published.Asks), FigureJson.Default.DictionaryStringString),
                 },
                 transaction);
         }
@@ -139,8 +140,8 @@ public sealed class SqlFigureStore : IFigureStore
         foreach (FigureChange change in changes)
         {
             await connection.ExecuteAsync(
-                "INSERT INTO dbo.figure_changes (version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at) VALUES (@version, @id, @before, @after, @reason, @source, @by, @at)",
-                new { version = change.Version, id = change.ParameterId, before = change.Before, after = change.After, reason = change.Reason, source = change.Source, by = change.DraftedBy, at = change.DraftedAt.UtcDateTime },
+                "INSERT INTO dbo.figure_changes (version, parameter_id, value_before, value_after, reason, source, drafted_by, drafted_at, kind, question) VALUES (@version, @id, @before, @after, @reason, @source, @by, @at, @kind, @question)",
+                new { version = change.Version, id = change.ParameterId, before = change.Before, after = change.After, reason = change.Reason, source = change.Source, by = change.DraftedBy, at = change.DraftedAt.UtcDateTime, kind = (byte)change.Kind, question = change.Question },
                 transaction);
         }
 
@@ -174,7 +175,10 @@ public sealed class SqlFigureStore : IFigureStore
         row.published_by,
         row.note,
         row.restores,
-        JsonSerializer.Deserialize(row.corrections, FigureJson.Default.DictionaryStringDecimal)!);
+        JsonSerializer.Deserialize(row.corrections, FigureJson.Default.DictionaryStringDecimal)!)
+    {
+        Asks = JsonSerializer.Deserialize(row.asks, FigureJson.Default.DictionaryStringString)!,
+    };
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
@@ -186,16 +190,17 @@ public sealed class SqlFigureStore : IFigureStore
     }
 
 #pragma warning disable CA1812, IDE1006, CA1707 // Dapper materialises these by column name.
-    private sealed record SetRow(int version, DateTime published_at, string published_by, string note, int? restores, string corrections);
+    private sealed record SetRow(int version, DateTime published_at, string published_by, string note, int? restores, string corrections, string asks);
 
-    private sealed record ChangeRow(int version, string parameter_id, decimal value_before, decimal value_after, string reason, string source, string drafted_by, DateTime drafted_at);
+    private sealed record ChangeRow(int version, string parameter_id, decimal value_before, decimal value_after, string reason, string source, string drafted_by, DateTime drafted_at, byte kind, string? question);
 
-    private sealed record DraftRow(string parameter_id, decimal value, string reason, string source, string drafted_by, DateTime drafted_at);
+    private sealed record DraftRow(string parameter_id, decimal value, string reason, string source, string drafted_by, DateTime drafted_at, byte kind, string? question);
 #pragma warning restore CA1812, IDE1006, CA1707
 }
 
 /// <summary>Source-generated serializer context for a set's corrections.</summary>
 [JsonSerializable(typeof(Dictionary<string, decimal>))]
+[JsonSerializable(typeof(Dictionary<string, string>))]
 public sealed partial class FigureJson : JsonSerializerContext;
 
 /// <summary>Reads the figures in force when the host starts, after the schema has been brought up to date.</summary>

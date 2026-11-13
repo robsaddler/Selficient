@@ -16,6 +16,9 @@ namespace Selficient.Web.Pages.Plan;
 /// <param name="Says">The sentence under the box.</param>
 public sealed record OwnFigureQuestion(ParameterDefinition Definition, decimal Value, decimal Plans, string State, string Says)
 {
+    /// <summary>What the household is asked, as the set in force words it.</summary>
+    public string Question { get; init; } = Definition.HouseholdQuestion ?? Definition.Name;
+
     /// <summary>The box's id, which its label and its sentence point at.</summary>
     public string InputId => "own-" + Definition.Id.Replace('.', '-');
 
@@ -90,20 +93,29 @@ public static class OwnFigures
         List<OwnFigureQuestion> questions = [];
         foreach (ParameterDefinition parameter in ParameterRegistry.All)
         {
-            if (parameter.HouseholdQuestion is null || !has.Contains(parameter.Id[..parameter.Id.LastIndexOf('.')]))
+            // Asked only where the set in force says a household may give it, and only of a household that has the thing or is offered it.
+            if (figures.QuestionFor(parameter.Id) is not { } question || !has.Contains(ThingOf(parameter.Id)))
             {
                 continue;
             }
 
             decimal plans = figures.Plans[parameter.Id];
-            questions.Add(figures.Declined.TryGetValue(parameter.Id, out string? why)
+            OwnFigureQuestion asked = figures.Declined.TryGetValue(parameter.Id, out string? why)
                 ? new OwnFigureQuestion(parameter, plans, plans, "declined", $"The plan could not use the figure you gave before, so it is using its own. {why}")
                 : figures.IsOwn(parameter.Id)
                     ? new OwnFigureQuestion(parameter, figures[parameter.Id], plans, "own", $"The plan is using your figure. Its own is {Plain(plans)} {parameter.Unit}.")
-                    : new OwnFigureQuestion(parameter, plans, plans, "plans", PlansSays(parameter)));
+                    : new OwnFigureQuestion(parameter, plans, plans, "plans", PlansSays(parameter));
+            questions.Add(asked with { Question = question });
         }
 
         return questions;
+    }
+
+    // The thing a figure is about: the provider it belongs to, or for a price the action that is bought.
+    private static string ThingOf(string id)
+    {
+        string owner = id[..id.LastIndexOf('.')];
+        return owner.StartsWith("price.", StringComparison.Ordinal) ? owner["price.".Length..] : owner;
     }
 
     // Where the plan's figure has a source outside the plan, the household is told it; "the plan" is not a source worth naming.

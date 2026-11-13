@@ -15,12 +15,12 @@ else
   <ul class="desk__drafts" data-drafts>
     @foreach (var line in Model.DraftLines)
     {
-      <li class="desk__draft" data-draft="@line.Draft.ParameterId">
+      <li class="desk__draft" data-draft="@line.Draft.ParameterId" data-draft-kind="@line.Draft.Kind">
         <h2>@line.Name</h2>
         <p class="data">@line.Standing</p>
         <dl class="desk__account">
           <div><dt>Why</dt><dd>@line.Draft.Reason</dd></div>
-          <div><dt>Source</dt><dd>@line.Draft.Source</dd></div>
+          <div><dt>@line.AccountLabel</dt><dd>@line.Account</dd></div>
         </dl>
         <p class="desk__by">@line.By</p>
         @await Html.PartialAsync(line.HandView, line)

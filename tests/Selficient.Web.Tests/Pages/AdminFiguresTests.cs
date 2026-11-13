@@ -184,7 +184,7 @@ public sealed class AdminFiguresTests : IDisposable
         _factory.Services.GetRequiredService<ICurrentFigures>().Current.Version.ShouldBe(0);
 
         draftTab.ShouldContain("aria-current=\"page\" data-tab=\"draft\"");
-        draftTab.ShouldContain("<li class=\"desk__draft\" data-draft=\"stairlift-batteries.stock\">");
+        draftTab.ShouldContain("<li class=\"desk__draft\" data-draft=\"stairlift-batteries.stock\" data-draft-kind=\"Value\">");
         draftTab.ShouldContain("<h2>The stairlift's own batteries: how much there is</h2>");
         draftTab.ShouldContain("<p class=\"data\">2 days in force; 3 drafted.</p>");
         draftTab.ShouldContain("<dt>Why</dt><dd>An engineer <b>measured</b> it.</dd>");
@@ -367,6 +367,101 @@ public sealed class AdminFiguresTests : IDisposable
 
         IReadOnlyList<OperatorAction> hands = await _factory.Services.GetRequiredService<IOperationsLog>().RecentHandsAsync(10, CancellationToken.None);
         hands.Select(hand => hand.Hand).ShouldBe(["restore-figures", "restore-figures", "publish-figures", "draft-figure"]);
+    }
+
+    [Fact]
+    public async Task An_expert_switches_a_households_own_figure_on_with_its_question_and_off_and_a_publisher_puts_it_into_force()
+    {
+        using HttpClient rob = await SignedInAsync();
+        using HttpClient expert = await SignedInAsync("expert");
+        const string Lamp = "headtorches.stock";
+        const string Asked = "How many hours of light do your headtorches give on the cells you keep?";
+
+        string before = await GetAsync(rob);
+        string noQuestion = await PostAsync(expert, "Ask", "work", ("id", Lamp), ("allow", "true"), ("reason", "Households know their torches."));
+        string notAQuestion = await PostAsync(expert, "Ask", "work", ("id", Lamp), ("allow", "true"), ("question", "Tell us about your <b>torches</b>."), ("reason", "Households know."));
+        string noReason = await PostAsync(expert, "Ask", "work", ("id", Lamp), ("allow", "true"), ("question", Asked));
+        string alreadyOff = await PostAsync(expert, "Ask", "prices", ("id", Lamp), ("reason", "It is off."));
+        string notSwitchable = await PostAsync(expert, "Ask", "work", ("id", "demand.drinking-litres"), ("allow", "true"), ("question", Asked), ("reason", "Why."));
+        string unknown = await PostAsync(expert, "Ask", "work", ("allow", "true"));
+        string on = await PostAsync(expert, "Ask", "work", ("id", Lamp), ("allow", "true"), ("question", Asked), ("reason", "Households know their torches."));
+        string off = await PostAsync(expert, "Ask", "work", ("id", "price.headtorches.low"), ("allow", "false"), ("reason", "Trying it on a price."));
+        string priceOn = await PostAsync(expert, "Ask", "work", ("id", "price.headtorches.high"), ("allow", "true"), ("question", "What is the most a headtorch costs where you shop?"), ("reason", "Prices differ."));
+        string butt = await PostAsync(rob, "Ask", "work", ("id", "water-butt.stock"), ("allow", "false"), ("reason", "Nobody measures one."));
+        string draft = await GetAsync(rob, "?tab=draft");
+
+        // Before: the box says how it stands, and only a figure that can be switched has one.
+        string lamp = Row(before, Lamp);
+        lamp.ShouldContain("data-ask-form");
+        lamp.ShouldContain("<p class=\"desk-figure__facts\" data-ask-stands>As it stands, a household may not give its own figure here.</p>");
+        lamp.ShouldContain("name=\"allow\" value=\"false\" checked=\"checked\">");
+        lamp.ShouldNotContain("name=\"allow\" value=\"true\" checked=\"checked\">");
+        lamp.ShouldNotContain("data-chip=\"household\"");
+        Row(before, "water-butt.stock").ShouldContain("data-ask-stands>As it stands, a household may give its own figure here, and is asked: \"How many litres does your water butt hold?\"</p>");
+        Row(before, "water-butt.stock").ShouldContain("name=\"allow\" value=\"true\" checked=\"checked\">");
+        Row(before, "demand.drinking-litres").ShouldNotContain("data-ask-form", customMessage: "what a person drinks is not a household's figure to switch");
+
+        // Refused at the figure, with what was chosen and typed still there.
+        Row(noQuestion, Lamp).ShouldContain("<p class=\"callout callout--warning\" role=\"alert\" data-ask-refusal>Write the question a household will be asked, ending in a question mark.</p>");
+        Row(noQuestion, Lamp).ShouldContain("<details class=\"desk-figure__edit\" open=\"open\">");
+        Row(noQuestion, Lamp).ShouldContain("name=\"allow\" value=\"true\" checked=\"checked\">");
+        Row(noQuestion, Lamp).ShouldContain("value=\"Households know their torches.\" required>");
+        Row(notAQuestion, Lamp).ShouldContain("data-ask-refusal>What a household is asked about \"Headtorches: how much there is\" must be a question of 10 to 200 characters, ending in a question mark.</p>");
+        Row(notAQuestion, Lamp).ShouldContain("value=\"Tell us about your <b>torches</b>.\">");
+        Row(noReason, Lamp).ShouldContain("data-ask-refusal>Say why this should change, in up to 400 characters.</p>");
+        alreadyOff.ShouldContain("aria-current=\"page\" data-tab=\"work\"", customMessage: "the figure's own tab, wherever the post came from");
+        Row(alreadyOff, Lamp).ShouldContain("data-ask-refusal>That is how it already stands. To withdraw a drafted change, take it out of the draft.</p>");
+        Row(notSwitchable, "demand.drinking-litres").ShouldNotContain("data-ask-form");
+        unknown.ShouldContain("role=\"alert\">That is not one of the figures the plan works from.</p>");
+
+        // Drafted: said, marked, and nothing in force has moved.
+        on.ShouldContain("role=\"status\">Drafted: a household may give its own figure for \"Headtorches: how much there is\". Nothing changes until the draft is published.</p>");
+        Row(on, Lamp).ShouldContain("data-state=\"drafted\"");
+        Row(on, Lamp).ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"drafted\">Drafted by expert: a household may give its own</li>");
+        Row(on, Lamp).ShouldContain($"name=\"question\" class=\"input\" autocomplete=\"off\" maxlength=\"200\" value=\"{Asked}\">");
+        Row(on, Lamp).ShouldNotContain("data-chip=\"household\"");
+        off.ShouldContain("role=\"alert\"", customMessage: "a price that is not on cannot be switched off");
+        priceOn.ShouldContain("aria-current=\"page\" data-tab=\"prices\"");
+        priceOn.ShouldContain("role=\"status\">Drafted: a household may give its own figure for \"A headtorch: the most it costs\".");
+        butt.ShouldContain("role=\"status\">Drafted: a household may no longer give its own figure for \"The water butt: how much there is\".");
+        Row(butt, "water-butt.stock").ShouldContain("data-chip=\"drafted\">Drafted by rob: a household may no longer give its own</li>");
+        Row(butt, "water-butt.stock").ShouldContain("data-chip=\"household\"", customMessage: "it is still on until the draft is published");
+        _factory.Services.GetRequiredService<ICurrentFigures>().Current.MayGive(Lamp).ShouldBeFalse();
+
+        // The draft lists each switch with what would be asked, and takes one out by its kind.
+        draft.ShouldContain("3 corrections are drafted and wait to be published.");
+        draft.ShouldContain("<li class=\"desk__draft\" data-draft=\"headtorches.stock\" data-draft-kind=\"Ask\">");
+        draft.ShouldContain("<p class=\"data\">A household may not give its own figure now; drafted: it may.</p>");
+        draft.ShouldContain($"<dt>Asked</dt><dd>{Asked}</dd>");
+        draft.ShouldContain("<p class=\"data\">A household may give its own figure now; drafted: it may not.</p>");
+        draft.ShouldContain("<dt>Asked</dt><dd>Nothing: a household would no longer be asked.</dd>");
+        draft.ShouldContain("name=\"kind\" value=\"Ask\"");
+        string takenOut = await PostAsync(rob, "Discard", "draft", ("id", "price.headtorches.high"), ("kind", "Ask"));
+        takenOut.ShouldContain("role=\"status\">The correction is out of the draft.</p>");
+        takenOut.ShouldContain("2 corrections are drafted");
+
+        // Published: in force at once, on the desk, in the history, and in what the browser is told.
+        string published = await PostAsync(rob, "Publish", "draft", ("note", "Torches on, butts off."));
+        string after = await GetAsync(rob);
+        string set1 = await GetAsync(rob, "?tab=history&set=1");
+        string api = await rob.GetStringAsync(new Uri("/api/figures", UriKind.Relative));
+
+        published.ShouldContain("role=\"status\">Set 1 is in force.");
+        Row(after, Lamp).ShouldContain("<li class=\"desk-figure__chip\" data-chip=\"household\">A household may give its own</li>");
+        Row(after, Lamp).ShouldContain($"data-ask-stands>As it stands, a household may give its own figure here, and is asked: \"{Asked}\"</p>");
+        Row(after, "water-butt.stock").ShouldNotContain("data-chip=\"household\"");
+        set1.ShouldContain("<p class=\"data\">A household may now give its own figure.</p>");
+        set1.ShouldContain($"<dt>Asked</dt><dd>{Asked}</dd>");
+        set1.ShouldContain("<p class=\"data\">A household may no longer give its own figure.</p>");
+        set1.ShouldContain("<dt>Asked</dt><dd>Nothing: a household is no longer asked.</dd>");
+        api.ShouldContain("\"id\":\"headtorches.stock\",\"question\":\"How many hours of light do your headtorches give on the cells you keep?\"");
+        api.ShouldNotContain("water-butt.stock");
+
+        // Reworded, which the history says in its own words.
+        await PostAsync(rob, "Ask", "work", ("id", Lamp), ("allow", "true"), ("question", "How long do your headtorches last, in hours?"), ("reason", "Plainer."));
+        (await GetAsync(rob, "?tab=draft")).ShouldContain("<p class=\"data\">A household may give its own figure now; drafted: it is asked in other words.</p>");
+        await PostAsync(rob, "Publish", "draft", ("note", "Plainer words."));
+        (await GetAsync(rob, "?tab=history&set=2")).ShouldContain("<p class=\"data\">A household is asked in other words.</p>");
     }
 
     [Fact]

@@ -1929,6 +1929,36 @@
   }
 }
 
+/* The second box under a figure: whether a household may give its own, and what it is asked. */
+.desk-figure__form--ask {
+  margin-block-start: var(--space-3);
+}
+
+.desk-figure__ask-title {
+  font-weight: 600;
+}
+
+.desk-figure__choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  padding: 0;
+  border: 0;
+
+  & legend {
+    padding: 0;
+    margin-block-end: var(--space-1);
+    font-weight: 600;
+  }
+
+  & label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: 2.25rem;
+  }
+}
+
 /* The draft, a list of changes, and the published sets: each a quiet panel with the account of itself. */
 .desk__drafts,
 .desk__sets {

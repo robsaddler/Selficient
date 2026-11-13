@@ -29,7 +29,7 @@ public sealed class RuleFigureTests
         ParameterDefinition low = ParameterRegistry.Find("price.headtorches.low")!;
         ParameterDefinition high = ParameterRegistry.Find("price.rooftop-solar-and-battery.high")!;
 
-        low.ShouldBe(new ParameterDefinition("price.headtorches.low", "What things cost", "A headtorch: the least it costs", "pounds", 14m, 0m, 280m, "Shop prices seen at the catalogue's last review", "In the plan, as the cost of \"headtorches\""));
+        low.ShouldBe(new ParameterDefinition("price.headtorches.low", "What things cost", "A headtorch: the least it costs", "pounds", 14m, 0m, 280m, "Shop prices seen at the catalogue's last review", "In the plan, as the cost of \"headtorches\"") { HouseholdMayBeAsked = true });
         (high.Name, high.Default, high.Max).ShouldBe(("Rooftop solar with a battery and backup: the most it costs", 17000m, 170_000m));
         ParameterRegistry.Find("price.long-reach-lighter-for-gas-hob.high")!.Max.ShouldBe(100m, "a cheap thing still has room to be corrected");
         ParameterRegistry.All.Count(p => p.Group == "What things cost").ShouldBe(76);

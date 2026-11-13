@@ -65,7 +65,7 @@ public sealed class CurrentFigures : ICurrentFigures
 
     private static State Make(PublishedFigures published)
     {
-        Domain.Primitives.Result<ParameterSet> whole = ParameterSet.Create(published.Version, published.Corrections);
+        Domain.Primitives.Result<ParameterSet> whole = ParameterSet.Create(published.Version, published.Corrections, published.Asks);
         if (whole.IsSuccess)
         {
             return new State(whole.Value, published, []);
@@ -86,7 +86,21 @@ public sealed class CurrentFigures : ICurrentFigures
             }
         }
 
-        Domain.Primitives.Result<ParameterSet> standing = ParameterSet.Create(published.Version, kept);
+        // A switch on a figure that can no longer be switched, or a question a release would no longer take, goes the same way.
+        Dictionary<string, string?> asks = [];
+        foreach ((string id, string? question) in published.Asks)
+        {
+            if (ParameterSet.Create(published.Version, new Dictionary<string, decimal>(), new Dictionary<string, string?> { [id] = question }).IsSuccess)
+            {
+                asks[id] = question;
+            }
+            else
+            {
+                dropped.Add($"What the set says about a household giving its own figure for \"{id}\" is no longer something the plan accepts, and was not applied.");
+            }
+        }
+
+        Domain.Primitives.Result<ParameterSet> standing = ParameterSet.Create(published.Version, kept, asks);
         if (standing.IsSuccess)
         {
             return new State(standing.Value, published, dropped);

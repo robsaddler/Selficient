@@ -85,11 +85,47 @@ public sealed class SqlFigureStoreTests : IAsyncLifetime
         await _store.SaveDraftAsync(second, CancellationToken.None);
 
         (await _store.DraftsAsync(CancellationToken.None)).ShouldBe([new FigureDraft("demand.drinking-litres", 2.5m, "Why.", "Where.", "expert", Morning), second]);
-        (await _store.DiscardDraftAsync("demand.drinking-litres", CancellationToken.None)).ShouldBeTrue();
-        (await _store.DiscardDraftAsync("demand.drinking-litres", CancellationToken.None)).ShouldBeFalse();
+        (await _store.DiscardDraftAsync("demand.drinking-litres", FigureDraftKind.Value, CancellationToken.None)).ShouldBeTrue();
+        (await _store.DiscardDraftAsync("demand.drinking-litres", FigureDraftKind.Value, CancellationToken.None)).ShouldBeFalse();
         (await _store.DraftsAsync(CancellationToken.None)).ShouldHaveSingleItem().ShouldBe(second);
         await Should.ThrowAsync<ArgumentNullException>(() => _store.SaveDraftAsync(null!, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentNullException>(() => _store.DiscardDraftAsync(null!, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => _store.DiscardDraftAsync(null!, FigureDraftKind.Value, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Which_figures_a_household_may_give_is_kept_with_the_set_and_a_figure_has_a_draft_of_each_kind()
+    {
+        const string Asked = "How many hours of light do your headtorches give on the cells you keep?";
+        FigureDraft value = new("headtorches.stock", 60m, "Better cells.", "A maker's sheet.", "expert", Morning);
+        FigureDraft on = new("headtorches.stock", 1m, "Households know.", string.Empty, "expert", Morning) { Kind = FigureDraftKind.Ask, Question = Asked };
+        FigureDraft off = new("water-butt.stock", 0m, "Nobody measures one.", string.Empty, "rob", Morning) { Kind = FigureDraftKind.Ask };
+
+        await _store.SaveDraftAsync(value, CancellationToken.None);
+        await _store.SaveDraftAsync(on with { Question = "An earlier wording of it?" }, CancellationToken.None);
+        await _store.SaveDraftAsync(on, CancellationToken.None);
+        await _store.SaveDraftAsync(off, CancellationToken.None);
+
+        IReadOnlyList<FigureDraft> drafts = await _store.DraftsAsync(CancellationToken.None);
+        drafts.ShouldBe([value, on, off], "the value first, then the switch, figure by figure");
+        drafts[1].MayGive.ShouldBeTrue();
+        drafts[2].Question.ShouldBeNull();
+        (await _store.DiscardDraftAsync("headtorches.stock", FigureDraftKind.Ask, CancellationToken.None)).ShouldBeTrue();
+        (await _store.DiscardDraftAsync("headtorches.stock", FigureDraftKind.Ask, CancellationToken.None)).ShouldBeFalse();
+        (await _store.DraftsAsync(CancellationToken.None)).ShouldBe([value, off], "taking out the switch leaves the value drafted");
+
+        PublishedFigures set = Set(1, null, ("headtorches.stock", 60m)) with { Asks = new Dictionary<string, string?> { ["headtorches.stock"] = Asked, ["water-butt.stock"] = null } };
+        FigureChange switched = Change(1, "headtorches.stock", 0m, 1m) with { Kind = FigureDraftKind.Ask, Question = Asked, Source = string.Empty };
+        await _store.PublishAsync(set, [Change(1, "headtorches.stock", 40m, 60m), switched, Change(1, "water-butt.stock", 1m, 0m) with { Kind = FigureDraftKind.Ask }], clearDrafts: true, CancellationToken.None);
+
+        PublishedFigures read = (await _store.CurrentAsync(CancellationToken.None))!;
+        read.Asks.ShouldBe(new Dictionary<string, string?> { ["headtorches.stock"] = Asked, ["water-butt.stock"] = null }, ignoreOrder: true);
+        (await _store.FindAsync(1, CancellationToken.None))!.Asks.Count.ShouldBe(2);
+        (await _store.HistoryAsync(5, CancellationToken.None))[0].Asks["water-butt.stock"].ShouldBeNull();
+        IReadOnlyList<FigureChange> inSet = await _store.ChangesInAsync(1, CancellationToken.None);
+        inSet.Select(change => (change.ParameterId, change.Kind)).ShouldBe([("headtorches.stock", FigureDraftKind.Value), ("headtorches.stock", FigureDraftKind.Ask), ("water-butt.stock", FigureDraftKind.Ask)]);
+        inSet[1].ShouldBe(switched);
+        (await _store.ChangesAsync("water-butt.stock", 5, CancellationToken.None)).ShouldHaveSingleItem().Question.ShouldBeNull();
+        (await _store.DraftsAsync(CancellationToken.None)).ShouldBeEmpty();
     }
 
     [Fact]

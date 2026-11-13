@@ -59,6 +59,7 @@ public sealed class ParameterTests
         lift.ShouldBe(new ParameterDefinition("stairlift-batteries.stock", "Getting upstairs", "The stairlift's own batteries: how much there is", "days", 2m, 0m, 100m, "Acorn Stairlifts: more than ten return journeys on a charge, about two days at four or five a day", "On the board, under getting upstairs")
         {
             HouseholdQuestion = "How many days of trips to bed and the bathroom does your stairlift make in a power cut?",
+            HouseholdMayBeAsked = true,
         });
         lift.HouseholdMayOverride.ShouldBeTrue();
         charger.Name.ShouldBe("The stairlift on its charger: energy it draws on a winter day");

@@ -95,6 +95,17 @@ Accepted: there is still no screen to name a second publisher. It is a row in `f
 | 42 | **The account's copy refuses a plan that has own figures, or accepts anything under that name** | `isAssumptions` in the browser and `PlanGuard` on the server take the same shape: up to twenty, an id of the registry's form, a number from nothing to a million | The cases added to `PlanSyncTests`; the journey saves through `saveAssumptions` |
 | 43 | **A household's figures reach the server's keeping** | They are in the browser. For an account they are inside the copy encrypted in the browser, which the server cannot read. A post carries them for the length of the request, as it carries the answers | The privacy rule; nothing new is stored |
 
+## Switching a household's own figure on and off (done)
+
+| # | Threat | Answer | Pinned by |
+|---|---|---|---|
+| 44 | **An expert switches on a figure no household should set**: what a person drinks, how long a storm lasts | Only a figure flagged as switchable takes a switch; the set refuses any other with a sentence, whoever posts it | `Only_a_figure_about_a_thing_a_household_has_or_a_price_may_be_switched`, `A_switch_that_cannot_stand_is_refused_with_a_sentence` |
+| 45 | **Text an expert typed is drawn on every household's plan** | It is a question of 10 to 200 characters ending in a question mark, checked by the set; it is drawn as text by Razor and nowhere as markup; only a publisher puts it into force, after reading it in the draft | `An_expert_switches_a_households_own_figure_on…` (a question with markup in it is refused for not being a question and is echoed encoded) |
+| 46 | **An expert switches a figure on without a publisher** | A switch is a draft like any correction; publishing asks the store whether the operator may | The same test; `Whether_a_household_may_give_its_own_figure_is_drafted_published_and_put_back_like_a_correction` |
+| 47 | **A figure a household gave is still obeyed after it is switched off** | The household's set takes a figure only where the set in force says it may give one; the rest are declined and the plan's stands | `A_households_own_figure_is_taken_only_where_the_set_in_force_says_it_may_give_one`, `A_household_is_asked_what_the_set_in_force_says_it_may_give_in_the_words_the_set_gives` |
+| 48 | **A switch a release has made impossible stops the site** | It is dropped and named on the desk, like a correction, and the rest of the set stands | `A_switch_the_code_no_longer_accepts_is_dropped_and_named_and_the_rest_of_the_set_stands` |
+| 49 | **History loses a switch** | Each is a row in the changes with before, after, the question, the reason and who drafted it, and a hand in the operations log; putting a set back puts its switches back and records what moved | The application test above; `Which_figures_a_household_may_give_is_kept_with_the_set_and_a_figure_has_a_draft_of_each_kind` |
+
 ## Not yet answered (later steps)
 
 - The plan's sentences are not swept by a test the way the board's are: they are full of numbers that are facts and not figures (a date, a phone number, an insurance limit), so a list of number words would fail every one. They were read by hand. A new rule sentence that states an engine figure in plain words would not be caught.

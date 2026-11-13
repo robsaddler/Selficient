@@ -137,6 +137,37 @@ public sealed partial class OwnFigurePagesTests : IDisposable
     }
 
     [Fact]
+    public async Task A_household_is_asked_what_the_set_in_force_says_it_may_give_in_the_words_the_set_gives()
+    {
+        ParameterSet set = ParameterSet.Create(4, new Dictionary<string, decimal>(), new Dictionary<string, string?>
+        {
+            ["headtorches.stock"] = "How many hours of light do your headtorches give on the cells you keep?",
+            ["price.headtorches.high"] = "What is the most a headtorch costs where you shop?",
+            ["price.wood-stove-ready.high"] = "What does your chimney sweep charge?",
+            ["water-butt.stock"] = null,
+            ["closed-freezer.stock"] = "How long does your freezer stay frozen with the door shut, in days?",
+        }).Value;
+        Selficient.Application.Figures.ICurrentFigures inForce = new InForce(set);
+        using Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> host = _factory.WithWebHostBuilder(builder => Microsoft.AspNetCore.TestHost.WebHostBuilderExtensions.ConfigureTestServices(builder, services => Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, inForce)));
+        using HttpClient client = host.CreateClient();
+
+        string html = await PageAsync(client, "/plan", House(("Own[headtorches.stock]", "60"), ("Own[price.headtorches.high]", "20"), ("Own[water-butt.stock]", "300")));
+
+        Question(html, "headtorches.stock").ShouldContain(">How many hours of light do your headtorches give on the cells you keep?</label>");
+        Question(html, "headtorches.stock").ShouldContain("value=\"60\" data-own-figure=\"headtorches.stock\" data-own-plans=\"40\"");
+        Question(html, "closed-freezer.stock").ShouldContain(">How long does your freezer stay frozen with the door shut, in days?</label>", customMessage: "a question an expert reworded");
+        string price = Question(html, "price.headtorches.high");
+        price.ShouldContain(">What is the most a headtorch costs where you shop?</label>");
+        price.ShouldContain("<span>pounds</span>");
+        price.ShouldContain("data-own-state=\"own\"");
+        html.ShouldNotContain("own-price-wood-stove-ready-high", customMessage: "a price is asked only of a household whose plan has the thing to buy");
+        html.ShouldNotContain("own-water-butt-stock", customMessage: "switched off, so it is not asked");
+        html.ShouldContain("<li data-id=\"water-butt.stock\" data-value=\"300\"></li>", customMessage: "and a figure kept from before it was switched off is declined, not obeyed");
+        html.ShouldContain("A 210-litre water butt on a downpipe");
+        html.ShouldContain("£28 to £40", customMessage: "two headtorches at the household's own most");
+    }
+
+    [Fact]
     public async Task What_no_browser_of_ours_would_send_is_refused_with_a_sentence()
     {
         using HttpClient client = _factory.CreateClient();
@@ -184,6 +215,13 @@ public sealed partial class OwnFigurePagesTests : IDisposable
     }
 
     public void Dispose() => _factory.Dispose();
+
+    private sealed class InForce(ParameterSet set) : Selficient.Application.Figures.ICurrentFigures
+    {
+        public ParameterSet Current => set;
+
+        public DateTimeOffset? PublishedAt => new DateTimeOffset(2026, 11, 14, 9, 30, 0, TimeSpan.Zero);
+    }
 
     [GeneratedRegex("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(?<token>[^\"]+)\"")]
     private static partial Regex Token();

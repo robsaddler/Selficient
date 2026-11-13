@@ -57,21 +57,21 @@ public sealed class Desk : IAsyncLifetime
         await Expect(expert.Locator("[data-sheet-lede]")).ToContainTextAsync("figures match \"stairlift\", from both tabs.");
         ILocator lift = expert.Locator(Lift);
         await Expect(lift.Locator("[data-in-force-value]")).ToHaveTextAsync("2");
-        await Expect(lift.Locator(".desk-figure__form")).ToBeHiddenAsync();
+        await Expect(lift.Locator(".desk-figure__form:not([data-ask-form])")).ToBeHiddenAsync();
 
         // A value that is not a number is answered at the figure, with the box still open on what was typed.
         await lift.GetByText("Correct this figure").ClickAsync();
         await lift.GetByLabel("The value, in days").FillAsync("not long");
         await lift.GetByLabel("Why it should change").FillAsync("Old batteries hold less.");
         await lift.GetByLabel("Where the value comes from").FillAsync("A service engineer's visit");
-        await lift.GetByRole(AriaRole.Button, new() { Name = "Put it in the draft" }).ClickAsync();
+        await lift.Locator(".desk-figure__form:not([data-ask-form])").GetByRole(AriaRole.Button, new() { Name = "Put it in the draft" }).ClickAsync();
         await Expect(lift.Locator("[data-figure-refusal]")).ToHaveTextAsync("Give the new value as a number, such as 2 or 0.5.");
         await Expect(lift.GetByLabel("Why it should change")).ToHaveValueAsync("Old batteries hold less.");
         await Expect(lift).ToBeInViewportAsync();
 
         // Corrected, it is drafted: the card says what a household would be told, and the figure in force has not moved.
         await lift.GetByLabel("The value, in days").FillAsync("1");
-        await lift.GetByRole(AriaRole.Button, new() { Name = "Put it in the draft" }).ClickAsync();
+        await lift.Locator(".desk-figure__form:not([data-ask-form])").GetByRole(AriaRole.Button, new() { Name = "Put it in the draft" }).ClickAsync();
         await Expect(expert.Locator(".callout[role=\"status\"]")).ToContainTextAsync("is drafted as 1. Nothing changes until the draft is published.");
         await Expect(expert).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("#f-stairlift-batteries\\.stock$"));
         await Expect(lift).ToBeInViewportAsync();
@@ -92,7 +92,22 @@ public sealed class Desk : IAsyncLifetime
         await using IBrowserContext robsBrowser = await _browser.SizedAsync(1440, 900, mobile: false, theme: "light", origin: _origin);
         IPage rob = await robsBrowser.NewPageAsync();
         await SignInAsync(rob, OperatorSignInHelper.Username);
+
+        // First he switches a figure on for households, with the question they will be asked.
+        await rob.GotoAsync("/admin/figures?q=headtorches.stock");
+        ILocator lamp = rob.Locator("[data-figure=\"headtorches.stock\"]");
+        await lamp.GetByText("Correct this figure").ClickAsync();
+        await Expect(lamp.Locator("[data-ask-stands]")).ToHaveTextAsync("As it stands, a household may not give its own figure here.");
+        await lamp.GetByLabel("It may", new() { Exact = true }).CheckAsync();
+        await lamp.GetByLabel("What a household is asked, as a question").FillAsync("How many hours of light do your headtorches give?");
+        await lamp.GetByLabel("Why this should change").FillAsync("A household knows its own torches.");
+        await lamp.Locator("[data-ask-form]").GetByRole(AriaRole.Button, new() { Name = "Put it in the draft" }).ClickAsync();
+        await Expect(rob.Locator(".callout[role=\"status\"]")).ToContainTextAsync("Drafted: a household may give its own figure for \"Headtorches: how much there is\".");
+        await Expect(lamp).ToBeInViewportAsync();
+        await Expect(lamp.Locator("[data-chip=\"drafted\"]")).ToHaveTextAsync("Drafted by rob: a household may give its own");
+
         await rob.GotoAsync("/admin/figures?tab=draft");
+        await Expect(rob.Locator("[data-draft=\"headtorches.stock\"][data-draft-kind=\"Ask\"]")).ToContainTextAsync("How many hours of light do your headtorches give?");
         await Expect(rob.Locator("[data-draft=\"stairlift-batteries.stock\"]")).ToContainTextAsync("Drafted by expert on ");
         await Expect(rob.Locator("[data-preview-says]")).ToContainTextAsync("of 96 Days Ready figures and 0 of 6 plan costs would move.");
         await Expect(rob.Locator("[data-preview-days] tbody tr").First).ToContainTextAsync("An older person in a terrace with a battery stairlift and a prepayment meter");
@@ -115,12 +130,16 @@ public sealed class Desk : IAsyncLifetime
         await plan.Locator("[data-plan][data-plan-ready]").WaitForAsync();
         await Expect(plan.Locator("[data-plan]")).ToHaveAttributeAsync("data-figures-version", "1");
         await Expect(plan.Locator("[data-figures-updated]")).ToBeHiddenAsync();
+        // And a household is now asked the figure that was switched on, in the words the expert gave.
+        await plan.Locator("[data-own-figures] summary").ClickAsync();
+        await Expect(plan.GetByLabel("How many hours of light do your headtorches give?")).ToHaveValueAsync("40");
 
         // What the set changed is on the record, and the shipped figures are put back as a new set.
         await rob.Locator("[data-set=\"1\"]").GetByRole(AriaRole.Link, new() { Name = "What it changed" }).ClickAsync();
-        await Expect(rob.Locator("[data-changes] li")).ToHaveCountAsync(1);
-        await Expect(rob.Locator("[data-changes] li")).ToContainTextAsync("2 to 1");
-        await Expect(rob.Locator("[data-changes] li")).ToContainTextAsync("A service engineer's visit");
+        await Expect(rob.Locator("[data-changes] li")).ToHaveCountAsync(2);
+        await Expect(rob.Locator("[data-changes]")).ToContainTextAsync("2 to 1");
+        await Expect(rob.Locator("[data-changes]")).ToContainTextAsync("A service engineer's visit");
+        await Expect(rob.Locator("[data-changes]")).ToContainTextAsync("A household may now give its own figure.");
         await rob.GetByRole(AriaRole.Link, new() { Name = "Every published set" }).ClickAsync();
         await rob.Locator("#restore-note-0").FillAsync("The engineer measured a worn set.");
         await rob.Locator("[data-set=\"0\"]").GetByRole(AriaRole.Button, new() { Name = "Put this set back" }).ClickAsync();

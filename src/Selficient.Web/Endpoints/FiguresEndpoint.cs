@@ -37,8 +37,8 @@ public static class FiguresEndpoint
             figures.Version,
             publishedAt?.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
             [.. ParameterRegistry.All
-                .Where(static parameter => parameter.HouseholdMayOverride)
-                .Select(parameter => new FigureResponse(parameter.Id, parameter.HouseholdQuestion!, parameter.Unit, parameter.Min, parameter.Max, parameter.WholeNumber, figures[parameter.Id]))]);
+                .Where(parameter => figures.MayGive(parameter.Id))
+                .Select(parameter => new FigureResponse(parameter.Id, figures.QuestionFor(parameter.Id)!, parameter.Unit, parameter.Min, parameter.Max, parameter.WholeNumber, figures[parameter.Id]))]);
     }
 
     private static Ok<FiguresResponse> Handle(HttpContext context, ICurrentFigures figures)

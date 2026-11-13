@@ -26,9 +26,36 @@ public sealed record FigureRow(ParameterDefinition Definition, string Label, str
     /// <summary>Where on the page the figure is, so a correction comes back to it.</summary>
     public string Anchor => FigureSheet.AnchorOf(Definition.Id);
 
-    /// <summary>Whether its box is open when the page is drawn: only when a correction to it was just refused.</summary>
-    public bool Open => Refusal is not null;
+    /// <summary>Whether a household may give its own figure here, and the box that changes it.</summary>
+    public AskBox Ask { get; init; } = AskBox.None;
+
+    /// <summary>Whether its box is open when the page is drawn: only when something posted about it was just refused.</summary>
+    public bool Open => Refusal is not null || Ask.Refusal is not null;
 }
+
+/// <summary>Whether a household may give its own figure, as the desk shows and changes it.</summary>
+/// <param name="View">The view that draws the box, or nothing where this cannot be changed.</param>
+/// <param name="Stands">How it stands under the set in force.</param>
+/// <param name="Allow">What the box's choice shows.</param>
+/// <param name="Question">What the question box holds.</param>
+/// <param name="Reason">What the reason box holds.</param>
+/// <param name="Refusal">Why the change just posted was refused, or null.</param>
+public sealed record AskBox(string View, string Stands, bool Allow, string Question, string Reason, string? Refusal)
+{
+    /// <summary>A figure with nothing to switch.</summary>
+    public static AskBox None { get; } = new("_FiguresNoAsk", string.Empty, false, string.Empty, string.Empty, null);
+
+    /// <summary>The other choice.</summary>
+    public bool Deny => !Allow;
+}
+
+/// <summary>A change to whether a household may give its own figure that was posted and refused, kept so the box can be drawn as it was left.</summary>
+/// <param name="Id">The figure.</param>
+/// <param name="Allow">What was chosen.</param>
+/// <param name="Question">What was typed for the question.</param>
+/// <param name="Reason">What was typed for the reason.</param>
+/// <param name="Message">Why it was refused.</param>
+public sealed record RefusedAsk(string Id, bool Allow, string Question, string Reason, string Message);
 
 /// <summary>The figures of one thing: a provider with the name and sentence the board gives it, a scenario with its sentence, or a price.</summary>
 /// <param name="Title">The thing's name, or null where the group's heading already says it.</param>
@@ -75,11 +102,11 @@ public static class FigureSheet
     public static string Plain(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 
     /// <summary>The groups, cards and rows for these figures, in the order they were given.</summary>
-    public static IReadOnlyList<FigureGroup> Build(IEnumerable<ParameterDefinition> parameters, DeskView desk, RefusedCorrection? refused)
+    public static IReadOnlyList<FigureGroup> Build(IEnumerable<ParameterDefinition> parameters, DeskView desk, RefusedCorrection? refused, RefusedAsk? refusedAsk = null)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(desk);
-        Dictionary<string, FigureDraft> drafts = desk.Drafts.ToDictionary(static draft => draft.ParameterId, StringComparer.Ordinal);
+        Dictionary<(string Id, FigureDraftKind Kind), FigureDraft> drafts = desk.Drafts.ToDictionary(static draft => (draft.ParameterId, draft.Kind));
         // A heading is drawn once, however the figures under it are scattered through the registry: the things
         // that meet a need are listed in the order the engine tries them, which is not need by need.
         List<(string Group, List<(Subject Subject, List<FigureRow> Rows)> Cards)> groups = [];
@@ -101,7 +128,21 @@ public static class FigureSheet
                 cards.Add((subject, []));
             }
 
-            cards[card].Rows.Add(Row(parameter, subject, desk, drafts.GetValueOrDefault(parameter.Id), refused));
+            FigureRow row = Row(parameter, subject, desk, drafts.GetValueOrDefault((parameter.Id, FigureDraftKind.Value)), refused);
+            AskBox ask = Asking(parameter, desk, drafts.GetValueOrDefault((parameter.Id, FigureDraftKind.Ask)), refusedAsk, out FigureChip? drafted);
+            List<FigureChip> chips = [.. row.Chips];
+            if (desk.InForce.MayGive(parameter.Id))
+            {
+                chips.Add(new FigureChip("household", "A household may give its own"));
+            }
+
+            if (drafted is not null)
+            {
+                chips.Add(drafted);
+                row = row with { State = "drafted" };
+            }
+
+            cards[card].Rows.Add(row with { Chips = chips, Ask = ask });
         }
 
         // The needs come in the board's own order, rung by rung, wherever each first turned up; every other heading keeps its place.
@@ -135,11 +176,6 @@ public static class FigureSheet
             (value, reason, source) = (Plain(draft.Value), draft.Reason, draft.Source);
         }
 
-        if (parameter.HouseholdMayOverride)
-        {
-            chips.Add(new FigureChip("household", "A household may give its own"));
-        }
-
         string? refusal = null;
         if (refused is not null && refused.Id == parameter.Id)
         {
@@ -148,6 +184,33 @@ public static class FigureSheet
 
         string label = subject.Title is null ? parameter.Name : Say.Capital(parameter.Name[(parameter.Name.LastIndexOf(": ", StringComparison.Ordinal) + 2)..]);
         return new FigureRow(parameter, label, Plain(inForce), state, chips, $"A correction must be between {Plain(parameter.Min)} and {Plain(parameter.Max)}.", value, reason, source, refusal);
+    }
+
+    // Whether a household may give its own figure here: how it stands, what is drafted about it, and the box as it should be drawn.
+    private static AskBox Asking(ParameterDefinition parameter, DeskView desk, FigureDraft? draft, RefusedAsk? refused, out FigureChip? drafted)
+    {
+        drafted = null;
+        if (!parameter.HouseholdMayBeAsked)
+        {
+            return AskBox.None;
+        }
+
+        string? asked = desk.InForce.QuestionFor(parameter.Id);
+        string stands = asked is null ? "As it stands, a household may not give its own figure here." : $"As it stands, a household may give its own figure here, and is asked: \"{asked}\"";
+        (bool allow, string question, string reason) = (asked is not null, asked ?? string.Empty, string.Empty);
+        if (draft is not null)
+        {
+            drafted = new FigureChip("drafted", draft.MayGive ? $"Drafted by {draft.DraftedBy}: a household may give its own" : $"Drafted by {draft.DraftedBy}: a household may no longer give its own");
+            (allow, question, reason) = (draft.MayGive, draft.Question ?? question, draft.Reason);
+        }
+
+        string? refusal = null;
+        if (refused is not null && refused.Id == parameter.Id)
+        {
+            (allow, question, reason, refusal) = (refused.Allow, refused.Question, refused.Reason, refused.Message);
+        }
+
+        return new AskBox("_FiguresAsk", stands, allow, question, reason, refusal);
     }
 
     // What a figure belongs to. A provider is found by the first part of the figure's id, which is the provider's own.

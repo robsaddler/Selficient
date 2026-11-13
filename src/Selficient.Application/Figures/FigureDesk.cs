@@ -90,7 +90,7 @@ public sealed class FigureDesk
 
         IReadOnlyList<FigureDraft> drafts = await _store.DraftsAsync(cancellationToken);
         FigureDraft draft = new(parameterId, value, why.Value, from.Value, operatorName, _clock.GetUtcNow());
-        Result<ParameterSet> together = Drafted([.. drafts.Where(other => other.ParameterId != parameterId), draft]);
+        Result<ParameterSet> together = Drafted([.. drafts.Where(other => other.ParameterId != parameterId || other.Kind != FigureDraftKind.Value), draft]);
         if (together.IsFailure)
         {
             return Result.Failure<FigureDraft>(together.Error);
@@ -107,14 +107,54 @@ public sealed class FigureDesk
     }
 
     /// <summary>
-    /// Takes a drafted correction out of the draft. The person who drafted it may, and so may a
-    /// publisher, whose review the draft is; nobody else may throw away another person's work.
+    /// Drafts whether a household may give its own figure here, and what it is asked when it may.
+    /// It replaces any earlier draft of the same thing, and like a correction it changes nothing
+    /// until it is published.
     /// </summary>
-    public async Task<Result<FigureDraft>> DiscardAsync(string operatorName, string parameterId, CancellationToken cancellationToken)
+    public async Task<Result<FigureDraft>> DraftAskAsync(string operatorName, string parameterId, bool mayGive, string? question, string reason, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operatorName);
         ArgumentNullException.ThrowIfNull(parameterId);
-        FigureDraft? draft = (await _store.DraftsAsync(cancellationToken)).FirstOrDefault(other => other.ParameterId == parameterId);
+        Result<string> why = Text(reason, "Say why this should change, in up to 400 characters.");
+        if (why.IsFailure)
+        {
+            return Result.Failure<FigureDraft>(why.Error);
+        }
+
+        string asked = (question ?? string.Empty).Trim();
+        if (mayGive && asked.Length == 0)
+        {
+            return Result.Failure<FigureDraft>(new Fault("figures.question", "Write the question a household will be asked, ending in a question mark."));
+        }
+
+        IReadOnlyList<FigureDraft> drafts = await _store.DraftsAsync(cancellationToken);
+        FigureDraft draft = new(parameterId, mayGive ? 1m : 0m, why.Value, string.Empty, operatorName, _clock.GetUtcNow()) { Kind = FigureDraftKind.Ask, Question = mayGive ? asked : null };
+        Result<ParameterSet> together = Drafted([.. drafts.Where(other => other.ParameterId != parameterId || other.Kind != FigureDraftKind.Ask), draft]);
+        if (together.IsFailure)
+        {
+            return Result.Failure<FigureDraft>(together.Error);
+        }
+
+        if (together.Value.QuestionFor(parameterId) == _current.Current.QuestionFor(parameterId))
+        {
+            return Result.Failure<FigureDraft>(new Fault("figures.same", "That is how it already stands. To withdraw a drafted change, take it out of the draft."));
+        }
+
+        await _store.SaveDraftAsync(draft, cancellationToken);
+        string said = mayGive ? $"{parameterId}: a household may give its own, asked \"{asked}\": {draft.Reason}" : $"{parameterId}: a household may not give its own: {draft.Reason}";
+        await _log.RecordHandAsync("draft-figure", null, Clip(said), operatorName, cancellationToken);
+        return Result.Success(draft);
+    }
+
+    /// <summary>
+    /// Takes a draft out of the draft. The person who drafted it may, and so may a publisher, whose
+    /// review the draft is; nobody else may throw away another person's work.
+    /// </summary>
+    public async Task<Result<FigureDraft>> DiscardAsync(string operatorName, string parameterId, FigureDraftKind kind, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operatorName);
+        ArgumentNullException.ThrowIfNull(parameterId);
+        FigureDraft? draft = (await _store.DraftsAsync(cancellationToken)).FirstOrDefault(other => other.ParameterId == parameterId && other.Kind == kind);
         if (draft is null)
         {
             return Result.Failure<FigureDraft>(new Fault("figures.no-draft", "There is no drafted correction of that figure."));
@@ -125,8 +165,11 @@ public sealed class FigureDesk
             return Result.Failure<FigureDraft>(new Fault("figures.forbidden", "Only the person who drafted a correction, or a publisher, can take it out of the draft."));
         }
 
-        await _store.DiscardDraftAsync(parameterId, cancellationToken);
-        await _log.RecordHandAsync("discard-figure", null, Clip(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{parameterId} taken out of the draft; it was {draft.Value}, drafted by {draft.DraftedBy}.")), operatorName, cancellationToken);
+        await _store.DiscardDraftAsync(parameterId, kind, cancellationToken);
+        string what = kind == FigureDraftKind.Value
+            ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{parameterId} taken out of the draft; it was {draft.Value}, drafted by {draft.DraftedBy}.")
+            : $"{parameterId}: the draft of whether a household may give its own was taken out; it was drafted by {draft.DraftedBy}.";
+        await _log.RecordHandAsync("discard-figure", null, Clip(what), operatorName, cancellationToken);
         return Result.Success(draft);
     }
 
@@ -173,15 +216,19 @@ public sealed class FigureDesk
         }
 
         ParameterSet before = _current.Current;
+        ParameterSet after = drafted.Value;
         List<FigureChange> changes = [.. drafts
-            .Where(draft => before[draft.ParameterId] != draft.Value)
-            .Select(draft => new FigureChange(drafted.Value.Version, draft.ParameterId, before[draft.ParameterId], draft.Value, draft.Reason, draft.Source, draft.DraftedBy, draft.DraftedAt))];
+            .Where(draft => draft.Kind == FigureDraftKind.Value && before[draft.ParameterId] != draft.Value)
+            .Select(draft => new FigureChange(after.Version, draft.ParameterId, before[draft.ParameterId], draft.Value, draft.Reason, draft.Source, draft.DraftedBy, draft.DraftedAt))];
+        changes.AddRange(drafts
+            .Where(draft => draft.Kind == FigureDraftKind.Ask && before.QuestionFor(draft.ParameterId) != after.QuestionFor(draft.ParameterId))
+            .Select(draft => AskChange(before, after, draft.ParameterId, draft.Reason, draft.DraftedBy, draft.DraftedAt)));
         if (changes.Count == 0)
         {
             return Result.Failure<PublishedFigures>(new Fault("figures.nothing", "Nothing drafted would change a figure, so there is nothing to publish."));
         }
 
-        PublishedFigures set = new(drafted.Value.Version, _clock.GetUtcNow(), operatorName, note.Trim(), null, drafted.Value.Corrections);
+        PublishedFigures set = new(after.Version, _clock.GetUtcNow(), operatorName, note.Trim(), null, after.Corrections) { Asks = after.Asks };
         return await CommitAsync(set, changes, clearDrafts: true, "publish-figures", cancellationToken);
     }
 
@@ -195,13 +242,13 @@ public sealed class FigureDesk
         }
 
         ParameterSet before = _current.Current;
-        IReadOnlyDictionary<string, decimal>? corrections = version == 0 ? new Dictionary<string, decimal>() : (await _store.FindAsync(version, cancellationToken))?.Corrections;
-        if (corrections is null || version == before.Version)
+        PublishedFigures? earlier = version == 0 ? new PublishedFigures(0, default, string.Empty, string.Empty, null, new Dictionary<string, decimal>()) : await _store.FindAsync(version, cancellationToken);
+        if (earlier is null || version == before.Version)
         {
             return Result.Failure<PublishedFigures>(new Fault("figures.version", "That is not an earlier set of figures."));
         }
 
-        Result<ParameterSet> restored = ParameterSet.Create(before.Version + 1, corrections);
+        Result<ParameterSet> restored = ParameterSet.Create(before.Version + 1, earlier.Corrections, earlier.Asks);
         if (restored.IsFailure)
         {
             return Result.Failure<PublishedFigures>(restored.Error);
@@ -212,12 +259,15 @@ public sealed class FigureDesk
         List<FigureChange> changes = [.. ParameterRegistry.All
             .Where(parameter => before[parameter.Id] != restored.Value[parameter.Id])
             .Select(parameter => new FigureChange(restored.Value.Version, parameter.Id, before[parameter.Id], restored.Value[parameter.Id], reason, note.Trim(), operatorName, now))];
+        changes.AddRange(ParameterRegistry.All
+            .Where(parameter => before.QuestionFor(parameter.Id) != restored.Value.QuestionFor(parameter.Id))
+            .Select(parameter => AskChange(before, restored.Value, parameter.Id, reason, operatorName, now)));
         if (changes.Count == 0)
         {
             return Result.Failure<PublishedFigures>(new Fault("figures.version", "That set has the same figures as the one in force."));
         }
 
-        PublishedFigures set = new(restored.Value.Version, now, operatorName, note.Trim(), version, restored.Value.Corrections);
+        PublishedFigures set = new(restored.Value.Version, now, operatorName, note.Trim(), version, restored.Value.Corrections) { Asks = restored.Value.Asks };
         return await CommitAsync(set, changes, clearDrafts: false, "restore-figures", cancellationToken);
     }
 
@@ -249,17 +299,28 @@ public sealed class FigureDesk
         return new FigurePreview(lines, costs, compared);
     }
 
+    private static FigureChange AskChange(ParameterSet before, ParameterSet after, string id, string reason, string by, DateTimeOffset at) =>
+        new(after.Version, id, before.MayGive(id) ? 1m : 0m, after.MayGive(id) ? 1m : 0m, reason, string.Empty, by, at) { Kind = FigureDraftKind.Ask, Question = after.QuestionFor(id) };
+
     // The set the drafts would make over the one in force, as the next number, or the sentence that says why they cannot.
     private Result<ParameterSet> Drafted(IReadOnlyList<FigureDraft> drafts)
     {
         ParameterSet current = _current.Current;
         Dictionary<string, decimal> corrections = new(current.Corrections, StringComparer.Ordinal);
+        Dictionary<string, string?> asks = new(current.Asks, StringComparer.Ordinal);
         foreach (FigureDraft draft in drafts)
         {
-            corrections[draft.ParameterId] = draft.Value;
+            if (draft.Kind == FigureDraftKind.Value)
+            {
+                corrections[draft.ParameterId] = draft.Value;
+            }
+            else
+            {
+                asks[draft.ParameterId] = draft.Question;
+            }
         }
 
-        return ParameterSet.Create(current.Version + 1, corrections);
+        return ParameterSet.Create(current.Version + 1, corrections, asks);
     }
 
     private async Task<Fault?> Refused(string operatorName, string note, CancellationToken cancellationToken)

@@ -7,7 +7,21 @@ namespace Selficient.Application.Figures;
 /// <param name="Note">What the publication was for, in the operator's words.</param>
 /// <param name="Restores">The earlier set this one puts back, or null when it is new work.</param>
 /// <param name="Corrections">Every figure that differs from the shipped one, by id.</param>
-public sealed record PublishedFigures(int Version, DateTimeOffset At, string By, string Note, int? Restores, IReadOnlyDictionary<string, decimal> Corrections);
+public sealed record PublishedFigures(int Version, DateTimeOffset At, string By, string Note, int? Restores, IReadOnlyDictionary<string, decimal> Corrections)
+{
+    /// <summary>Where the set differs from the product as shipped in which figures a household may give for itself: the question to ask, or null where one is switched off.</summary>
+    public IReadOnlyDictionary<string, string?> Asks { get; init; } = new Dictionary<string, string?>();
+}
+
+/// <summary>What a draft or a change is about.</summary>
+public enum FigureDraftKind
+{
+    /// <summary>The figure's value.</summary>
+    Value,
+
+    /// <summary>Whether a household may give its own figure here, and what it is asked.</summary>
+    Ask,
+}
 
 /// <summary>A correction somebody has drafted and nobody has published: the figure, the value, and why and on what authority.</summary>
 /// <param name="ParameterId">The figure.</param>
@@ -16,7 +30,17 @@ public sealed record PublishedFigures(int Version, DateTimeOffset At, string By,
 /// <param name="Source">Where the value comes from.</param>
 /// <param name="DraftedBy">The operator who drafted it.</param>
 /// <param name="DraftedAt">When.</param>
-public sealed record FigureDraft(string ParameterId, decimal Value, string Reason, string Source, string DraftedBy, DateTimeOffset DraftedAt);
+public sealed record FigureDraft(string ParameterId, decimal Value, string Reason, string Source, string DraftedBy, DateTimeOffset DraftedAt)
+{
+    /// <summary>What is drafted: the value, or whether a household may give its own. For the second, the value is one for "it may" and nought for "it may not".</summary>
+    public FigureDraftKind Kind { get; init; }
+
+    /// <summary>What a household would be asked, where the draft switches its own figure on.</summary>
+    public string? Question { get; init; }
+
+    /// <summary>Whether the draft says a household may give its own figure.</summary>
+    public bool MayGive => Value == 1m;
+}
 
 /// <summary>One figure changing in one publication, kept for ever: what it was, what it became, why, on what authority, and who drafted it.</summary>
 /// <param name="Version">The publication it changed in.</param>
@@ -27,7 +51,14 @@ public sealed record FigureDraft(string ParameterId, decimal Value, string Reaso
 /// <param name="Source">Where the value came from.</param>
 /// <param name="DraftedBy">The operator who drafted the change.</param>
 /// <param name="DraftedAt">When it was drafted.</param>
-public sealed record FigureChange(int Version, string ParameterId, decimal Before, decimal After, string Reason, string Source, string DraftedBy, DateTimeOffset DraftedAt);
+public sealed record FigureChange(int Version, string ParameterId, decimal Before, decimal After, string Reason, string Source, string DraftedBy, DateTimeOffset DraftedAt)
+{
+    /// <summary>What changed: the value, or whether a household may give its own, where one is "it may" and nought "it may not".</summary>
+    public FigureDraftKind Kind { get; init; }
+
+    /// <summary>What a household is asked after the change, where it may give its own.</summary>
+    public string? Question { get; init; }
+}
 
 /// <summary>
 /// Where published sets of figures, the draft in hand and the record of every change are kept. Sets
@@ -54,11 +85,11 @@ public interface IFigureStore
     /// <summary>Every drafted correction, by figure.</summary>
     Task<IReadOnlyList<FigureDraft>> DraftsAsync(CancellationToken cancellationToken);
 
-    /// <summary>Keeps a drafted correction, replacing any earlier draft of the same figure.</summary>
+    /// <summary>Keeps a draft, replacing any earlier draft of the same kind for the same figure.</summary>
     Task SaveDraftAsync(FigureDraft draft, CancellationToken cancellationToken);
 
-    /// <summary>Throws a drafted correction away; false when there was none.</summary>
-    Task<bool> DiscardDraftAsync(string parameterId, CancellationToken cancellationToken);
+    /// <summary>Throws a draft away; false when there was none of that kind for that figure.</summary>
+    Task<bool> DiscardDraftAsync(string parameterId, FigureDraftKind kind, CancellationToken cancellationToken);
 
     /// <summary>
     /// Publishes a set with the changes that make it, in one transaction, emptying the draft when

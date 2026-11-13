@@ -71,8 +71,8 @@ public static class RuleFigures
     [
         .. Prices.SelectMany(static price => new[]
         {
-            new ParameterDefinition($"price.{price.Action}.low", PriceGroup, $"{price.What}: the least it costs", "pounds", price.Low, 0m, Most(price.High), Seen, $"In the plan, as the cost of \"{price.Action}\""),
-            new ParameterDefinition($"price.{price.Action}.high", PriceGroup, $"{price.What}: the most it costs", "pounds", price.High, 0m, Most(price.High), Seen, $"In the plan, as the cost of \"{price.Action}\""),
+            new ParameterDefinition($"price.{price.Action}.low", PriceGroup, $"{price.What}: the least it costs", "pounds", price.Low, 0m, Most(price.High), Seen, $"In the plan, as the cost of \"{price.Action}\"") { HouseholdMayBeAsked = true },
+            new ParameterDefinition($"price.{price.Action}.high", PriceGroup, $"{price.What}: the most it costs", "pounds", price.High, 0m, Most(price.High), Seen, $"In the plan, as the cost of \"{price.Action}\"") { HouseholdMayBeAsked = true },
         }),
         new(WaterCanLitres, PlanGroup, "The size of a water can the plan asks for", "litres", 25m, 5m, 50m, "The common food-grade can", "In the plan, in the water cans action and the figure a household gives for them"),
         new(BottleLitres, PlanGroup, "The size of the bottle the plan counts bottled water in", "litres", 2m, 0.5m, 10m, "The large supermarket bottle", "In the plan, in the bottled water action"),

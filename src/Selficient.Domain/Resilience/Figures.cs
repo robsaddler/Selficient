@@ -138,6 +138,7 @@ public static class ProviderFigures
                 yield return new ParameterDefinition(id, GroupOf(provider), $"{provider.Name}: {figure.Label}", figure.Unit(provider), shipped, 0m, figure.Max(shipped), provider.Source, ShownOn(provider))
                 {
                     HouseholdQuestion = HouseholdQuestions.GetValueOrDefault(id),
+                    HouseholdMayBeAsked = true,
                     WholeNumber = figure.WholeNumber,
                 };
             }

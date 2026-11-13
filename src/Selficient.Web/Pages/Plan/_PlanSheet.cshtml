@@ -92,7 +92,7 @@
         @foreach (var question in Model.Questions)
         {
           <div class="assumptions__item" data-own-state="@question.State">
-            <label for="@question.InputId">@question.Definition.HouseholdQuestion</label>
+            <label for="@question.InputId">@question.Question</label>
             <div class="assumptions__row">
               <input id="@question.InputId" class="input input--short" type="number" inputmode="decimal" min="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Min)" max="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Definition.Max)" step="@question.Step" autocomplete="off" value="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Value)" data-own-figure="@question.Definition.Id" data-own-plans="@Selficient.Web.Pages.Plan.OwnFigures.Plain(question.Plans)" aria-describedby="@(question.InputId)-says">
               <span>@question.Definition.Unit</span>

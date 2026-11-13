@@ -1,0 +1,28 @@
+@model Selficient.Web.Pages.Admin.FigureRow
+@* Whether a household may give its own figure here, and what it is asked: drafted and published like a correction to the value. *@
+<form method="post" asp-page="/Admin/Figures" asp-page-handler="Ask" asp-fragment="@Model.Anchor" class="desk-figure__form desk-figure__form--ask" data-ask-form novalidate>
+  <input type="hidden" name="id" value="@Model.Definition.Id">
+  <p class="desk-figure__ask-title">A household's own figure</p>
+  @if (Model.Ask.Refusal is { } refusal)
+  {
+    <p class="callout callout--warning" role="alert" data-ask-refusal>@refusal</p>
+  }
+  <p class="desk-figure__facts" data-ask-stands>@Model.Ask.Stands</p>
+  <fieldset class="desk-figure__choice">
+    <legend>May a household give its own figure here?</legend>
+    <label><input type="radio" name="allow" value="true" checked="@Model.Ask.Allow"> It may</label>
+    <label><input type="radio" name="allow" value="false" checked="@Model.Ask.Deny"> It may not</label>
+  </fieldset>
+  <div class="field">
+    <label for="question-@Model.Definition.Id">What a household is asked, as a question</label>
+    <input id="question-@Model.Definition.Id" name="question" class="input" autocomplete="off" maxlength="@Selficient.Domain.Parameters.ParameterSet.MaxQuestionLength" value="@Model.Ask.Question">
+    <p class="field__hint">A household answers in @Model.Definition.Unit. It is asked only if it has the thing, or its plan offers it.</p>
+  </div>
+  <div class="field">
+    <label for="ask-reason-@Model.Definition.Id">Why this should change</label>
+    <input id="ask-reason-@Model.Definition.Id" name="reason" class="input" autocomplete="off" maxlength="@Selficient.Application.Figures.FigureDesk.MaxTextLength" value="@Model.Ask.Reason" required>
+  </div>
+  <div class="cluster">
+    <button type="submit" class="button button--small">Put it in the draft</button>
+  </div>
+</form>

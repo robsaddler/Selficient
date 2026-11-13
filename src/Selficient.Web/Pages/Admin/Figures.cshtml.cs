@@ -41,6 +41,7 @@ public sealed class FiguresModel : PageModel
     private readonly FigureDesk _desk;
     private readonly IFigureStore _store;
     private RefusedCorrection? _refused;
+    private RefusedAsk? _refusedAsk;
 
     /// <summary>Creates the page over the desk and the store it reads the history from.</summary>
     public FiguresModel(FigureDesk desk, IFigureStore store)
@@ -166,10 +167,39 @@ public sealed class FiguresModel : PageModel
     }
 
     /// <summary>Takes a drafted correction out of the draft.</summary>
-    public async Task<IActionResult> OnPostDiscardAsync(string? id, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostDiscardAsync(string? id, string? kind, CancellationToken cancellationToken)
     {
-        Result<FigureDraft> discarded = await _desk.DiscardAsync(OperatorName, id ?? string.Empty, cancellationToken);
+        FigureDraftKind which = kind == nameof(FigureDraftKind.Ask) ? FigureDraftKind.Ask : FigureDraftKind.Value;
+        Result<FigureDraft> discarded = await _desk.DiscardAsync(OperatorName, id ?? string.Empty, which, cancellationToken);
         return await AnsweredAsync(discarded.IsSuccess, discarded.IsSuccess ? "The correction is out of the draft." : discarded.Error.Message, Draft, Draft, cancellationToken);
+    }
+
+    /// <summary>Drafts whether a household may give its own figure here, and what it is asked.</summary>
+    public async Task<IActionResult> OnPostAskAsync(string? id, string? allow, string? question, string? reason, CancellationToken cancellationToken)
+    {
+        if (ParameterRegistry.Find(id ?? string.Empty) is not { } parameter)
+        {
+            Refusal = "That is not one of the figures the plan works from.";
+            await LoadAsync(cancellationToken);
+            return Page();
+        }
+
+        bool mayGive = allow == "true";
+        Result<FigureDraft> drafted = await _desk.DraftAskAsync(OperatorName, parameter.Id, mayGive, question, reason ?? string.Empty, cancellationToken);
+        // The figure's own tab, whichever the post came from: it comes back to the figure.
+        Tab = FigureSheet.IsPrice(parameter) ? Prices : Work;
+        Query = null;
+        if (drafted.IsFailure)
+        {
+            _refusedAsk = new RefusedAsk(parameter.Id, mayGive, question ?? string.Empty, reason ?? string.Empty, drafted.Error.Message);
+            await LoadAsync(cancellationToken);
+            return Page();
+        }
+
+        Notice = mayGive
+            ? $"Drafted: a household may give its own figure for \"{parameter.Name}\". Nothing changes until the draft is published."
+            : $"Drafted: a household may no longer give its own figure for \"{parameter.Name}\". Nothing changes until the draft is published.";
+        return RedirectToPage(null, null, new { tab = TabId }, FigureSheet.AnchorOf(parameter.Id));
     }
 
     /// <summary>Puts the draft into force.</summary>
@@ -258,7 +288,7 @@ public sealed class FiguresModel : PageModel
             ? [.. ParameterRegistry.All.Where(parameter => FigureSheet.IsPrice(parameter) == (TabId == Prices))]
             : [.. ParameterRegistry.All.Where(parameter => Matches(parameter, search))];
         SheetLede = search.Length == 0 ? Sheets[TabId] : FoundSentence(shown.Count, search);
-        Groups = FigureSheet.Build(shown, Desk, _refused);
+        Groups = FigureSheet.Build(shown, Desk, _refused, _refusedAsk);
     }
 
     private static bool Matches(ParameterDefinition parameter, string search) =>
@@ -320,6 +350,12 @@ public sealed class FiguresModel : PageModel
     /// <param name="CanDiscard">Whether this operator may take it out of the draft.</param>
     public sealed record DraftLine(FigureDraft Draft, string Name, string Standing, string By, bool CanDiscard)
     {
+        /// <summary>What the second line of the draft's account is called: the source of a value, or the question a household would be asked.</summary>
+        public string AccountLabel => Draft.Kind == FigureDraftKind.Value ? "Source" : "Asked";
+
+        /// <summary>The second line of the draft's account.</summary>
+        public string Account => Draft.Kind == FigureDraftKind.Value ? Draft.Source : Draft.Question ?? "Nothing: a household would no longer be asked.";
+
         /// <summary>The view that draws the hand, or what stands in its place.</summary>
         public string HandView => CanDiscard ? "_FiguresDiscard" : "_FiguresNotYours";
 
@@ -331,10 +367,20 @@ public sealed class FiguresModel : PageModel
             ParameterDefinition? parameter = ParameterRegistry.Find(draft.ParameterId);
             string standing = parameter is null
                 ? "This is no longer a figure the plan works from. Take it out of the draft."
-                : $"{FigureSheet.Plain(desk.InForce[parameter.Id])} {parameter.Unit} in force; {FigureSheet.Plain(draft.Value)} drafted.";
+                : draft.Kind == FigureDraftKind.Value
+                    ? $"{FigureSheet.Plain(desk.InForce[parameter.Id])} {parameter.Unit} in force; {FigureSheet.Plain(draft.Value)} drafted."
+                    : Switched(desk.InForce.MayGive(parameter.Id), draft.MayGive);
             return new DraftLine(draft, parameter?.Name ?? draft.ParameterId, standing, $"Drafted by {draft.DraftedBy} on {Stamp(draft.DraftedAt)}.", desk.MayPublish || string.Equals(draft.DraftedBy, operatorName, StringComparison.OrdinalIgnoreCase));
         }
     }
+
+    // Whether a household may give its own figure, before and after, in words.
+    // A draft that leaves it as it stands is one that rewords the question: nothing else is kept as a draft.
+    private static string Switched(bool was, bool will) => was == will
+        ? "A household may give its own figure now; drafted: it is asked in other words."
+        : will
+            ? "A household may not give its own figure now; drafted: it may."
+            : "A household may give its own figure now; drafted: it may not.";
 
     /// <summary>A published set as the history lists it.</summary>
     /// <param name="Version">Its number; nought for the shipped figures.</param>
@@ -394,6 +440,9 @@ public sealed class FiguresModel : PageModel
     /// <param name="By">Who drafted it and when.</param>
     public sealed record ChangeLine(string Head, string Moved, string Why, string Source, string By)
     {
+        /// <summary>What the second line of the change's account is called.</summary>
+        public string AccountLabel { get; init; } = "Source";
+
         /// <summary>A change as a line of one figure's history.</summary>
         public static ChangeLine InHistory(FigureChange change)
         {
@@ -408,7 +457,14 @@ public sealed class FiguresModel : PageModel
             return Line(ParameterRegistry.Find(change.ParameterId)?.Name ?? change.ParameterId, change);
         }
 
-        private static ChangeLine Line(string head, FigureChange change) =>
-            new(head, $"{FigureSheet.Plain(change.Before)} to {FigureSheet.Plain(change.After)}", change.Reason, change.Source, $"Drafted by {change.DraftedBy} on {Stamp(change.DraftedAt)}.");
+        private static ChangeLine Line(string head, FigureChange change) => change.Kind == FigureDraftKind.Value
+            ? new(head, $"{FigureSheet.Plain(change.Before)} to {FigureSheet.Plain(change.After)}", change.Reason, change.Source, $"Drafted by {change.DraftedBy} on {Stamp(change.DraftedAt)}.")
+            : new(head, Became(change.Before == 1m, change.After == 1m), change.Reason, change.Question ?? "Nothing: a household is no longer asked.", $"Drafted by {change.DraftedBy} on {Stamp(change.DraftedAt)}.") { AccountLabel = "Asked" };
+
+        private static string Became(bool was, bool now) => was == now
+            ? "A household is asked in other words."
+            : now
+                ? "A household may now give its own figure."
+                : "A household may no longer give its own figure.";
     }
 }

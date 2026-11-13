@@ -39,7 +39,7 @@ public sealed class FigureDeskTests
             Store.SaveDraftAsync(Arg.Any<FigureDraft>(), Arg.Any<CancellationToken>()).Returns(call =>
             {
                 FigureDraft draft = call.Arg<FigureDraft>();
-                Drafts.RemoveAll(other => other.ParameterId == draft.ParameterId);
+                Drafts.RemoveAll(other => other.ParameterId == draft.ParameterId && other.Kind == draft.Kind);
                 Drafts.Add(draft);
                 return Task.CompletedTask;
             });
@@ -113,23 +113,118 @@ public sealed class FigureDeskTests
     public async Task A_correction_is_taken_out_of_the_draft_by_whoever_drafted_it_or_by_a_publisher_and_by_nobody_else()
     {
         Rig rig = new();
-        rig.Store.DiscardDraftAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call => rig.Drafts.RemoveAll(draft => draft.ParameterId == call.Arg<string>()) > 0);
+        rig.Store.DiscardDraftAsync(Arg.Any<string>(), Arg.Any<FigureDraftKind>(), Arg.Any<CancellationToken>()).Returns(call => rig.Drafts.RemoveAll(draft => draft.ParameterId == call.Arg<string>() && draft.Kind == call.Arg<FigureDraftKind>()) > 0);
         await rig.Desk.DraftAsync("expert", "stairlift-batteries.stock", 3m, "Why.", "Where.", CancellationToken.None);
         await rig.Desk.DraftAsync("expert", "demand.drinking-litres", 2.5m, "Why.", "Where.", CancellationToken.None);
         await rig.Desk.DraftAsync("rob", "demand.pet-water-litres", 3m, "Why.", "Where.", CancellationToken.None);
 
-        (await rig.Desk.DiscardAsync("expert", "demand.pet-water-litres", CancellationToken.None)).Error.Message.ShouldBe("Only the person who drafted a correction, or a publisher, can take it out of the draft.");
-        (await rig.Desk.DiscardAsync("expert", "no-such-figure", CancellationToken.None)).Error.Message.ShouldBe("There is no drafted correction of that figure.");
+        (await rig.Desk.DiscardAsync("expert", "demand.pet-water-litres", FigureDraftKind.Value, CancellationToken.None)).Error.Message.ShouldBe("Only the person who drafted a correction, or a publisher, can take it out of the draft.");
+        (await rig.Desk.DiscardAsync("expert", "no-such-figure", FigureDraftKind.Value, CancellationToken.None)).Error.Message.ShouldBe("There is no drafted correction of that figure.");
         rig.Drafts.Count.ShouldBe(3);
 
-        (await rig.Desk.DiscardAsync("EXPERT", "stairlift-batteries.stock", CancellationToken.None)).Value.Value.ShouldBe(3m, "their own, and a username is not compared by case");
-        (await rig.Desk.DiscardAsync("rob", "demand.drinking-litres", CancellationToken.None)).IsSuccess.ShouldBeTrue("the draft is the publisher's review, so a publisher may take out anybody's");
+        (await rig.Desk.DiscardAsync("EXPERT", "stairlift-batteries.stock", FigureDraftKind.Value, CancellationToken.None)).Value.Value.ShouldBe(3m, "their own, and a username is not compared by case");
+        (await rig.Desk.DiscardAsync("rob", "demand.drinking-litres", FigureDraftKind.Value, CancellationToken.None)).IsSuccess.ShouldBeTrue("the draft is the publisher's review, so a publisher may take out anybody's");
 
         rig.Drafts.ShouldHaveSingleItem().ParameterId.ShouldBe("demand.pet-water-litres");
         await rig.Log.Received(1).RecordHandAsync("discard-figure", null, "stairlift-batteries.stock taken out of the draft; it was 3, drafted by expert.", "EXPERT", Arg.Any<CancellationToken>());
         await rig.Log.Received(1).RecordHandAsync("discard-figure", null, "demand.drinking-litres taken out of the draft; it was 2.5, drafted by expert.", "rob", Arg.Any<CancellationToken>());
-        await Should.ThrowAsync<ArgumentNullException>(() => rig.Desk.DiscardAsync("rob", null!, CancellationToken.None));
-        await Should.ThrowAsync<ArgumentException>(() => rig.Desk.DiscardAsync(" ", "demand.drinking-litres", CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => rig.Desk.DiscardAsync("rob", null!, FigureDraftKind.Value, CancellationToken.None));
+        await Should.ThrowAsync<ArgumentException>(() => rig.Desk.DiscardAsync(" ", "demand.drinking-litres", FigureDraftKind.Value, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Whether_a_household_may_give_its_own_figure_is_drafted_published_and_put_back_like_a_correction()
+    {
+        Rig rig = new();
+        rig.Store.DiscardDraftAsync(Arg.Any<string>(), Arg.Any<FigureDraftKind>(), Arg.Any<CancellationToken>()).Returns(call => rig.Drafts.RemoveAll(draft => draft.ParameterId == call.Arg<string>() && draft.Kind == call.Arg<FigureDraftKind>()) > 0);
+        const string Lamp = "headtorches.stock";
+        const string Asked = "How many hours of light do your headtorches give on the cells you keep?";
+
+        // What cannot stand is said and not kept.
+        (await rig.Desk.DraftAskAsync("expert", Lamp, true, Asked, " ", CancellationToken.None)).Error.Message.ShouldBe("Say why this should change, in up to 400 characters.");
+        (await rig.Desk.DraftAskAsync("expert", Lamp, true, "  ", "Households know.", CancellationToken.None)).Error.Message.ShouldBe("Write the question a household will be asked, ending in a question mark.");
+        (await rig.Desk.DraftAskAsync("expert", Lamp, true, null, "Households know.", CancellationToken.None)).Error.Code.ShouldBe("figures.question");
+        (await rig.Desk.DraftAskAsync("expert", Lamp, true, "How many hours", "Households know.", CancellationToken.None)).Error.Code.ShouldBe("parameters.question");
+        (await rig.Desk.DraftAskAsync("expert", "demand.drinking-litres", true, Asked, "Households know.", CancellationToken.None)).Error.Message.ShouldBe("Whether a household may give \"demand.drinking-litres\" for itself is not something that can be changed.");
+        (await rig.Desk.DraftAskAsync("expert", Lamp, false, null, "It is already off.", CancellationToken.None)).Error.Message.ShouldBe("That is how it already stands. To withdraw a drafted change, take it out of the draft.");
+        rig.Drafts.ShouldBeEmpty();
+
+        // Switched on with a question, beside a correction to the same figure's value; switched off elsewhere.
+        await rig.Desk.DraftAskAsync("expert", Lamp, true, "A first wording of the question, to be replaced?", "A first go.", CancellationToken.None);
+        FigureDraft on = (await rig.Desk.DraftAskAsync("expert", Lamp, true, $"  {Asked} ", " Households know their own torches. ", CancellationToken.None)).Value;
+        rig.Drafts.ShouldHaveSingleItem("drafted again, it replaces the earlier draft of the same switch");
+        await rig.Desk.DraftAsync("expert", Lamp, 60m, "Better cells.", "A maker's sheet", CancellationToken.None);
+        await rig.Desk.DraftAskAsync("rob", "water-butt.stock", false, "ignored when it is switched off", "Nobody measures a butt.", CancellationToken.None);
+        (on.Kind, on.Question, on.MayGive, on.Reason, on.Source).ShouldBe((FigureDraftKind.Ask, Asked, true, "Households know their own torches.", string.Empty));
+        rig.Drafts.Count.ShouldBe(3, "a figure may have a draft of its value and a draft of its switch");
+        rig.Drafts.Single(draft => draft.ParameterId == "water-butt.stock").Question.ShouldBeNull();
+        await rig.Log.Received(1).RecordHandAsync("draft-figure", null, $"{Lamp}: a household may give its own, asked \"{Asked}\": Households know their own torches.", "expert", Arg.Any<CancellationToken>());
+        await rig.Log.Received(1).RecordHandAsync("draft-figure", null, "water-butt.stock: a household may not give its own: Nobody measures a butt.", "rob", Arg.Any<CancellationToken>());
+
+        DeskView view = await rig.Desk.ReadAsync("rob", CancellationToken.None);
+        view.Drafted!.QuestionFor(Lamp).ShouldBe(Asked);
+        view.Drafted.MayGive("water-butt.stock").ShouldBeFalse();
+        view.InForce.MayGive(Lamp).ShouldBeFalse("nothing is in force until it is published");
+
+        PublishedFigures published = (await rig.Desk.PublishAsync("rob", "Torches on, butts off.", CancellationToken.None)).Value;
+        published.Asks.ShouldBe(new Dictionary<string, string?> { [Lamp] = Asked, ["water-butt.stock"] = null }, ignoreOrder: true);
+        rig.Current.Current.QuestionFor(Lamp).ShouldBe(Asked);
+        rig.Current.Current.MayGive("water-butt.stock").ShouldBeFalse();
+        rig.Changes.Count.ShouldBe(3);
+        FigureChange switchedOn = rig.Changes.Single(change => change.ParameterId == Lamp && change.Kind == FigureDraftKind.Ask);
+        (switchedOn.Before, switchedOn.After, switchedOn.Question, switchedOn.Reason, switchedOn.DraftedBy).ShouldBe((0m, 1m, Asked, "Households know their own torches.", "expert"));
+        FigureChange switchedOff = rig.Changes.Single(change => change.ParameterId == "water-butt.stock");
+        (switchedOff.Kind, switchedOff.Before, switchedOff.After, switchedOff.Question).ShouldBe((FigureDraftKind.Ask, 1m, 0m, null));
+        rig.Drafts.ShouldBeEmpty();
+
+        // Reworded, which is a change; and a draft that has come to match what is in force is none.
+        (await rig.Desk.DraftAskAsync("expert", Lamp, true, Asked, "Again.", CancellationToken.None)).Error.Code.ShouldBe("figures.same");
+        await rig.Desk.DraftAskAsync("expert", Lamp, true, "How long do your headtorches last, in hours?", "Plainer.", CancellationToken.None);
+        rig.Drafts.Add(new FigureDraft("water-butt.stock", 0m, "Still off.", string.Empty, "expert", Now) { Kind = FigureDraftKind.Ask });
+        rig.Changes.Clear();
+        (await rig.Desk.PublishAsync("rob", "Plainer words.", CancellationToken.None)).IsSuccess.ShouldBeTrue();
+        rig.Changes.ShouldHaveSingleItem().Question.ShouldBe("How long do your headtorches last, in hours?");
+        rig.Changes[0].Before.ShouldBe(1m);
+        rig.Changes[0].After.ShouldBe(1m);
+
+        // Taken out by whoever drafted it, by its kind.
+        await rig.Desk.DraftAskAsync("expert", Lamp, false, null, "On reflection.", CancellationToken.None);
+        (await rig.Desk.DiscardAsync("expert", Lamp, FigureDraftKind.Value, CancellationToken.None)).Error.Code.ShouldBe("figures.no-draft", "there is a draft of the switch, not of the value");
+        (await rig.Desk.DiscardAsync("expert", Lamp, FigureDraftKind.Ask, CancellationToken.None)).IsSuccess.ShouldBeTrue();
+        await rig.Log.Received(1).RecordHandAsync("discard-figure", null, $"{Lamp}: the draft of whether a household may give its own was taken out; it was drafted by expert.", "expert", Arg.Any<CancellationToken>());
+
+        // Putting the shipped figures back puts the switches back too, and says what moved.
+        rig.Changes.Clear();
+        PublishedFigures shipped = (await rig.Desk.RestoreAsync("rob", 0, "Back to what shipped.", CancellationToken.None)).Value;
+        shipped.Asks.ShouldBeEmpty();
+        rig.Current.Current.MayGive(Lamp).ShouldBeFalse();
+        rig.Current.Current.MayGive("water-butt.stock").ShouldBeTrue();
+        rig.Changes.Where(change => change.Kind == FigureDraftKind.Ask).Select(change => (change.ParameterId, change.Before, change.After)).ShouldBe([(Lamp, 1m, 0m), ("water-butt.stock", 0m, 1m)], ignoreOrder: true);
+        rig.Changes.Count(change => change.Kind == FigureDraftKind.Value).ShouldBe(1, "the corrected value goes back with them");
+
+        // And an earlier set is put back with the switches it had.
+        PublishedFigures first = (await rig.Desk.RestoreAsync("rob", 1, "The first was right.", CancellationToken.None)).Value;
+        first.Asks.ShouldBe(new Dictionary<string, string?> { [Lamp] = Asked, ["water-butt.stock"] = null }, ignoreOrder: true);
+        await Should.ThrowAsync<ArgumentException>(() => rig.Desk.DraftAskAsync(" ", Lamp, true, Asked, "Why.", CancellationToken.None));
+        await Should.ThrowAsync<ArgumentNullException>(() => rig.Desk.DraftAskAsync("expert", null!, true, Asked, "Why.", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task A_switch_the_code_no_longer_accepts_is_dropped_and_named_and_the_rest_of_the_set_stands()
+    {
+        IFigureStore store = Substitute.For<IFigureStore>();
+        CurrentFigures current = new(store);
+        store.CurrentAsync(Arg.Any<CancellationToken>()).Returns(new PublishedFigures(4, Now, "rob", "Old.", null, new Dictionary<string, decimal> { ["stairlift-batteries.stock"] = 3m })
+        {
+            Asks = new Dictionary<string, string?> { ["a-figure-a-release-removed"] = "How many of them do you have?", ["headtorches.stock"] = "How many hours of light do your headtorches give?", ["water-butt.stock"] = null },
+        });
+
+        await current.ReloadAsync(CancellationToken.None);
+
+        current.Current["stairlift-batteries.stock"].ShouldBe(3m);
+        current.Current.MayGive("headtorches.stock").ShouldBeTrue();
+        current.Current.MayGive("water-butt.stock").ShouldBeFalse();
+        current.Dropped.ShouldHaveSingleItem().ShouldBe("What the set says about a household giving its own figure for \"a-figure-a-release-removed\" is no longer something the plan accepts, and was not applied.");
     }
 
     [Fact]
